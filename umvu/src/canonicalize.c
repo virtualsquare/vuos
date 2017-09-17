@@ -265,7 +265,7 @@ char *canon_realpath(const char *path, char *resolved_path, int flags, void *pri
 		.resolved = resolved_path,
 		.private = private,
 		.flags = flags,
-		.mode = 0,
+		.mode = operations.lmode("/", private),
 		.num_links = 0};
 	size_t pathlen;
 	ssize_t prefixlen;
