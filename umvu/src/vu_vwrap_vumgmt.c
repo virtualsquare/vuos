@@ -75,16 +75,15 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	service = vuht_get_service(sht);
 	fatal(service);
 
-	if (vuht_get_count(sht) != 0) {
+	module_run_fini(service);
+	vuht_drop(sht);
+	if (vuht_del(sht) != 0) {
 		printk(KERN_ERR "module %s is already in use\n", name);
 		sd->ret_value = -EADDRINUSE;
 		return;
 	}
-
-	module_run_fini(service);
 	service->mod->service = NULL;
-	vuht_drop(sht);
-	vuht_del(sht);
+	vuht_free(sht);
 	module_unload(service);
 	update_vepoch();
 	sd->ret_value = 0;

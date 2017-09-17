@@ -73,6 +73,7 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 
 void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte);
+int vuht_free(struct vuht_entry_t *hte);
 
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64

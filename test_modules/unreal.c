@@ -102,7 +102,21 @@ void *vu_unreal_init(void) {
 
 void vu_unreal_fini(void *private) {
 	struct twohte *two = private;
-	vuht_del(two->ht2);
-	vuht_del(two->ht1);
-	free(two);
+	if (vuht_del(two->ht2) == 0 && vuht_del(two->ht1) == 0) {
+		vuht_free(two->ht2);
+		vuht_free(two->ht1);
+		free(two);
+	}
+#if 0
+	if (two->ht2 && vuht_del(two->ht2) == 0) {
+		vuht_free(two->ht2);
+		two->ht2 = NULL;
+	}
+	if (two->ht1 && vuht_del(two->ht1) == 0) {
+		vuht_free(two->ht2);
+		two->ht1 = NULL;
+	}
+	if (two->ht1 == NULL && two->ht2 == NULL)
+		free(two);
+#endif
 }

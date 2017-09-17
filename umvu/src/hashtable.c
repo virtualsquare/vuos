@@ -67,18 +67,25 @@ static struct vuht_entry_t *vuht_hash0[NCHECKS];
 /* heads of the list of hash entries of the same type */
 static struct vuht_entry_t *vuht_head[NCHECKS];
 
-/* /free of vuht_entry_t */
 static inline struct vuht_entry_t *vuht_alloc() {
 	struct vuht_entry_t *rv = malloc(sizeof (struct vuht_entry_t));
 	fatal(rv);
 	return rv;
 }
 
-static inline void vuht_free(struct vuht_entry_t *ht) {
-	free(ht->obj);
-	if (ht->mtabline)
-		free(ht->mtabline);
-	free(ht);
+/* free of vuht_entry_t */
+/* it needs to have been deleted first (vuht_del) */
+int vuht_free(struct vuht_entry_t *ht) {
+	if (ht == NULL)
+		return -ENOENT;
+	else if (ht->next == NULL && ht->prev == NULL) {
+		free(ht->obj);
+		if (ht->mtabline)
+			free(ht->mtabline);
+		free(ht);
+		return 0;
+	} else
+		return -EBUSY;
 }
 
 /* hash function */
@@ -182,9 +189,9 @@ static inline int vuht_scan_terminate(uint8_t type, char *objc, int len,
 }
 
 struct confirm_arg {
-	uint8_t type; 
+	uint8_t type;
 	void *checkobj;
-	int len; 
+	int len;
 };
 
 static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
@@ -297,9 +304,11 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->invalid = 0;
 	new->private_data = private_data;
 	new->service = service;
-	new->service_hte = NULL;
+	new->service_hte = service->ht;
 	new->confirmfun = confirmfun;
 	new->count = (permanent != 0);
+	if (service->ht)
+		vuht_pick_again(service->ht);
 
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&vuht_rwlock);
@@ -324,7 +333,7 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	*hashhead=new;
 	pthread_rwlock_unlock(&vuht_rwlock);
 	return new;
-} 
+}
 
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
@@ -392,22 +401,31 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 	return rv;
 }
 
-/* delete an element from the hash table */
-static void vuht_del_locked(struct vuht_entry_t *ht) {
+/* detouch an element from the hash table */
+/* it is idempotent can be called several times */
+static int vuht_del_locked(struct vuht_entry_t *ht) {
 	uint8_t type = ht->type;
-
-	if (ht == vuht_head[type]) {
-		if (ht->next == ht)
-			vuht_head[type] = NULL;
-		else
-			vuht_head[type] = ht->prev;
+	if (ht->count != 0)
+		return -EBUSY;
+	if (ht->next != NULL) {
+		if (ht == vuht_head[type]) {
+			if (ht->next == ht)
+				vuht_head[type] = NULL;
+			else
+				vuht_head[type] = ht->prev;
+		}
+		ht->prev->next = ht->next;
+		ht->next->prev = ht->prev;
+		*(ht->pprevhash) = ht->nexthash;
+		if (ht->nexthash)
+			ht->nexthash->pprevhash = ht->pprevhash;
+		if (ht->service_hte && ht->service_hte != ht)
+			vuht_drop(ht->service_hte);
+		ht->service_hte = NULL;
+		ht->next = ht->prev = ht->nexthash = NULL;
+		ht->pprevhash = NULL;
 	}
-	ht->prev->next = ht->next;
-	ht->next->prev = ht->prev;
-	*(ht->pprevhash) = ht->nexthash;
-	if (ht->nexthash)
-		ht->nexthash->pprevhash = ht->pprevhash;
-	vuht_free(ht);
+	return 0;
 }
 
 void vuht_invalidate(struct vuht_entry_t *ht) {
@@ -417,10 +435,11 @@ void vuht_invalidate(struct vuht_entry_t *ht) {
 
 int vuht_del(struct vuht_entry_t *ht) {
 	if (ht) {
+		int ret_value;
 		pthread_rwlock_wrlock(&vuht_rwlock);
-		vuht_del_locked(ht);
+		ret_value = vuht_del_locked(ht);
 		pthread_rwlock_unlock(&vuht_rwlock);
-		return 0;
+		return ret_value;
 	} else
 		return -ENOENT;
 }
@@ -504,7 +523,7 @@ static void forall_vuht_terminate(uint8_t type)
 	pthread_rwlock_unlock(&vuht_rwlock);
 }
 
-void forall_vuht_do(uint8_t type, 
+void forall_vuht_do(uint8_t type,
 		void (*fun)(struct vuht_entry_t *ht, void *arg),
 		void *arg) {
 	pthread_rwlock_rdlock(&vuht_rwlock);
