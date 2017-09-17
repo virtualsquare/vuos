@@ -4,7 +4,7 @@
 #include <stdarg.h>
 
 struct vu_service_t;
-struct hashtable_obj_t;
+struct vuht_entry_t;
 
 struct vu_module_t {
   char *name;
@@ -58,21 +58,21 @@ int VU_SYSNAME(name, rename) (const char *target, const char *linkpath, int flag
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
-		struct hashtable_obj_t *ht);
+		struct vuht_entry_t *ht);
 
-struct hashtable_obj_t *ht_tab_add(uint8_t type, void *obj, int objlen,
+struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *private_data);
 
-struct hashtable_obj_t *ht_tab_pathadd(uint8_t type, const char *source,
+struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
 		struct vu_service_t *service,
 		unsigned char trailingnumbers,
 		confirmfun_t confirmfun, void *private_data);
 
-void ht_tab_invalidate(struct hashtable_obj_t *hte);
-int ht_tab_del(struct hashtable_obj_t *hte);
+void vuht_invalidate(struct vuht_entry_t *hte);
+int vuht_del(struct vuht_entry_t *hte);
 
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64

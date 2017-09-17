@@ -20,7 +20,7 @@
 #include <vu_fd_table.h>
 
 /* chdir, fchdir */
-void wi_chdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
 		int mode = sd->extra->statbuf.st_mode;
@@ -44,7 +44,7 @@ void wi_chdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-void wo_chdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wo_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value = sd->orig_ret_value;
 
 	if (ret_value >= 0)
@@ -53,7 +53,7 @@ void wo_chdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* getcwd */
-void wi_getcwd(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
 		syscall_arg_t bufaddr = sd->syscall_args[0];

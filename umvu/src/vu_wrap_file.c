@@ -23,7 +23,7 @@
 #include <vu_wrapper_utils.h>
 
 /* open, creat, openat */
-void wi_open(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
 		/* standard args */
@@ -87,7 +87,7 @@ void wi_open(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-void wo_open(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->orig_ret_value;
 	if (ht) {
 		struct fnode_t *fnode = sd->inout;
@@ -117,7 +117,7 @@ void wo_open(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* close */
-void wi_close(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	  int nested = sd->extra->nested;
 		if (nested) {
 			/* do not use DOIT_CB_AFTER: close must be real, not further virtualized */
@@ -133,7 +133,7 @@ void wi_close(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 		}
 }
 
-void wo_close(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[0];
 	int ret_value = sd->orig_ret_value;
 	if (ret_value >= 0) 
@@ -141,7 +141,7 @@ void wo_close(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
-static int fnode_close_upcall(struct hashtable_obj_t *ht, int sfd, void *private) {
+static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
   if (ht) {
     struct vu_service_t *service = ht_get_service(ht);
     return service->module_syscall[__VU_close](sfd, private);
@@ -150,7 +150,7 @@ static int fnode_close_upcall(struct hashtable_obj_t *ht, int sfd, void *private
 }
 
 /* read, readv */
-void wi_read(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		struct vu_service_t *service = ht_get_service(ht);
@@ -180,7 +180,7 @@ void wi_read(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* write, writev */
-void wi_write(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		struct vu_service_t *service = ht_get_service(ht);
@@ -207,7 +207,7 @@ void wi_write(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* getdents64, getdents */
-void wi_getdents64(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		struct vu_service_t *service = ht_get_service(ht);
@@ -234,7 +234,7 @@ void wi_getdents64(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) 
 }
 
 /* dup, dup2, dup3 */
-void wi_dup3(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (nested) {
 		int fd = sd->syscall_args[0];
@@ -262,7 +262,7 @@ void wi_dup3(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-void wo_dup3(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wo_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int newfd = sd->orig_ret_value;
 	int fd = sd->syscall_args[0];
 	if (newfd >= 0 && fd != newfd) { //dup2 does nothing if fd == newfd
@@ -276,7 +276,7 @@ void wo_dup3(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 
 /* umask */
 /* umask always succeeds. just copy the value */
-void wi_umask(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_umask(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
 		int umask = sd->syscall_args[0];
@@ -285,7 +285,7 @@ void wi_umask(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* lseek */
-void wi_lseek(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);

@@ -149,7 +149,7 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 
 /* canonicalize's helper functions */
 static int vu_access(char *pathname, int mode, void *private) {
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
 	int retval;
 
@@ -163,7 +163,7 @@ static int vu_access(char *pathname, int mode, void *private) {
 	return retval;
 }
 
-static inline mode_t get_lmode(struct hashtable_obj_t *ht, 
+static inline mode_t get_lmode(struct vuht_entry_t *ht, 
 		char *pathname, struct vu_stat *buf) {
 	int stat_retval;
 	if (ht) {
@@ -178,7 +178,7 @@ static inline mode_t get_lmode(struct hashtable_obj_t *ht,
 }
 	
 static mode_t vu_lmode(char *pathname, void *private) {
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	struct realpath_arg_t *arg = private;
 	epoch_t e = get_vepoch();
 	mode_t retval;
@@ -196,7 +196,7 @@ static mode_t vu_lmode(char *pathname, void *private) {
 }
 
 static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz) {
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
 	ssize_t retval;
 

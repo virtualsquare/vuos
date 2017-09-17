@@ -18,7 +18,7 @@
 #include <carrot.h>
 
 /*Hashtable object definition*/
-/* hashtable_obj_t:
+/* vuht_entry_t:
 	 @obj: hash key
 	 @mtabline: mount tab line
 	 @type: type
@@ -33,7 +33,7 @@
 	 @confirmfun: confirmation function for exceptions
 	 @prev/next/pprevhash,nexthash: addresses for list linking
  */
-struct hashtable_obj_t {
+struct vuht_entry_t {
 	void *obj;
 	char *mtabline;
 	unsigned long mountflags;
@@ -42,14 +42,14 @@ struct hashtable_obj_t {
 	uint8_t trailingnumbers;
 	uint8_t invalid;
 	struct vu_service_t *service;
-	struct hashtable_obj_t *service_hte;
+	struct vuht_entry_t *service_hte;
 	void *private_data;
 	int objlen;
 	long hashsum;
 	int count;
 	/* confirmfun_t */
 	confirmfun_t confirmfun;
-	struct hashtable_obj_t *prev, *next, **pprevhash, *nexthash;
+	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
 };
 
 /* it must be a power of two (masks are used instead of modulo) */
@@ -59,22 +59,22 @@ struct hashtable_obj_t {
 /* ReadWrite lock to access the Hashtable */
 static pthread_rwlock_t ht_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 /* this is THE hash */
-static struct hashtable_obj_t *ht_hash[VU_HASHTABLE_SIZE];
+static struct vuht_entry_t *ht_hash[VU_HASHTABLE_SIZE];
 
 /* null tags have separate a separate list */
-static struct hashtable_obj_t *ht_hash0[NCHECKS];
+static struct vuht_entry_t *ht_hash0[NCHECKS];
 
 /* heads of the list of hash entries of the same type */
-static struct hashtable_obj_t *ht_head[NCHECKS];
+static struct vuht_entry_t *ht_head[NCHECKS];
 
-/* /free of hashtable_obj_t */
-static inline struct hashtable_obj_t *ht_tab_alloc() {
-	struct hashtable_obj_t *rv = malloc(sizeof (struct hashtable_obj_t));
+/* /free of vuht_entry_t */
+static inline struct vuht_entry_t *vuht_alloc() {
+	struct vuht_entry_t *rv = malloc(sizeof (struct vuht_entry_t));
 	fatal(rv);
 	return rv;
 }
 
-static inline void ht_tab_free(struct hashtable_obj_t *ht) {
+static inline void vuht_free(struct vuht_entry_t *ht) {
 	free(ht->obj);
 	if (ht->mtabline)
 		free(ht->mtabline);
@@ -187,7 +187,7 @@ struct confirm_arg {
 	int len; 
 };
 
-static int call_confirmfun(struct hashtable_obj_t *ht, void *opaque) {
+static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
 	confirmfun_t confirm = ht->confirmfun;
 	if (confirm) {
 		struct confirm_arg *args = opaque;
@@ -199,20 +199,20 @@ static int call_confirmfun(struct hashtable_obj_t *ht, void *opaque) {
 		return 1;
 }
 
-static int has_exception(struct hashtable_obj_t *ht) {
+static int has_exception(struct vuht_entry_t *ht) {
 	return ht->confirmfun != NULL;
 }
 
-static struct hashtable_obj_t *ht_tab_internal_search(uint8_t type, void *obj,
+static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		int objlen, void *checkobj,
 		int exact) {
-	struct hashtable_obj_t *rv = NULL;
+	struct vuht_entry_t *rv = NULL;
 	epoch_t tst = get_vepoch();
 	char *objc = obj;
 	long sum = type;
 	long hash;
 	struct carrot_t *carh = NULL;
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	int len = 0;
 	epoch_t e;
 
@@ -256,32 +256,32 @@ static struct hashtable_obj_t *ht_tab_internal_search(uint8_t type, void *obj,
 	return rv;
 }
 
-static inline struct hashtable_obj_t *ht_tab_pathsearch(uint8_t type, void *obj,
+static inline struct vuht_entry_t *vuht_pathsearch(uint8_t type, void *obj,
 		int exact)
 {
-	return ht_tab_internal_search(type, obj, 0, obj, exact);
+	return vuht_internal_search(type, obj, 0, obj, exact);
 }
 
-static inline struct hashtable_obj_t *ht_tab_binfmtsearch(uint8_t type,
+static inline struct vuht_entry_t *vuht_binfmtsearch(uint8_t type,
 		struct binfmt_req_t *req, int exact)
 {
-	return ht_tab_internal_search(type, req->path, 0, req, exact);
+	return vuht_internal_search(type, req->path, 0, req, exact);
 }
 
-static inline struct hashtable_obj_t *ht_tab_search(uint8_t type, void *obj,
+static inline struct vuht_entry_t *vuht_search(uint8_t type, void *obj,
 		int objlen, int exact)
 {
-	return ht_tab_internal_search(type, obj, objlen, obj, exact);
+	return vuht_internal_search(type, obj, objlen, obj, exact);
 }
 
-static struct hashtable_obj_t *
-internal_ht_tab_add(uint8_t type, const void *obj, int objlen,
+static struct vuht_entry_t *
+internal_vuht_add(uint8_t type, const void *obj, int objlen,
 		unsigned long mountflags, char *mtabline,
 		struct vu_service_t *service, uint8_t trailingnumbers,
 		confirmfun_t confirmfun, void *private_data)
 {
-	struct hashtable_obj_t **hashhead;
-	struct hashtable_obj_t *new = ht_tab_alloc();
+	struct vuht_entry_t **hashhead;
+	struct vuht_entry_t *new = vuht_alloc();
 	/* create the entry and fill in the fields */
 	fatal(new);
 	new->obj = malloc(objlen);
@@ -324,10 +324,10 @@ internal_ht_tab_add(uint8_t type, const void *obj, int objlen,
 	return new;
 } 
 
-struct hashtable_obj_t *ht_tab_add(uint8_t type, void *obj, int objlen,
+struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *private_data) {
-	return internal_ht_tab_add(type, obj, objlen, 0, NULL, service, 1,
+	return internal_vuht_add(type, obj, objlen, 0, NULL, service, 1,
 			confirmfun, private_data);
 }
 
@@ -341,7 +341,7 @@ static int permanent_mount(const char *opts)
 		(match[9] == '\0' || match[9] == ',');
 }
 
-struct hashtable_obj_t *ht_tab_pathadd(uint8_t type, const char *source,
+struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
 		struct vu_service_t *service,
@@ -349,7 +349,7 @@ struct hashtable_obj_t *ht_tab_pathadd(uint8_t type, const char *source,
 		confirmfun_t confirmfun, void *private_data) {
 	char *mtabline;
 	const char *addpath;
-	struct hashtable_obj_t *rv;
+	struct vuht_entry_t *rv;
 	if (source) {
 		char opts[PATH_MAX];
 		opts[0] = 0;
@@ -382,7 +382,7 @@ struct hashtable_obj_t *ht_tab_pathadd(uint8_t type, const char *source,
 		addpath = "";
 	else
 		addpath = path;
-	rv = internal_ht_tab_add(type, addpath, strlen(addpath), mountflags,
+	rv = internal_vuht_add(type, addpath, strlen(addpath), mountflags,
 			mtabline, service, trailingnumbers, confirmfun,
 			private_data);
 	if (permanent_mount(mountopts))
@@ -393,7 +393,7 @@ struct hashtable_obj_t *ht_tab_pathadd(uint8_t type, const char *source,
 }
 
 /* delete an element from the hash table */
-static void ht_tab_del_locked(struct hashtable_obj_t *ht) {
+static void vuht_del_locked(struct vuht_entry_t *ht) {
 	uint8_t type = ht->type;
 
 	if (ht == ht_head[type]) {
@@ -407,18 +407,18 @@ static void ht_tab_del_locked(struct hashtable_obj_t *ht) {
 	*(ht->pprevhash) = ht->nexthash;
 	if (ht->nexthash)
 		ht->nexthash->pprevhash = ht->pprevhash;
-	ht_tab_free(ht);
+	vuht_free(ht);
 }
 
-void ht_tab_invalidate(struct hashtable_obj_t *ht) {
+void vuht_invalidate(struct vuht_entry_t *ht) {
 	if (ht)
 		ht->invalid = 1;
 }
 
-int ht_tab_del(struct hashtable_obj_t *ht) {
+int vuht_del(struct vuht_entry_t *ht) {
 	if (ht) {
 		pthread_rwlock_wrlock(&ht_rwlock);
-		ht_tab_del_locked(ht);
+		vuht_del_locked(ht);
 		pthread_rwlock_unlock(&ht_rwlock);
 		return 0;
 	} else
@@ -426,42 +426,42 @@ int ht_tab_del(struct hashtable_obj_t *ht) {
 }
 
 /* searching API */
-struct hashtable_obj_t *ht_check(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
-	struct hashtable_obj_t *hte;
+struct vuht_entry_t *ht_check(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
+	struct vuht_entry_t *hte;
 
 	switch (type) {
 		case CHECKPATH:
-			hte = ht_tab_pathsearch(type, arg, 0);
+			hte = vuht_pathsearch(type, arg, 0);
 			if (hte != NULL && st != NULL) {
 				if (__builtin_expect(S_ISCHR(st->st_mode), 0)) {
-					hte = ht_tab_search(CHECKCHRDEVICE, &st->st_rdev,
+					hte = vuht_search(CHECKCHRDEVICE, &st->st_rdev,
 							sizeof(dev_t), 0);
 				} else if (__builtin_expect(S_ISBLK(st->st_mode), 0)) {
-					hte = ht_tab_search(CHECKBLKDEVICE, &st->st_rdev,
+					hte = vuht_search(CHECKBLKDEVICE, &st->st_rdev,
 							sizeof(dev_t), 0);
 				}
 			}
 			break;
 		case CHECKPATHEXACT:
-			hte = ht_tab_pathsearch(CHECKPATH, arg, 1);
+			hte = vuht_pathsearch(CHECKPATH, arg, 1);
 			break;
 		case CHECKCHRDEVICE:
 		case CHECKBLKDEVICE:
-			hte = ht_tab_search(type, arg, sizeof(dev_t), 0);
+			hte = vuht_search(type, arg, sizeof(dev_t), 0);
 			break;
 		case CHECKSOCKET:
 		case CHECKSC:
-			hte = ht_tab_search(type, arg, sizeof(int), 0);
+			hte = vuht_search(type, arg, sizeof(int), 0);
 			break;
 		case CHECKFSALIAS:
 		case CHECKMODULE:
-			hte = ht_tab_search(type, arg, 0, 1);
+			hte = vuht_search(type, arg, 0, 1);
 			break;
 		case CHECKFSTYPE:
-			hte = ht_tab_search(CHECKMODULE, arg, 0, 0);
+			hte = vuht_search(CHECKMODULE, arg, 0, 0);
 			break;
 		case CHECKBINFMT:
-			hte = ht_tab_binfmtsearch(type, arg, 0);
+			hte = vuht_binfmtsearch(type, arg, 0);
 			break;
 		default:
 			hte = NULL;
@@ -476,8 +476,8 @@ static void forall_ht_terminate(uint8_t type)
 {
 	pthread_rwlock_rdlock(&ht_rwlock);
 	if (ht_head[type]) {
-		struct hashtable_obj_t *scanht = ht_head[type];
-		struct hashtable_obj_t *next = scanht;
+		struct vuht_entry_t *scanht = ht_head[type];
+		struct vuht_entry_t *next = scanht;
 		do {
 			scanht = next;
 			if (scanht->invalid == 0) {
@@ -491,12 +491,12 @@ static void forall_ht_terminate(uint8_t type)
 	pthread_rwlock_unlock(&ht_rwlock);
 }
 
-void forall_ht_tab_do(uint8_t type, 
-		void (*fun)(struct hashtable_obj_t *ht, void *arg),
+void forall_vuht_do(uint8_t type, 
+		void (*fun)(struct vuht_entry_t *ht, void *arg),
 		void *arg) {
 	pthread_rwlock_rdlock(&ht_rwlock);
 	if (ht_head[type]) {
-		struct hashtable_obj_t *scanht = ht_head[type];
+		struct vuht_entry_t *scanht = ht_head[type];
 		do {
 			scanht = scanht->next;
 			if (scanht->invalid == 0) {
@@ -509,7 +509,7 @@ void forall_ht_tab_do(uint8_t type,
 }
 
 /* mount table creation */
-static void ht_tab_mtab_add(struct hashtable_obj_t *ht, void *arg)
+static void vuht_mtab_add(struct vuht_entry_t *ht, void *arg)
 {
 	FILE *f = arg;
 
@@ -518,27 +518,27 @@ static void ht_tab_mtab_add(struct hashtable_obj_t *ht, void *arg)
 }
 
 
-void ht_tab_get_mtab(FILE *f) {
+void vuht_get_mtab(FILE *f) {
 	if (f)
-		forall_ht_tab_do(CHECKPATH, ht_tab_mtab_add, f);
+		forall_vuht_do(CHECKPATH, vuht_mtab_add, f);
 }
 
 
-void *ht_get_private_data(struct hashtable_obj_t *hte) {
+void *ht_get_private_data(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->private_data;
 	else
 		return NULL;
 }
 
-void ht_set_private_data(struct hashtable_obj_t *hte, void *private_data) {
+void ht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
 	if (hte)
 		hte->private_data = private_data;
 }
 
-struct hashtable_obj_t *ht_search(uint8_t type, void *arg, int objlen,
+struct vuht_entry_t *ht_search(uint8_t type, void *arg, int objlen,
 		struct vu_service_t *service) {
-	struct hashtable_obj_t *hte = ht_check(type, arg, NULL, 0);
+	struct vuht_entry_t *hte = ht_check(type, arg, NULL, 0);
 
 	if (hte && ((objlen > 0 && objlen != hte->objlen) ||
 				(service != NULL && service != hte->service)))
@@ -546,13 +546,13 @@ struct hashtable_obj_t *ht_search(uint8_t type, void *arg, int objlen,
 	return hte;
 }
 
-void ht_renew(struct hashtable_obj_t *hte) {
+void ht_renew(struct vuht_entry_t *hte) {
 	if (hte)
 		hte->timestamp = get_vepoch();
 }
 
 #if 0
-char *ht_get_servicename(struct hashtable_obj_t *hte) {
+char *ht_get_servicename(struct vuht_entry_t *hte) {
 	if (hte && hte->service)
 		return hte->service->name;
 	else
@@ -560,30 +560,30 @@ char *ht_get_servicename(struct hashtable_obj_t *hte) {
 }
 #endif
 
-struct vu_service_t *ht_get_service(struct hashtable_obj_t *hte) {
+struct vu_service_t *ht_get_service(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->service;
 	else
 		return NULL;
 }
 
-unsigned long ht_get_mountflags(struct hashtable_obj_t *hte) {
+unsigned long ht_get_mountflags(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->mountflags;
 	else
 		return 0;
 }
 
-epoch_t ht_get_vepoch(struct hashtable_obj_t *hte) {
+epoch_t ht_get_vepoch(struct vuht_entry_t *hte) {
 	return hte->timestamp;
 }
 
-void ht_count_plus1(struct hashtable_obj_t *hte) {
+void ht_count_plus1(struct vuht_entry_t *hte) {
 #if 0 //XXXX
 	if (hte->service_hte == NULL) {
 		if (hte->service)
 			hte->service_hte =
-				ht_tab_search(CHECKMODULE, hte->service->name, 0, 1);
+				vuht_search(CHECKMODULE, hte->service->name, 0, 1);
 	}
 #endif
 	if (hte->service_hte)
@@ -591,13 +591,13 @@ void ht_count_plus1(struct hashtable_obj_t *hte) {
 	hte->count++;
 }
 
-void ht_count_minus1(struct hashtable_obj_t *hte) {
+void ht_count_minus1(struct vuht_entry_t *hte) {
 	if (hte->service_hte)
 		hte->service_hte->count--;
 	hte->count--;
 }
 
-int ht_get_count(struct hashtable_obj_t *hte) {
+int ht_get_count(struct vuht_entry_t *hte) {
 	return hte->count;
 }
 

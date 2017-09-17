@@ -83,7 +83,7 @@ int vu_unreal_rename(const char *target, const char *linkpath, int flags) {
 }
 
 struct twohte {
-	struct hashtable_obj_t *ht1,*ht2;
+	struct vuht_entry_t *ht1,*ht2;
 };
 
 void *vu_unreal_init(void) {
@@ -95,14 +95,14 @@ void *vu_unreal_init(void) {
 	vu_syscall_handler(s, write) = write;
 	vu_syscall_handler(s, lseek) = lseek;
 
-	two->ht1 = ht_tab_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
-	two->ht2 = ht_tab_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
+	two->ht1 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
+	two->ht2 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
 	return two;
 }
 
 void vu_unreal_fini(void *private) {
 	struct twohte *two = private;
-	ht_tab_del(two->ht2);
-	ht_tab_del(two->ht1);
+	vuht_del(two->ht2);
+	vuht_del(two->ht1);
 	free(two);
 }

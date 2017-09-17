@@ -201,10 +201,10 @@ static uint8_t *get_flags_addr_nolock(struct vu_fd_table_t *fd_table, int fd) {
 		return NULL;
 }
 
-struct hashtable_obj_t *vu_fd_get_ht(int fd, int nested) {
+struct vuht_entry_t *vu_fd_get_ht(int fd, int nested) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
 	struct vu_fnode_t *fnode;
-	struct hashtable_obj_t *ret_value;
+	struct vuht_entry_t *ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
 	fnode = get_fnode_nolock(fd_table, fd);
 	ret_value = fnode ?  vu_fnode_get_ht(fnode) : NULL;

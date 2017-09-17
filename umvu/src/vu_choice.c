@@ -8,10 +8,10 @@
 #include <vu_log.h>
 #include <epoch.h>
 
-struct hashtable_obj_t *choice_path(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int nested = extra->nested;
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	if (extra->path == NULL) {
 		if (extra->path_errno != 0) {
 			sd->ret_value = -extra->path_errno;
@@ -27,11 +27,11 @@ struct hashtable_obj_t *choice_path(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
-struct hashtable_obj_t *choice_fd(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int fd = sd->syscall_args[0];
 	int nested = extra->nested;
-	struct hashtable_obj_t *ht = vu_fd_get_ht(fd, nested);
+	struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
 	char path[PATH_MAX];
 	vu_fd_get_path(fd, nested, path, PATH_MAX);
 	extra->path = strdup(path);
@@ -41,7 +41,7 @@ struct hashtable_obj_t *choice_fd(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
-struct hashtable_obj_t *choice_std(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_std(struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int patharg = vu_arch_table_patharg(syscall_number);
 	if (patharg >= 0)
@@ -50,7 +50,7 @@ struct hashtable_obj_t *choice_std(struct syscall_descriptor_t *sd) {
 		return choice_fd(sd);
 }
 
-struct hashtable_obj_t *choice_std_nonest(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_std_nonest(struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (nested)
 		return NULL;
@@ -59,7 +59,7 @@ struct hashtable_obj_t *choice_std_nonest(struct syscall_descriptor_t *sd) {
 }
 
 
-struct hashtable_obj_t *choice_utimensat(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	switch (syscall_number) {
 		case __NR_utimensat: {

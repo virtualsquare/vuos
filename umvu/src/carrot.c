@@ -9,7 +9,7 @@
 #define CARROT_FREE_LIST
 
 struct carrot_t {
-	struct hashtable_obj_t *elem;
+	struct vuht_entry_t *elem;
 	epoch_t time;
 	struct carrot_t *next;
 };
@@ -64,8 +64,8 @@ void carrot_free(struct carrot_t *old) {
 }
 #endif
 
-struct carrot_t *carrot_insert(struct carrot_t *head, struct hashtable_obj_t *elem, epoch_t time,
-		    int (*has_exception)(struct hashtable_obj_t *)) {
+struct carrot_t *carrot_insert(struct carrot_t *head, struct vuht_entry_t *elem, epoch_t time,
+		    int (*has_exception)(struct vuht_entry_t *)) {
 	if (head == NULL ||      /* empty carrot */
 			time > head->time) { /* this is newer */
 		if (head == NULL || has_exception(elem)) {
@@ -89,7 +89,7 @@ struct carrot_t *carrot_insert(struct carrot_t *head, struct hashtable_obj_t *el
 	}
 }
 
-struct carrot_t *carrot_delete(struct carrot_t *head, struct hashtable_obj_t *elem) {
+struct carrot_t *carrot_delete(struct carrot_t *head, struct vuht_entry_t *elem) {
 	if (head == NULL)
 		return NULL;
 	else {
@@ -105,9 +105,9 @@ struct carrot_t *carrot_delete(struct carrot_t *head, struct hashtable_obj_t *el
 	}
 }
 
-struct hashtable_obj_t *carrot_check(struct carrot_t *head,
-		int (*confirm)(struct hashtable_obj_t *elem, void *opaque), void *opaque) {
-	struct hashtable_obj_t *ht = NULL;
+struct vuht_entry_t *carrot_check(struct carrot_t *head,
+		int (*confirm)(struct vuht_entry_t *elem, void *opaque), void *opaque) {
+	struct vuht_entry_t *ht = NULL;
 	if (head != NULL) {
 		struct carrot_t *curcar;
 		for (curcar = head; curcar != NULL; curcar = curcar->next) {

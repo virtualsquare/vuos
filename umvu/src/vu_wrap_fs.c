@@ -20,7 +20,7 @@
 #include <vu_wrapper_utils.h>
 
 /* lstat stat fstat fstatat/newfstatat */
-void wi_lstat(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -69,7 +69,7 @@ void wi_lstat(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* readlink, readlinkat */
-void wi_readlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -111,7 +111,7 @@ void wi_readlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* access, faccessat */
-void wi_access(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -145,7 +145,7 @@ void wi_access(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* unlink, unlinkat */
-void wi_unlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -179,7 +179,7 @@ void wi_unlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* mkdir */
-void wi_mkdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -210,7 +210,7 @@ void wi_mkdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* rmdir */
-void wi_rmdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_rmdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -228,7 +228,7 @@ void wi_rmdir(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* lchown, fchown, chown, fchownat */
-void wi_lchown(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -273,7 +273,7 @@ void wi_lchown(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* chmod fchmod fchmodat */
-void wi_chmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		struct vu_service_t *service = ht_get_service(ht);
@@ -325,7 +325,7 @@ static void utimes2utimen(struct timeval *in_times, struct timespec *out_times) 
 }
 
 /*  utimensat, utime, utimes, futimesat */
-void wi_utimensat(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   if (ht) {
     /* standard args */
     struct vu_service_t *service = ht_get_service(ht);
@@ -415,14 +415,14 @@ void wi_utimensat(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /*  link, linkat */
-void wi_link(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		struct vu_service_t *service = ht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		char *oldpath;
-		struct hashtable_obj_t *htold;
+		struct vuht_entry_t *htold;
 		/* args */
 		int dirfd;
 		uintptr_t oldaddr;
@@ -477,7 +477,7 @@ static char *get_symlink_target(uintptr_t addr) {
 }
 
 /*  symlink, symlinkat */
-void wi_symlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		struct vu_service_t *service = ht_get_service(ht);
 		int nested = sd->extra->nested;
@@ -502,14 +502,14 @@ void wi_symlink(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /*  rename, renameat, renameat2 */
-void wi_rename(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		struct vu_service_t *service = ht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		char *oldpath;
-		struct hashtable_obj_t *htold;
+		struct vuht_entry_t *htold;
 		/* args */
 		int dirfd;
 		uintptr_t oldaddr;

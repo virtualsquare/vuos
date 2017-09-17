@@ -20,7 +20,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	va_list ap;
 	struct syscall_descriptor_t sd;
 	struct syscall_extra_t extra;
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	int sysno = vu_arch_table[syscall_number];
 	struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 	long int ret_value;

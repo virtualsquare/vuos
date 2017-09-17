@@ -19,8 +19,8 @@
 #define _VU_HYPERVISOR
 #include <vulib.h>  // to check consistecy with user libraries
 
-void vw_insmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
-	struct hashtable_obj_t *sht;
+void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	struct vuht_entry_t *sht;
 	struct vu_service_t *service;
 	char name[PATH_MAX];
 	char *modname;
@@ -47,7 +47,7 @@ void vw_insmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 		return;
 	}
 
-	sht = ht_tab_add(CHECKMODULE, modname, strlen(modname), service,
+	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
 			NULL, NULL);
 
 	service->ht = sht;
@@ -60,9 +60,9 @@ void vw_insmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = 0;
 }
 
-void vw_rmmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	char name[PATH_MAX];
-	struct hashtable_obj_t *sht;
+	struct vuht_entry_t *sht;
 	struct vu_service_t *service;
 	if (umvu_peek_str(sd->syscall_args[0], name, PATH_MAX) < 0) {
 		sd->ret_value = -EINVAL;
@@ -85,13 +85,13 @@ void vw_rmmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 
 	module_run_fini(service);
 	service->mod->service = NULL;
-	ht_tab_del(sht);
+	vuht_del(sht);
 	module_unload(service);
 	update_vepoch();
 	sd->ret_value = 0;
 }
 
-static void list_item(struct hashtable_obj_t *hte, void *arg)
+static void list_item(struct vuht_entry_t *hte, void *arg)
 {
 	FILE *f = arg;
 	struct vu_service_t *s = ht_get_service(hte);
@@ -99,7 +99,7 @@ static void list_item(struct hashtable_obj_t *hte, void *arg)
 	fprintf(f, "%s: %s\n", m->name, m->description);
 }
 
-void vw_lsmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void vw_lsmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	syscall_arg_t buf_addr = sd->syscall_args[0];
 	unsigned int buf_size = (unsigned int)sd->syscall_args[1];
 
@@ -107,7 +107,7 @@ void vw_lsmod(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 	size_t localbufsize;
 
 	FILE *f = open_memstream(&localbuf, &localbufsize);
-	forall_ht_tab_do(CHECKMODULE, list_item, f);
+	forall_vuht_do(CHECKMODULE, list_item, f);
 	fclose(f);
 	localbufsize++; /* for the string terminator */
 
@@ -207,7 +207,7 @@ void vuctl_setdebugcolors(struct syscall_descriptor_t *sd) {
 	sd->ret_value = -EINVAL;
 }
 
-void vw_vuctl(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void vw_vuctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	syscall_arg_t tag = sd->syscall_args[0];
 	switch (tag) {
 		case VUCTL_GETINFO:

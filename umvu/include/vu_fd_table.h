@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 
 struct fnode_t;
-struct hashtable_obj_t;
+struct vuht_entry_t;
 
 void vu_fd_set_fnode(int fd, int nested, struct fnode_t *fnode, int fdflags);
 
@@ -11,7 +11,7 @@ int vu_fd_close(int fd, int nested);
 
 void vu_fd_dup(int fd, int nested, int oldfd, int fdflags);
 
-struct hashtable_obj_t *vu_fd_get_ht(int fd, int nested);
+struct vuht_entry_t *vu_fd_get_ht(int fd, int nested);
 
 void vu_fd_get_path(int fd, int nested, char *dest,  size_t n);
 

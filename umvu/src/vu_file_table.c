@@ -10,7 +10,7 @@
 
 struct vu_fnode_t {
 	pthread_rwlock_t lock;
-	struct hashtable_obj_t *ht;
+	struct vuht_entry_t *ht;
 	char *path;
 	struct vu_vnode_t *vnode;
 	mode_t mode;
@@ -21,7 +21,7 @@ struct vu_fnode_t {
 	void *private;
 };
 
-static int null_close_upcall(struct hashtable_obj_t *ht, int sfd, void *private);
+static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private);
 static close_upcall_t vu_fnode_close_upcall = null_close_upcall;
 
 void vu_fnode_set_close_upcall(close_upcall_t close_upcall) {
@@ -29,7 +29,7 @@ void vu_fnode_set_close_upcall(close_upcall_t close_upcall) {
 }
 
 struct vu_fnode_t *vu_fnode_create(
-		struct hashtable_obj_t *ht,
+		struct vuht_entry_t *ht,
 		const char *path,
 		struct stat *stat,
 		int flags,
@@ -56,7 +56,7 @@ struct vu_fnode_t *vu_fnode_create(
 	return fnode;
 }
 
-static int null_close_upcall(struct hashtable_obj_t *ht, int sfd, void *private) {
+static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	return 0;
 }
 
@@ -90,8 +90,8 @@ void vu_fnode_dup(struct vu_fnode_t *fnode) {
 	}
 }
 
-struct hashtable_obj_t *vu_fnode_get_ht(struct vu_fnode_t *v) {
-	 struct hashtable_obj_t *ret_value;
+struct vuht_entry_t *vu_fnode_get_ht(struct vu_fnode_t *v) {
+	 struct vuht_entry_t *ret_value;
 	 pthread_rwlock_rdlock(&v->lock);
 	 ret_value = v->ht;
 	 pthread_rwlock_unlock(&v->lock);

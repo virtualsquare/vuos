@@ -20,7 +20,7 @@
 #include <signal.h>
 #endif
 
-struct hashtable_obj_t *choice_NULL(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *choice_NULL(struct syscall_descriptor_t *sd) {
 #ifdef TESTS
 	char *path = getsyspath(sd);
 	if (path != NULL) {
@@ -32,14 +32,14 @@ struct hashtable_obj_t *choice_NULL(struct syscall_descriptor_t *sd) {
 	return NULL;
 }
 
-void wi_NULL(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wi_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 #if 0
 	if (sd->syscall_number == __NR_open)
 		sd->action = DOIT_CB_AFTER;
 #endif
 }
 
-void wd_NULL(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wd_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 #if 0
 	int tid = syscall(__NR_gettid);
 	printf("DURING %d\n",tid);
@@ -51,14 +51,14 @@ void wd_NULL(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
 #endif
 }
 
-void wo_NULL(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
-void vw_NULL(struct hashtable_obj_t *ht, struct syscall_descriptor_t *sd) {
+void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
-struct hashtable_obj_t *vchoice_NULL(struct syscall_descriptor_t *sd) {
+struct vuht_entry_t *vchoice_NULL(struct syscall_descriptor_t *sd) {
 	return NULL;
 }
 
@@ -74,7 +74,7 @@ static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
 }
 
 void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) {
-	static __thread struct hashtable_obj_t *ht;
+	static __thread struct vuht_entry_t *ht;
 
 	update_vepoch();
 	if (sd->syscall_number >= 0) {
