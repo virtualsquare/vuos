@@ -63,6 +63,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
 				service->module_syscall[__VU_lstat](sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private); 
+			vuht_pick_again(ht);
 			if (nested) {
 				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
 				int fd;
@@ -96,6 +97,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
 		} else {
 			vu_fnode_close(fnode);
+			vuht_drop(ht);
 		}
 	} else {
 		if (fd >= 0) {
@@ -143,8 +145,11 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
   if (ht) {
+		int ret_value;
     struct vu_service_t *service = vuht_get_service(ht);
-    return service->module_syscall[__VU_close](sfd, private);
+    ret_value = service->module_syscall[__VU_close](sfd, private);
+		vuht_drop(ht);
+		return ret_value;
   } else
     return 0;
 }

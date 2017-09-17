@@ -153,10 +153,11 @@ static int vu_access(char *pathname, int mode, void *private) {
 	epoch_t e = get_vepoch();
 	int retval;
 
-	ht = vuht_check(CHECKPATH, pathname, NULL, SET_EPOCH);
+	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
 		struct vu_service_t *service = vuht_get_service(ht);
 		retval = service->module_syscall[__VU_access](pathname, mode, 0);
+		vuht_drop(ht);
 	} else
 		retval = r_access(pathname, mode);
 	set_vepoch(e);
@@ -183,7 +184,7 @@ static mode_t vu_lmode(char *pathname, void *private) {
 	epoch_t e = get_vepoch();
 	mode_t retval;
 
-	ht = vuht_check(CHECKPATH, pathname, NULL, SET_EPOCH);
+	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 
 	if (arg->statbuf != NULL) 
 		retval = get_lmode(ht, pathname, arg->statbuf);
@@ -191,6 +192,8 @@ static mode_t vu_lmode(char *pathname, void *private) {
 		struct vu_stat buf;
 		retval = get_lmode(ht, pathname, &buf);
 	}
+	if (ht)
+		vuht_drop(ht);
 	set_vepoch(e);
 	return retval;
 }
@@ -200,10 +203,11 @@ static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz) {
 	epoch_t e = get_vepoch();
 	ssize_t retval;
 
-	ht = vuht_check(CHECKPATH, pathname, NULL, SET_EPOCH);
+	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
 		struct vu_service_t *service = vuht_get_service(ht);
 		retval = service->module_syscall[__VU_readlink](pathname, buf, bufsiz);
+		vuht_drop(ht);
 	} else
 		retval = r_readlink(pathname, buf, bufsiz);
 	set_vepoch(e);

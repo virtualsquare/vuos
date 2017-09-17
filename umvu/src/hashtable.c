@@ -46,7 +46,7 @@ struct vuht_entry_t {
 	void *private_data;
 	int objlen;
 	long hashsum;
-	int count;
+	_Atomic int count;
 	/* confirmfun_t */
 	confirmfun_t confirmfun;
 	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
@@ -278,7 +278,8 @@ static struct vuht_entry_t *
 internal_vuht_add(uint8_t type, const void *obj, int objlen,
 		unsigned long mountflags, char *mtabline,
 		struct vu_service_t *service, uint8_t trailingnumbers,
-		confirmfun_t confirmfun, void *private_data)
+		confirmfun_t confirmfun, void *private_data,
+		int permanent)
 {
 	struct vuht_entry_t **hashhead;
 	struct vuht_entry_t *new = vuht_alloc();
@@ -298,7 +299,8 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->service = service;
 	new->service_hte = NULL;
 	new->confirmfun = confirmfun;
-	new->count = 0;
+	new->count = (permanent != 0);
+
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&vuht_rwlock);
 	/* add it to the list of hash entry of this type */
@@ -326,9 +328,9 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data) {
+		void *private_data, int permanent) {
 	return internal_vuht_add(type, obj, objlen, 0, NULL, service, 1,
-			confirmfun, private_data);
+			confirmfun, private_data, permanent);
 }
 
 static int permanent_mount(const char *opts)
@@ -384,9 +386,7 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		addpath = path;
 	rv = internal_vuht_add(type, addpath, strlen(addpath), mountflags,
 			mtabline, service, trailingnumbers, confirmfun,
-			private_data);
-	if (permanent_mount(mountopts))
-		rv->count++;
+			private_data, permanent_mount(mountopts));
 	if (rv == NULL && mtabline != NULL)
 		free(mtabline);
 	return rv;
@@ -426,7 +426,7 @@ int vuht_del(struct vuht_entry_t *ht) {
 }
 
 /* searching API */
-struct vuht_entry_t *vuht_check(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
+struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
 	struct vuht_entry_t *hte;
 
 	switch (type) {
@@ -466,9 +466,22 @@ struct vuht_entry_t *vuht_check(uint8_t type, void *arg, struct vu_stat *st, int
 		default:
 			hte = NULL;
 	}
-	if (hte && setepoch)
-		set_vepoch(hte->timestamp);
+	if (hte) {
+		hte->count++;
+		if (setepoch)
+			set_vepoch(hte->timestamp);
+	}
 	return hte;
+}
+
+void vuht_pick_again(struct vuht_entry_t *hte) {
+	if (hte)
+		hte->count++;
+}
+
+void vuht_drop(struct vuht_entry_t *hte) {
+	if (hte)
+		hte->count--;
 }
 
 /* reverse scan of hash table elements, useful to close all files  */
@@ -539,7 +552,7 @@ void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
 #if 0
 struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
 		struct vu_service_t *service) {
-	struct vuht_entry_t *hte = vuht_check(type, arg, NULL, 0);
+	struct vuht_entry_t *hte = vuht_pick(type, arg, NULL, 0);
 
 	if (hte && ((objlen > 0 && objlen != hte->objlen) ||
 				(service != NULL && service != hte->service)))
@@ -578,25 +591,6 @@ unsigned long vuht_get_mountflags(struct vuht_entry_t *hte) {
 
 epoch_t vuht_get_vepoch(struct vuht_entry_t *hte) {
 	return hte->timestamp;
-}
-
-void vuht_count_plus1(struct vuht_entry_t *hte) {
-#if 0 //XXXX
-	if (hte->service_hte == NULL) {
-		if (hte->service)
-			hte->service_hte =
-				vuht_search(CHECKMODULE, hte->service->name, 0, 1);
-	}
-#endif
-	if (hte->service_hte)
-		hte->service_hte->count++;
-	hte->count++;
-}
-
-void vuht_count_minus1(struct vuht_entry_t *hte) {
-	if (hte->service_hte)
-		hte->service_hte->count--;
-	hte->count--;
 }
 
 int vuht_get_count(struct vuht_entry_t *hte) {

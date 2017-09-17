@@ -29,7 +29,7 @@ typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data);
+		void *private_data, int permanent);
 
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
@@ -41,7 +41,9 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte);
 
-struct vuht_entry_t *vuht_check(uint8_t type, void *arg, struct stat *st, int setepoch);
+struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct stat *st, int setepoch);
+void vuht_pick_again(struct vuht_entry_t *hte);
+void vuht_drop(struct vuht_entry_t *hte);
 
 void forall_vuht_do(uint8_t type, 
 		void (*fun)(struct vuht_entry_t *ht, void *arg),
@@ -58,12 +60,10 @@ struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
 #endif
 
 void vuht_renew(struct vuht_entry_t *hte);
-char *vuht_get_servicename(struct vuht_entry_t *hte);
+//char *vuht_get_servicename(struct vuht_entry_t *hte);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 unsigned long vuht_get_mountflags(struct vuht_entry_t *hte);
 epoch_t vuht_get_vepoch(struct vuht_entry_t *hte);
-void vuht_count_plus1(struct vuht_entry_t *hte);
-void vuht_count_minus1(struct vuht_entry_t *hte);
 int vuht_get_count(struct vuht_entry_t *hte);
 
 void vuht_terminate();

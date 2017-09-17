@@ -19,7 +19,7 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 		}
 		ht = NULL;
 	} else
-		ht = vuht_check(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
+		ht = vuht_pick(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
 	printkdebug(c, "path %s: %c ht %p err = %d %s", extra->path, 
 			nested ? 'N' : '-', ht,
 			(sd->action == SKIP) ? -sd->ret_value : 0,
@@ -38,6 +38,8 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
 	printkdebug(c, "fd %d %s: %c ht %p", fd, extra->path, 
 			nested ? 'N' : '-', ht);
+	if (ht) 
+		vuht_pick_again(ht);
 	return ht;
 }
 
@@ -55,7 +57,7 @@ struct vuht_entry_t *choice_std_nonest(struct syscall_descriptor_t *sd) {
 	if (nested)
 		return NULL;
 	else
-		return choice_std;
+		return choice_std(sd);
 }
 
 

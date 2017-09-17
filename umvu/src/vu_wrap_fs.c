@@ -450,7 +450,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			return;
 		}
 		e = set_vepoch(sd->extra->epoch);
-		htold = vuht_check(CHECKPATH, oldpath, NULL, 0);
+		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		set_vepoch(e);
 		if (ht != htold) {
 			xfree(oldpath);
@@ -537,7 +537,7 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			return;
 		}
 		e = set_vepoch(sd->extra->epoch);
-		htold = vuht_check(CHECKPATH, oldpath, NULL, 0);
+		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		set_vepoch(e);
 		if (ht != htold) {
 			xfree(oldpath);

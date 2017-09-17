@@ -73,6 +73,12 @@ static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
 	return &extra;
 }
 
+static inline void execute_cleanup (struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht != NULL)
+		vuht_drop(ht);
+	xfree(sd->extra->path);
+}
+
 void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) {
 	static __thread struct vuht_entry_t *ht;
 
@@ -87,11 +93,11 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 						syscallname(sd->syscall_number), sd->extra->path);
 				ht = tab_entry->choicef(sd);
 				if (sd->action == SKIP)
-					xfree(sd->extra->path);
+					execute_cleanup(ht,sd);
 				else {
 					tab_entry->wrapinf(ht, sd);
 					if (sd->action != DOIT_CB_AFTER)
-						xfree(sd->extra->path);
+						execute_cleanup(ht,sd);
 				}
 				break;
 			case DURING_SYSCALL:
@@ -99,13 +105,13 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapduringf(ht, sd);
 				if (sd->action != DOIT_CB_AFTER)
-					xfree(sd->extra->path);
+					execute_cleanup(ht,sd);
 				break;
 			case OUT_SYSCALL:
 				printkdebug(s, "OUT %d %s %s", umvu_gettid(), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapoutf(ht, sd);
-				xfree(sd->extra->path);
+				execute_cleanup(ht,sd);
 				break;
 		}
 	} else {

@@ -40,21 +40,19 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 	modname = service->mod->name;
 
-	if (vuht_check(CHECKMODULE, modname, NULL, 0)) {
+	if ((sht = vuht_pick(CHECKMODULE, modname, NULL, 0)) != NULL) {
 		printk(KERN_ERR "module %s already loaded\n", modname);
 		module_unload(service);
 		sd->ret_value = -EEXIST;
+		vuht_drop(sht);
 		return;
 	}
 
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
-			NULL, NULL);
+			NULL, NULL, permanent);
 
 	service->ht = sht;
 	service->mod->service = service;
-
-	if (permanent)
-		vuht_count_plus1(sht);
 
 	module_run_init(service);
 	sd->ret_value = 0;
@@ -68,7 +66,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		sd->ret_value = -EINVAL;
 		return;
 	}
-	sht = vuht_check(CHECKMODULE, name, NULL, 0);
+	sht = vuht_pick(CHECKMODULE, name, NULL, 0);
 	if (sht == NULL) {
 		printk(KERN_ERR "module %s is not loaded\n", name);
 		sd->ret_value = -ENOENT;
@@ -85,6 +83,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 	module_run_fini(service);
 	service->mod->service = NULL;
+	vuht_drop(sht);
 	vuht_del(sht);
 	module_unload(service);
 	update_vepoch();

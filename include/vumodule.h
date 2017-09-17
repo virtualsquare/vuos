@@ -62,7 +62,7 @@ typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data);
+		void *private_data, int permanent);
 
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,

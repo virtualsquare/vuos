@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #include <xcommon.h>
+#include <hashtable.h>
 #include <r_table.h>
 #include <syscall_names.h>
 #include <syscall_table.h>
@@ -61,6 +62,8 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 			sd.ret_value = sd.orig_ret_value;
 	}
 	ret_value =  sd.ret_value;
+	if (ht != NULL)
+		vuht_drop(ht);
 	xfree(extra.path);
 	set_vepoch(e);
 	return ret_value;
