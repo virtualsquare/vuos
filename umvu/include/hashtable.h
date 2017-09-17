@@ -41,7 +41,7 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte);
 
-struct vuht_entry_t *ht_check(uint8_t type, void *arg, struct stat *st, int setepoch);
+struct vuht_entry_t *vuht_check(uint8_t type, void *arg, struct stat *st, int setepoch);
 
 void forall_vuht_do(uint8_t type, 
 		void (*fun)(struct vuht_entry_t *ht, void *arg),
@@ -49,20 +49,22 @@ void forall_vuht_do(uint8_t type,
 
 void vuht_get_mtab(FILE *f);
 
-void *ht_get_private_data(struct vuht_entry_t *hte);
-void ht_set_private_data(struct vuht_entry_t *hte, void *private_data);
+void *vuht_get_private_data(struct vuht_entry_t *hte);
+void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
 
-struct vuht_entry_t *ht_search(uint8_t type, void *arg, int objlen,
+#if 0
+struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
 		struct vu_service_t *service);
+#endif
 
-void ht_renew(struct vuht_entry_t *hte);
-char *ht_get_servicename(struct vuht_entry_t *hte);
-struct vu_service_t *ht_get_service(struct vuht_entry_t *hte);
-unsigned long ht_get_mountflags(struct vuht_entry_t *hte);
-epoch_t ht_get_vepoch(struct vuht_entry_t *hte);
-void ht_count_plus1(struct vuht_entry_t *hte);
-void ht_count_minus1(struct vuht_entry_t *hte);
-int ht_get_count(struct vuht_entry_t *hte);
+void vuht_renew(struct vuht_entry_t *hte);
+char *vuht_get_servicename(struct vuht_entry_t *hte);
+struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
+unsigned long vuht_get_mountflags(struct vuht_entry_t *hte);
+epoch_t vuht_get_vepoch(struct vuht_entry_t *hte);
+void vuht_count_plus1(struct vuht_entry_t *hte);
+void vuht_count_minus1(struct vuht_entry_t *hte);
+int vuht_get_count(struct vuht_entry_t *hte);
 
-void ht_terminate();
+void vuht_terminate();
 #endif

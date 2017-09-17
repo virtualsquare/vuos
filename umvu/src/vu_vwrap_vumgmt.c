@@ -40,7 +40,7 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 	modname = service->mod->name;
 
-	if (ht_check(CHECKMODULE, modname, NULL, 0)) {
+	if (vuht_check(CHECKMODULE, modname, NULL, 0)) {
 		printk(KERN_ERR "module %s already loaded\n", modname);
 		module_unload(service);
 		sd->ret_value = -EEXIST;
@@ -54,7 +54,7 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	service->mod->service = service;
 
 	if (permanent)
-		ht_count_plus1(sht);
+		vuht_count_plus1(sht);
 
 	module_run_init(service);
 	sd->ret_value = 0;
@@ -68,16 +68,16 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		sd->ret_value = -EINVAL;
 		return;
 	}
-	sht = ht_check(CHECKMODULE, name, NULL, 0);
+	sht = vuht_check(CHECKMODULE, name, NULL, 0);
 	if (sht == NULL) {
 		printk(KERN_ERR "module %s is not loaded\n", name);
 		sd->ret_value = -ENOENT;
 		return;
 	} 
-	service = ht_get_service(sht);
+	service = vuht_get_service(sht);
 	fatal(service);
 
-	if (ht_get_count(sht) != 0) {
+	if (vuht_get_count(sht) != 0) {
 		printk(KERN_ERR "module %s is already in use\n", name);
 		sd->ret_value = -EADDRINUSE;
 		return;
@@ -94,7 +94,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 static void list_item(struct vuht_entry_t *hte, void *arg)
 {
 	FILE *f = arg;
-	struct vu_service_t *s = ht_get_service(hte);
+	struct vu_service_t *s = vuht_get_service(hte);
 	struct vu_module_t *m = s->mod;
 	fprintf(f, "%s: %s\n", m->name, m->description);
 }

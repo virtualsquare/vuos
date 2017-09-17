@@ -57,15 +57,15 @@ struct vuht_entry_t {
 #define VU_HASHTABLE_MASK (VU_HASHTABLE_SIZE-1)
 
 /* ReadWrite lock to access the Hashtable */
-static pthread_rwlock_t ht_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t vuht_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 /* this is THE hash */
-static struct vuht_entry_t *ht_hash[VU_HASHTABLE_SIZE];
+static struct vuht_entry_t *vuht_hash[VU_HASHTABLE_SIZE];
 
 /* null tags have separate a separate list */
-static struct vuht_entry_t *ht_hash0[NCHECKS];
+static struct vuht_entry_t *vuht_hash0[NCHECKS];
 
 /* heads of the list of hash entries of the same type */
-static struct vuht_entry_t *ht_head[NCHECKS];
+static struct vuht_entry_t *vuht_head[NCHECKS];
 
 /* /free of vuht_entry_t */
 static inline struct vuht_entry_t *vuht_alloc() {
@@ -127,7 +127,7 @@ static inline int trailnum(char *s)
 }
 
 /* during the scan: search in the hash table if this returns 1 */
-static int ht_scan_stop(uint8_t type, char *objc, int len, int exact)
+static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 {
 	switch (type) {
 		case CHECKPATH:
@@ -162,7 +162,7 @@ static int ht_scan_stop(uint8_t type, char *objc, int len, int exact)
 }
 
 /* terminate the scan */
-static inline int ht_scan_terminate(uint8_t type, char *objc, int len,
+static inline int vuht_scan_terminate(uint8_t type, char *objc, int len,
 		int objlen)
 {
 	switch (type) {
@@ -216,12 +216,12 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 	int len = 0;
 	epoch_t e;
 
-	pthread_rwlock_rdlock(&ht_rwlock);
+	pthread_rwlock_rdlock(&vuht_rwlock);
 	while (1) {
-		if (ht_scan_stop(type, objc, len, exact)) {
+		if (vuht_scan_stop(type, objc, len, exact)) {
 			hash = hashmod(sum);
-			ht = ht_hash[hash];
-			ht=(len) ? ht_hash[hash] : ht_hash0[type];
+			ht = vuht_hash[hash];
+			ht=(len) ? vuht_hash[hash] : vuht_hash0[type];
 			while (ht != NULL) {
 				if (type == ht->type && sum == ht->hashsum &&
 						memcmp(obj, ht->obj, len) == 0 &&
@@ -237,7 +237,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 				}
 				ht = ht->nexthash;
 			}
-			if (ht_scan_terminate(type, objc, len, objlen))
+			if (vuht_scan_terminate(type, objc, len, objlen))
 				break;
 		}
 		sum = hashadd(sum, *objc);
@@ -252,7 +252,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		};
 		rv = carrot_check(carh, call_confirmfun, &args);
 	}
-	pthread_rwlock_unlock(&ht_rwlock);
+	pthread_rwlock_unlock(&vuht_rwlock);
 	return rv;
 }
 
@@ -300,27 +300,27 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->confirmfun = confirmfun;
 	new->count = 0;
 	new->hashsum = hashsum(type, new->obj, new->objlen);
-	pthread_rwlock_wrlock(&ht_rwlock);
+	pthread_rwlock_wrlock(&vuht_rwlock);
 	/* add it to the list of hash entry of this type */
-	if (ht_head[type]) {
-		new->next=ht_head[type]->next;
-		new->prev=ht_head[type];
+	if (vuht_head[type]) {
+		new->next=vuht_head[type]->next;
+		new->prev=vuht_head[type];
 		new->next->prev=new;
 		new->prev->next=new;
-		ht_head[type]=new;
+		vuht_head[type]=new;
 	} else
-		ht_head[type]=new->next=new->prev=new;
+		vuht_head[type]=new->next=new->prev=new;
 	/* add it to the right hash collision list */
 	if (objlen==0)
-		hashhead=&ht_hash0[type];
+		hashhead=&vuht_hash0[type];
 	else
-		hashhead=&ht_hash[hashmod(new->hashsum)];
+		hashhead=&vuht_hash[hashmod(new->hashsum)];
 	if (*hashhead)
 		(*hashhead)->pprevhash=&(new->nexthash);
 	new->nexthash=*hashhead;
 	new->pprevhash=hashhead;
 	*hashhead=new;
-	pthread_rwlock_unlock(&ht_rwlock);
+	pthread_rwlock_unlock(&vuht_rwlock);
 	return new;
 } 
 
@@ -396,11 +396,11 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 static void vuht_del_locked(struct vuht_entry_t *ht) {
 	uint8_t type = ht->type;
 
-	if (ht == ht_head[type]) {
+	if (ht == vuht_head[type]) {
 		if (ht->next == ht)
-			ht_head[type] = NULL;
+			vuht_head[type] = NULL;
 		else
-			ht_head[type] = ht->prev;
+			vuht_head[type] = ht->prev;
 	}
 	ht->prev->next = ht->next;
 	ht->next->prev = ht->prev;
@@ -417,16 +417,16 @@ void vuht_invalidate(struct vuht_entry_t *ht) {
 
 int vuht_del(struct vuht_entry_t *ht) {
 	if (ht) {
-		pthread_rwlock_wrlock(&ht_rwlock);
+		pthread_rwlock_wrlock(&vuht_rwlock);
 		vuht_del_locked(ht);
-		pthread_rwlock_unlock(&ht_rwlock);
+		pthread_rwlock_unlock(&vuht_rwlock);
 		return 0;
 	} else
 		return -ENOENT;
 }
 
 /* searching API */
-struct vuht_entry_t *ht_check(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
+struct vuht_entry_t *vuht_check(uint8_t type, void *arg, struct vu_stat *st, int setepoch) {
 	struct vuht_entry_t *hte;
 
 	switch (type) {
@@ -472,11 +472,11 @@ struct vuht_entry_t *ht_check(uint8_t type, void *arg, struct vu_stat *st, int s
 }
 
 /* reverse scan of hash table elements, useful to close all files  */
-static void forall_ht_terminate(uint8_t type)
+static void forall_vuht_terminate(uint8_t type)
 {
-	pthread_rwlock_rdlock(&ht_rwlock);
-	if (ht_head[type]) {
-		struct vuht_entry_t *scanht = ht_head[type];
+	pthread_rwlock_rdlock(&vuht_rwlock);
+	if (vuht_head[type]) {
+		struct vuht_entry_t *scanht = vuht_head[type];
 		struct vuht_entry_t *next = scanht;
 		do {
 			scanht = next;
@@ -486,26 +486,26 @@ static void forall_ht_terminate(uint8_t type)
 					scanht->service->destructor(type, scanht); */
 			}
 			next = scanht->prev;
-		} while (ht_head[type] != NULL && next != ht_head[type]);
+		} while (vuht_head[type] != NULL && next != vuht_head[type]);
 	}
-	pthread_rwlock_unlock(&ht_rwlock);
+	pthread_rwlock_unlock(&vuht_rwlock);
 }
 
 void forall_vuht_do(uint8_t type, 
 		void (*fun)(struct vuht_entry_t *ht, void *arg),
 		void *arg) {
-	pthread_rwlock_rdlock(&ht_rwlock);
-	if (ht_head[type]) {
-		struct vuht_entry_t *scanht = ht_head[type];
+	pthread_rwlock_rdlock(&vuht_rwlock);
+	if (vuht_head[type]) {
+		struct vuht_entry_t *scanht = vuht_head[type];
 		do {
 			scanht = scanht->next;
 			if (scanht->invalid == 0) {
 				if ((matching_epoch(scanht->timestamp)) > 0)
 					fun(scanht, arg);
 			}
-		} while (ht_head[type] != NULL && scanht != ht_head[type]);
+		} while (vuht_head[type] != NULL && scanht != vuht_head[type]);
 	}
-	pthread_rwlock_unlock(&ht_rwlock);
+	pthread_rwlock_unlock(&vuht_rwlock);
 }
 
 /* mount table creation */
@@ -524,35 +524,37 @@ void vuht_get_mtab(FILE *f) {
 }
 
 
-void *ht_get_private_data(struct vuht_entry_t *hte) {
+void *vuht_get_private_data(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->private_data;
 	else
 		return NULL;
 }
 
-void ht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
+void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
 	if (hte)
 		hte->private_data = private_data;
 }
 
-struct vuht_entry_t *ht_search(uint8_t type, void *arg, int objlen,
+#if 0
+struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
 		struct vu_service_t *service) {
-	struct vuht_entry_t *hte = ht_check(type, arg, NULL, 0);
+	struct vuht_entry_t *hte = vuht_check(type, arg, NULL, 0);
 
 	if (hte && ((objlen > 0 && objlen != hte->objlen) ||
 				(service != NULL && service != hte->service)))
 		return NULL;
 	return hte;
 }
+#endif
 
-void ht_renew(struct vuht_entry_t *hte) {
+void vuht_renew(struct vuht_entry_t *hte) {
 	if (hte)
 		hte->timestamp = get_vepoch();
 }
 
 #if 0
-char *ht_get_servicename(struct vuht_entry_t *hte) {
+char *vuht_get_servicename(struct vuht_entry_t *hte) {
 	if (hte && hte->service)
 		return hte->service->name;
 	else
@@ -560,25 +562,25 @@ char *ht_get_servicename(struct vuht_entry_t *hte) {
 }
 #endif
 
-struct vu_service_t *ht_get_service(struct vuht_entry_t *hte) {
+struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->service;
 	else
 		return NULL;
 }
 
-unsigned long ht_get_mountflags(struct vuht_entry_t *hte) {
+unsigned long vuht_get_mountflags(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->mountflags;
 	else
 		return 0;
 }
 
-epoch_t ht_get_vepoch(struct vuht_entry_t *hte) {
+epoch_t vuht_get_vepoch(struct vuht_entry_t *hte) {
 	return hte->timestamp;
 }
 
-void ht_count_plus1(struct vuht_entry_t *hte) {
+void vuht_count_plus1(struct vuht_entry_t *hte) {
 #if 0 //XXXX
 	if (hte->service_hte == NULL) {
 		if (hte->service)
@@ -591,16 +593,16 @@ void ht_count_plus1(struct vuht_entry_t *hte) {
 	hte->count++;
 }
 
-void ht_count_minus1(struct vuht_entry_t *hte) {
+void vuht_count_minus1(struct vuht_entry_t *hte) {
 	if (hte->service_hte)
 		hte->service_hte->count--;
 	hte->count--;
 }
 
-int ht_get_count(struct vuht_entry_t *hte) {
+int vuht_get_count(struct vuht_entry_t *hte) {
 	return hte->count;
 }
 
-void ht_terminate() {
-	forall_ht_terminate(CHECKPATH);
+void vuht_terminate() {
+	forall_vuht_terminate(CHECKPATH);
 }

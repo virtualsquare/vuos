@@ -19,7 +19,7 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 		}
 		ht = NULL;
 	} else
-		ht = ht_check(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
+		ht = vuht_check(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
 	printkdebug(c, "path %s: %c ht %p err = %d %s", extra->path, 
 			nested ? 'N' : '-', ht,
 			(sd->action == SKIP) ? -sd->ret_value : 0,

@@ -27,7 +27,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = ht_get_service(ht);
+		struct vu_service_t *service = vuht_get_service(ht);
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
@@ -143,7 +143,7 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
   if (ht) {
-    struct vu_service_t *service = ht_get_service(ht);
+    struct vu_service_t *service = vuht_get_service(ht);
     return service->module_syscall[__VU_close](sfd, private);
   } else
     return 0;
@@ -153,7 +153,7 @@ static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = ht_get_service(ht);
+		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		if (sd->syscall_number == __NR_read) {
@@ -183,7 +183,7 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = ht_get_service(ht);
+		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		if (sd->syscall_number == __NR_write) {
@@ -210,7 +210,7 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = ht_get_service(ht);
+		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
@@ -288,7 +288,7 @@ void wi_umask(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = ht_get_service(ht);
+		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		off_t ret_value;
 		/* args */
