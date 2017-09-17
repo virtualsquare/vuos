@@ -1,0 +1,92 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+#include <stdarg.h>
+#include <errno.h>
+
+#include <xcommon.h>
+#include <r_table.h>
+#include <syscall_names.h>
+#include <syscall_table.h>
+#include <arch_table.h>
+#include <vu_log.h>
+#include <vu_execute.h>
+#include <path_utils.h>
+#include <epoch.h>
+
+#define PURELIBC_LIB "libpurelibc.so"
+
+static long int capture_nested_syscall(long int syscall_number, ...) {
+	va_list ap;
+	struct syscall_descriptor_t sd;
+	struct syscall_extra_t extra;
+	struct hashtable_obj_t *ht;
+	int sysno = vu_arch_table[syscall_number];
+	struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
+	long int ret_value;
+	epoch_t e = get_vepoch();
+	sd.extra = &extra;
+	sd.orig_syscall_number = 
+		sd.syscall_number = syscall_number;
+	va_start (ap, syscall_number);
+	sd.syscall_args[0]=va_arg(ap,long int);
+	sd.syscall_args[1]=va_arg(ap,long int);
+	sd.syscall_args[2]=va_arg(ap,long int);
+	sd.syscall_args[3]=va_arg(ap,long int);
+	sd.syscall_args[4]=va_arg(ap,long int);
+	sd.syscall_args[5]=va_arg(ap,long int);
+	va_end(ap);
+	sd.action = DOIT;
+	sd.ret_value = 0;
+	extra.statbuf.st_mode = 0;
+	extra.path = get_nested_syspath(syscall_number, sd.syscall_args, &extra.statbuf);
+	extra.path_errno = errno;
+	extra.nested = VU_NESTED;
+	extra.epoch = get_vepoch();
+	printkdebug(n, "IN %s %s %d epoch %ld", syscallname(sd.syscall_number), extra.path, errno, e);
+	ht = tab_entry->choicef(&sd);
+	if (sd.action != SKIP)
+		tab_entry->wrapinf(ht, &sd);
+	if (sd.action != SKIP) {
+		sd.orig_ret_value = native_syscall(syscall_number,
+				sd.syscall_args[0],
+				sd.syscall_args[1],
+				sd.syscall_args[2],
+				sd.syscall_args[3],
+				sd.syscall_args[4],
+				sd.syscall_args[5]);
+		if (sd.action == DOIT_CB_AFTER)
+			tab_entry->wrapoutf(ht, &sd);
+		else
+			sd.ret_value = sd.orig_ret_value;
+	}
+	ret_value =  sd.ret_value;
+	xfree(extra.path);
+	set_vepoch(e);
+	return ret_value;
+}
+
+typedef long (*sfun)();
+
+#pragma GCC diagnostic ignored "-Wpedantic"
+void vu_nesting_init(int argc, char *argv) {
+	sfun (*_pure_start_p)();
+	char *ld_preload = getenv("LD_PRELOAD");
+	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
+		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
+		if (_pure_start_p) {
+			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
+			native_syscall = _pure_start_p(capture_nested_syscall, 0);
+		}
+	} else {
+		if (setenv("LD_PRELOAD", PURELIBC_LIB, 1) == 0) {
+			execv("/proc/self/exe", argv);
+		}
+	}
+}
+
+__attribute__((constructor))
+	static void init(void) {
+		debug_set_name(n, "NESTED");
+	}
+

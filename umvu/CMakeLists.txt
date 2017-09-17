@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 2.6)
+
+set(UMVU_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(UMVU_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+
+file(GLOB_RECURSE UMVU_SOURCES ${UMVU_SOURCES}/*.c)
+list(APPEND UMVU_SOURCES ${VU_DYN_SOURCES})
+
+include_directories(${UMVU_HEADERS} ${VU_DYN_HEADER_PATH} ${VU_HEADERS})
+add_executable(umvu ${UMVU_SOURCES})
+target_link_libraries(umvu pthread dl)
+
+install(TARGETS umvu
+  RUNTIME DESTINATION bin)
