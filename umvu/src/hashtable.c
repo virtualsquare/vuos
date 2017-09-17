@@ -53,14 +53,19 @@ struct hashtable_obj_t {
 };
 
 /* it must be a power of two (masks are used instead of modulo) */
-#define MNTTAB_HASH_SIZE 512
-#define MNTTAB_HASH_MASK (MNTTAB_HASH_SIZE-1)
+#define VU_HASHTABLE_SIZE 512
+#define VU_HASHTABLE_MASK (VU_HASHTABLE_SIZE-1)
 
 /* ReadWrite lock to access the Hashtable */
 static pthread_rwlock_t ht_rwlock = PTHREAD_RWLOCK_INITIALIZER;
-static struct hashtable_obj_t *ht_hash[MNTTAB_HASH_SIZE];
-static struct hashtable_obj_t *ht_head[NCHECKS];
+/* this is THE hash */
+static struct hashtable_obj_t *ht_hash[VU_HASHTABLE_SIZE];
+
+/* null tags have separate a separate list */
 static struct hashtable_obj_t *ht_hash0[NCHECKS];
+
+/* heads of the list of hash entries of the same type */
+static struct hashtable_obj_t *ht_head[NCHECKS];
 
 /* /free of hashtable_obj_t */
 static inline struct hashtable_obj_t *ht_tab_alloc() {
@@ -82,7 +87,7 @@ static inline void ht_tab_free(struct hashtable_obj_t *ht) {
 	 intermediate results can be completed during the scan */
 static inline int hashmod(long hashsum)
 {
-	return hashsum & MNTTAB_HASH_MASK;
+	return hashsum & VU_HASHTABLE_MASK;
 }
 
 /* djb2 hash function */
@@ -277,6 +282,7 @@ internal_ht_tab_add(uint8_t type, const void *obj, int objlen,
 {
 	struct hashtable_obj_t **hashhead;
 	struct hashtable_obj_t *new = ht_tab_alloc();
+	/* create the entry and fill in the fields */
 	fatal(new);
 	new->obj = malloc(objlen);
 	fatal(new->obj);
@@ -295,10 +301,7 @@ internal_ht_tab_add(uint8_t type, const void *obj, int objlen,
 	new->count = 0;
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&ht_rwlock);
-	if (objlen==0)
-		hashhead=&ht_hash0[type];
-	else
-		hashhead=&ht_hash[hashmod(new->hashsum)];
+	/* add it to the list of hash entry of this type */
 	if (ht_head[type]) {
 		new->next=ht_head[type]->next;
 		new->prev=ht_head[type];
@@ -307,6 +310,11 @@ internal_ht_tab_add(uint8_t type, const void *obj, int objlen,
 		ht_head[type]=new;
 	} else
 		ht_head[type]=new->next=new->prev=new;
+	/* add it to the right hash collision list */
+	if (objlen==0)
+		hashhead=&ht_hash0[type];
+	else
+		hashhead=&ht_hash[hashmod(new->hashsum)];
 	if (*hashhead)
 		(*hashhead)->pprevhash=&(new->nexthash);
 	new->nexthash=*hashhead;

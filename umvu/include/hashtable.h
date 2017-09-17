@@ -23,7 +23,6 @@ struct vu_service_t;
 
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
-//#define HT_ERR ((hashtable_obj_t *)1)
 
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct hashtable_obj_t *ht);
