@@ -27,7 +27,6 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
@@ -54,14 +53,14 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_open](sd->extra->path, flags, mode, &private);
+		ret_value = service_syscall(ht, __VU_open)(sd->extra->path, flags, mode, &private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
 		} else {
 			struct fnode_t *fnode;
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
-				service->module_syscall[__VU_lstat](sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
+				service_syscall(ht, __VU_lstat)(sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private); 
 			vuht_pick_again(ht);
 			if (nested) {
@@ -146,8 +145,7 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
   if (ht) {
 		int ret_value;
-    struct vu_service_t *service = vuht_get_service(ht);
-    ret_value = service->module_syscall[__VU_close](sfd, private);
+    ret_value = service_syscall(ht, __VU_close)(sfd, private);
 		vuht_drop(ht);
 		return ret_value;
   } else
@@ -158,7 +156,6 @@ static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		if (sd->syscall_number == __NR_read) {
@@ -168,7 +165,7 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			void *buf; 
 			ssize_t ret_value;
 			vu_alloc_arg(addr, buf, bufsize, nested);
-			ret_value = service->module_syscall[__VU_read](sfd, buf, bufsize, private);
+			ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
 			else {
@@ -188,7 +185,6 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		if (sd->syscall_number == __NR_write) {
@@ -198,7 +194,7 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			void *buf;
 			ssize_t ret_value;
 			vu_peek_alloc_arg(addr, buf, bufsize, nested);
-			ret_value = service->module_syscall[__VU_write](sfd, buf, bufsize, private);
+			ret_value = service_syscall(ht, __VU_write)(sfd, buf, bufsize, private);
 			vu_free_arg(buf, nested);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
@@ -215,7 +211,6 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
@@ -224,7 +219,7 @@ void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		void *buf;
 		int ret_value;
 		vu_alloc_arg(addr, buf, bufsize, nested);
-		ret_value = service->module_syscall[__VU_getdents64](sfd, buf, bufsize, private);
+		ret_value = service_syscall(ht, __VU_getdents64)(sfd, buf, bufsize, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
@@ -293,7 +288,6 @@ void wi_umask(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		off_t ret_value;
 		/* args */
@@ -304,7 +298,7 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int whence = sd->syscall_args[2];
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_lseek](sfd, offset, whence, private);
+		ret_value = service_syscall(ht, __VU_lseek)(sfd, offset, whence, private);
 		if (ret_value < 0) 
 			sd->ret_value = -errno;
 		else

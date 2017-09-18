@@ -82,29 +82,25 @@ int vu_unreal_rename(const char *target, const char *linkpath, int flags) {
 	return rename(unwrap(target), unwrap(linkpath));
 }
 
-struct twohte {
-	struct vuht_entry_t *ht1,*ht2;
-};
+static struct vuht_entry_t *ht1,*ht2;
 
 void *vu_unreal_init(void) {
-	struct twohte *two = malloc(sizeof(struct twohte));
-	struct vu_service_t *s = vu_module.service;
+	struct vu_service_t *s = vu_mod_getservice();
 
 	vu_syscall_handler(s, close) = close;
 	vu_syscall_handler(s, read) = read;
 	vu_syscall_handler(s, write) = write;
 	vu_syscall_handler(s, lseek) = lseek;
 
-	two->ht1 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
-	two->ht2 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
-	return two;
+	ht1 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
+	ht2 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
+
+	return NULL;
 }
 
 void vu_unreal_fini(void *private) {
-	struct twohte *two = private;
-	if (vuht_del(two->ht2) == 0 && vuht_del(two->ht1) == 0) {
-		vuht_free(two->ht2);
-		vuht_free(two->ht1);
-		free(two);
-	}
+	if (ht2 && vuht_del(ht2, 0) == 0)
+		ht2 = NULL;
+	if (ht1 && vuht_del(ht1, 0) == 0)
+		ht1 = NULL;
 }

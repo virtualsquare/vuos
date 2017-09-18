@@ -78,6 +78,43 @@ struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 	}
 }
 
+struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
+  int nested = sd->extra->nested;
+	if (nested)
+		return NULL;
+	else {
+		struct syscall_extra_t *extra = sd->extra;
+		struct vuht_entry_t *ht;
+		char filesystemtype[PATH_MAX];
+		syscall_arg_t filesystemtype_addr = sd->syscall_args[2];
+		umvu_peek_str(filesystemtype_addr, filesystemtype, PATH_MAX);
+		ht = vuht_pick(CHECKFSTYPE, filesystemtype, NULL, SET_EPOCH);
+		printkdebug(c, "mount %s on %s: - ht %p", filesystemtype, extra->path, ht);
+    return ht;
+	}
+}
+
+struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
+  int nested = sd->extra->nested;
+	if (nested)
+		return NULL;
+	else {
+		struct syscall_extra_t *extra = sd->extra;
+		struct vuht_entry_t *ht;
+		if (extra->path == NULL) {
+			if (extra->path_errno != 0) {
+				sd->ret_value = -extra->path_errno;
+				sd->action = SKIP;
+			}
+			ht = NULL;
+		} else
+			ht = vuht_pick(CHECKPATHEXACT, extra->path, &extra->statbuf, SET_EPOCH);
+		printkdebug(c, "umount2 %s: - ht %p err = %d %s", extra->path, ht,
+      (sd->action == SKIP) ? -sd->ret_value : 0,
+      (sd->action == SKIP) ? "SKIP" : "");
+		return ht;
+	}
+}
 
 __attribute__((constructor))
 	static void init(void) {

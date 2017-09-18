@@ -23,7 +23,6 @@
 void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
@@ -57,7 +56,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_local_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_lstat](sd->extra->path, statbuf, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lstat)(sd->extra->path, statbuf, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -72,7 +71,6 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
     int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		ssize_t ret_value;
@@ -96,7 +94,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_local_arg(bufaddr, buf, PATH_MAX + 1, nested);
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_readlink](sd->extra->path, buf, PATH_MAX + 1);
+		ret_value = service_syscall(ht, __VU_readlink)(sd->extra->path, buf, PATH_MAX + 1);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -114,7 +112,6 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
@@ -134,7 +131,7 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_access](sd->extra->path, mode, flags);
+		ret_value = service_syscall(ht, __VU_access)(sd->extra->path, mode, flags);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -148,7 +145,6 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
@@ -166,9 +162,9 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* call */
 		sd->action = SKIP;
 		if (flags & AT_REMOVEDIR)
-			ret_value = service->module_syscall[__VU_rmdir](sd->extra->path);
+			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
 		else
-			ret_value = service->module_syscall[__VU_unlink](sd->extra->path);
+			ret_value = service_syscall(ht, __VU_unlink)(sd->extra->path);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -182,7 +178,6 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
@@ -199,7 +194,7 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_mkdir](sd->extra->path, mode);
+		ret_value = service_syscall(ht, __VU_mkdir)(sd->extra->path, mode);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -213,11 +208,10 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_rmdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int ret_value;
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_rmdir](sd->extra->path);
+		ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -231,7 +225,6 @@ void wi_rmdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
@@ -262,7 +255,7 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_lchown](sd->extra->path, owner, group, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->path, owner, group, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -276,7 +269,6 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
@@ -301,7 +293,7 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_chmod](sd->extra->path, mode, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->path, mode, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -328,7 +320,6 @@ static void utimes2utimen(struct timeval *in_times, struct timespec *out_times) 
 void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   if (ht) {
     /* standard args */
-    struct vu_service_t *service = vuht_get_service(ht);
     int nested = sd->extra->nested;
     int syscall_number = sd->syscall_number;
     int ret_value;
@@ -404,7 +395,7 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 		}
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_utimensat](AT_FDCWD, sd->extra->path, times, flags, sfd, private);
+		ret_value = service_syscall(ht,__VU_utimensat)(AT_FDCWD, sd->extra->path, times, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -417,7 +408,6 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 /*  link, linkat */
 void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
@@ -457,7 +447,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EXDEV;
 			return;
 		}
-		ret_value = service->module_syscall[__VU_link](oldpath, sd->extra->path);
+		ret_value = service_syscall(ht, __VU_link)(oldpath, sd->extra->path);
 		xfree(oldpath);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -468,18 +458,9 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-static char *get_symlink_target(uintptr_t addr) {
-	char target[PATH_MAX];
-	if (umvu_peek_str(addr, target, PATH_MAX) == 0)
-		return strdup(target);
-	else
-		return NULL;
-}
-
 /*  symlink, symlinkat */
 void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int ret_value;
 		char *target;
@@ -487,9 +468,9 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (nested) 
 			target = (char *) sd->syscall_args[0];
 		else
-			target = get_symlink_target(sd->syscall_args[0]);
+			target = umvu_peekdup_path(sd->syscall_args[0]);
 		sd->action = SKIP;
-		ret_value = service->module_syscall[__VU_symlink](target, sd->extra->path);
+		ret_value = service_syscall(ht, __VU_symlink)(target, sd->extra->path);
 		if (!nested)
 			xfree(target);
 		if (ret_value < 0) {
@@ -504,7 +485,6 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 /*  rename, renameat, renameat2 */
 void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		int ret_value;
@@ -544,12 +524,12 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EXDEV;
 			return;
 		}
-		ret_value = service->module_syscall[__VU_rename](oldpath, sd->extra->path, flags);
+		ret_value = service_syscall(ht, __VU_rename)(oldpath, sd->extra->path, flags);
 		if (ret_value < 0 && errno == ENOSYS) {
 			/* workaround if rename is not available */
-			ret_value = service->module_syscall[__VU_link](oldpath, sd->extra->path);
+			ret_value = service_syscall(ht, __VU_link)(oldpath, sd->extra->path);
 			if (ret_value == 0)
-				ret_value = service->module_syscall[__VU_unlink](oldpath);
+				ret_value = service_syscall(ht, __VU_unlink)(oldpath);
 		}
 		xfree(oldpath);
 		if (ret_value < 0) {

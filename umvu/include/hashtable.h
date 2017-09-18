@@ -40,9 +40,9 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 
 void vuht_invalidate(struct vuht_entry_t *hte);
 /* del takes the element out from the data structure.... */
-int vuht_del(struct vuht_entry_t *hte);
-/* free dealloc memory, vuht_free must follow a vuht_del */
-int vuht_free(struct vuht_entry_t *hte);
+int vuht_del(struct vuht_entry_t *hte, int delayed);
+///* free dealloc memory, vuht_free must follow a vuht_del */
+//int vuht_free(struct vuht_entry_t *hte);
 
 struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct stat *st, int setepoch);
 void vuht_pick_again(struct vuht_entry_t *hte);

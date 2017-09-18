@@ -9,7 +9,6 @@ struct vuht_entry_t;
 struct vu_module_t {
   char *name;
   char *description;
-	struct vu_service_t *service;
 };
 
 typedef long (*syscall_t)();
@@ -45,6 +44,10 @@ int VU_SYSNAME(name, utimensat) (int dirfd, const char *pathname, \
 int VU_SYSNAME(name, symlink) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, link) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, rename) (const char *target, const char *linkpath, int flags); \
+int VU_SYSNAME(name, mount) (const char *source, const char *target, \
+		const char *filesystemtype, unsigned long mountflags, \
+		const void *data); \
+int VU_SYSNAME(name, umount2) (const char *target, int flags); \
 
 
 #define CHECKMODULE 0        // Module name
@@ -71,9 +74,28 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		unsigned char trailingnumbers,
 		confirmfun_t confirmfun, void *private_data);
 
+struct vuht_entry_t *vu_mod_getht(void);
+struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
+__attribute__((always_inline))
+  static inline syscall_t vu_mod_getservice(void) {
+		return vuht_get_service(vu_mod_getht());
+  }
+
+void *vuht_get_private_data(struct vuht_entry_t *hte);
+void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
+
+__attribute__((always_inline))
+	static inline void *vu_get_ht_private_data(void) {
+		return vuht_get_private_data(vu_mod_getht());
+	}
+
+__attribute__((always_inline))
+	static inline void vu_set_ht_private_data(void *private_data) {
+		vuht_set_private_data(vu_mod_getht(), private_data);
+	}
+
 void vuht_invalidate(struct vuht_entry_t *hte);
-int vuht_del(struct vuht_entry_t *hte);
-int vuht_free(struct vuht_entry_t *hte);
+int vuht_del(struct vuht_entry_t *hte, int delayed);
 
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64

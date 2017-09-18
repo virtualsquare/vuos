@@ -103,7 +103,7 @@ struct vu_service_t *module_load(const char *modname)
 		printkdebug(m, "Loading %s", module->name);
 		service->mod = module;
 		service->dlhandle = handle;
-		service->ht = NULL;
+		service->service_ht = NULL;
 		service->private = NULL;
 		snprintf(fname, fnamelen, "vu_%s_",module->name);
 		for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {

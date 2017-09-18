@@ -155,8 +155,7 @@ static int vu_access(char *pathname, int mode, void *private) {
 
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
-		retval = service->module_syscall[__VU_access](pathname, mode, 0);
+		retval = service_syscall(ht,__VU_access)(pathname, mode, 0);
 		vuht_drop(ht);
 	} else
 		retval = r_access(pathname, mode);
@@ -168,8 +167,7 @@ static inline mode_t get_lmode(struct vuht_entry_t *ht,
 		char *pathname, struct vu_stat *buf) {
 	int stat_retval;
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
-		stat_retval = service->module_syscall[__VU_lstat](pathname, buf, 0, -1, NULL);
+		stat_retval = service_syscall(ht,__VU_lstat)(pathname, buf, 0, -1, NULL);
 	} else
 		stat_retval = r_vu_lstat(pathname, buf);
 	if (stat_retval == 0)
@@ -205,8 +203,7 @@ static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz) {
 
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
-		struct vu_service_t *service = vuht_get_service(ht);
-		retval = service->module_syscall[__VU_readlink](pathname, buf, bufsiz);
+		retval = service_syscall(ht, __VU_readlink)(pathname, buf, bufsiz);
 		vuht_drop(ht);
 	} else
 		retval = r_readlink(pathname, buf, bufsiz);

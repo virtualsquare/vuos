@@ -51,9 +51,9 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
 			NULL, NULL, permanent);
 
-	service->ht = sht;
-	service->mod->service = service;
+	service->service_ht = sht;
 
+	vu_mod_setht(sht);
 	module_run_init(service);
 	sd->ret_value = 0;
 }
@@ -62,6 +62,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	char name[PATH_MAX];
 	struct vuht_entry_t *sht;
 	struct vu_service_t *service;
+	int ret_value;
 	if (umvu_peek_str(sd->syscall_args[0], name, PATH_MAX) < 0) {
 		sd->ret_value = -EINVAL;
 		return;
@@ -75,15 +76,15 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	service = vuht_get_service(sht);
 	fatal(service);
 
+	vu_mod_setht(sht);
 	module_run_fini(service);
-	vuht_drop(sht);
-	if (vuht_del(sht) != 0) {
-		printk(KERN_ERR "module %s is already in use\n", name);
-		sd->ret_value = -EADDRINUSE;
+	if ((ret_value = vuht_del(sht, 1)) != 0) {
+		sd->ret_value = ret_value;
+		printk(KERN_ERR "module %s: %s\n", name, strerror(-ret_value));
+		vuht_drop(sht);
 		return;
 	}
-	service->mod->service = NULL;
-	vuht_free(sht);
+	vuht_drop(sht);
 	module_unload(service);
 	update_vepoch();
 	sd->ret_value = 0;

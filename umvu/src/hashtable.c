@@ -74,18 +74,11 @@ static inline struct vuht_entry_t *vuht_alloc() {
 }
 
 /* free of vuht_entry_t */
-/* it needs to have been deleted first (vuht_del) */
-int vuht_free(struct vuht_entry_t *ht) {
-	if (ht == NULL)
-		return -ENOENT;
-	else if (ht->next == NULL && ht->prev == NULL) {
-		free(ht->obj);
-		if (ht->mtabline)
-			free(ht->mtabline);
-		free(ht);
-		return 0;
-	} else
-		return -EBUSY;
+static void vuht_free(struct vuht_entry_t *ht) {
+	free(ht->obj);
+	if (ht->mtabline)
+		free(ht->mtabline);
+	free(ht);
 }
 
 /* hash function */
@@ -304,11 +297,11 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->invalid = 0;
 	new->private_data = private_data;
 	new->service = service;
-	new->service_hte = service->ht;
+	new->service_hte = service->service_ht;
 	new->confirmfun = confirmfun;
 	new->count = (permanent != 0);
-	if (service->ht)
-		vuht_pick_again(service->ht);
+	if (service->service_ht)
+		vuht_pick_again(service->service_ht);
 
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&vuht_rwlock);
@@ -401,30 +394,31 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 	return rv;
 }
 
-/* detouch an element from the hash table */
-/* it is idempotent can be called several times */
-static int vuht_del_locked(struct vuht_entry_t *ht) {
+/* unlink an element from the hash table */
+static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
 	uint8_t type = ht->type;
-	if (ht->count != 0)
+	if (ht->count > delayed)
 		return -EBUSY;
-	if (ht->next != NULL) {
-		if (ht == vuht_head[type]) {
-			if (ht->next == ht)
-				vuht_head[type] = NULL;
-			else
-				vuht_head[type] = ht->prev;
-		}
-		ht->prev->next = ht->next;
-		ht->next->prev = ht->prev;
-		*(ht->pprevhash) = ht->nexthash;
-		if (ht->nexthash)
-			ht->nexthash->pprevhash = ht->pprevhash;
-		if (ht->service_hte && ht->service_hte != ht)
-			vuht_drop(ht->service_hte);
-		ht->service_hte = NULL;
-		ht->next = ht->prev = ht->nexthash = NULL;
-		ht->pprevhash = NULL;
+	if (ht->next == NULL) 
+		return -EINVAL;
+	if (ht == vuht_head[type]) {
+		if (ht->next == ht)
+			vuht_head[type] = NULL;
+		else
+			vuht_head[type] = ht->prev;
 	}
+	ht->prev->next = ht->next;
+	ht->next->prev = ht->prev;
+	*(ht->pprevhash) = ht->nexthash;
+	if (ht->nexthash)
+		ht->nexthash->pprevhash = ht->pprevhash;
+	if (ht->service_hte && ht->service_hte != ht)
+		vuht_drop(ht->service_hte);
+	ht->service_hte = NULL;
+	ht->next = ht->prev = ht->nexthash = NULL;
+	ht->pprevhash = NULL;
+	if (ht->count == 0)
+		vuht_free(ht);
 	return 0;
 }
 
@@ -433,11 +427,11 @@ void vuht_invalidate(struct vuht_entry_t *ht) {
 		ht->invalid = 1;
 }
 
-int vuht_del(struct vuht_entry_t *ht) {
+int vuht_del(struct vuht_entry_t *ht, int delayed) {
 	if (ht) {
 		int ret_value;
 		pthread_rwlock_wrlock(&vuht_rwlock);
-		ret_value = vuht_del_locked(ht);
+		ret_value = vuht_del_locked(ht, delayed & 1);
 		pthread_rwlock_unlock(&vuht_rwlock);
 		return ret_value;
 	} else
@@ -501,6 +495,8 @@ void vuht_pick_again(struct vuht_entry_t *hte) {
 void vuht_drop(struct vuht_entry_t *hte) {
 	if (hte)
 		hte->count--;
+	if (hte->count == 0 && hte->next == NULL)
+		vuht_free(hte);
 }
 
 /* reverse scan of hash table elements, useful to close all files  */
