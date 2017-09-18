@@ -38,8 +38,10 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
 	printkdebug(c, "fd %d %s: %c ht %p", fd, extra->path, 
 			nested ? 'N' : '-', ht);
-	if (ht) 
+	if (ht) {
+		set_vepoch(vuht_get_vepoch(ht));
 		vuht_pick_again(ht);
+	}
 	return ht;
 }
 

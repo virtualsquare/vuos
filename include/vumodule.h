@@ -25,22 +25,22 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define VU_SYSNAME(name, syscall) vu_ ## name ## _ ## syscall
 #define VU_PROTOTYPES(name) \
 	\
-int VU_SYSNAME(name, lstat) (char *pathname, struct vu_stat *buf, int flags, int sfd, void *private); \
+int VU_SYSNAME(name, lstat) (char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate); \
 int VU_SYSNAME(name, access) (char *path, int mode, int flags); \
 ssize_t VU_SYSNAME(name, readlink) (char *path, char *buf, size_t bufsiz); \
-int VU_SYSNAME(name, open) (const char *pathname, int flags, mode_t mode, void **private); \
-int VU_SYSNAME(name, close) (int fd, void *private); \
-ssize_t VU_SYSNAME(name, read) (int fd, void *buf, size_t count, void *private); \
-ssize_t VU_SYSNAME(name, write)(int fd, const void *buf, size_t count, void *private); \
-int VU_SYSNAME(name, getdents64) (unsigned int fd, struct dirent64 *dirp, unsigned int count, void *private); \
-off_t VU_SYSNAME(name, lseek) (int fd, off_t offset, int whence, void *private); \
+int VU_SYSNAME(name, open) (const char *pathname, int flags, mode_t mode, void **fdprivate); \
+int VU_SYSNAME(name, close) (int fd, void *fdprivate); \
+ssize_t VU_SYSNAME(name, read) (int fd, void *buf, size_t count, void *fdprivate); \
+ssize_t VU_SYSNAME(name, write)(int fd, const void *buf, size_t count, void *fdprivate); \
+int VU_SYSNAME(name, getdents64) (unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate); \
+off_t VU_SYSNAME(name, lseek) (int fd, off_t offset, int whence, void *fdprivate); \
 int VU_SYSNAME(name, unlink) (const char *pathname); \
 int VU_SYSNAME(name, mkdir) (const char *pathname, mode_t mode); \
 int VU_SYSNAME(name, rmdir) (const char *pathname); \
-int VU_SYSNAME(name, chmod) (const char *pathname, mode_t mode, int fd, void *private); \
-int VU_SYSNAME(name, lchown) (const char *pathname, uid_t owner, gid_t group, int fd, void *private); \
+int VU_SYSNAME(name, chmod) (const char *pathname, mode_t mode, int fd, void *fdprivate); \
+int VU_SYSNAME(name, lchown) (const char *pathname, uid_t owner, gid_t group, int fd, void *fdprivate); \
 int VU_SYSNAME(name, utimensat) (int dirfd, const char *pathname, \
-		const struct timespec times[2], int flags, int fd, void *private); \
+		const struct timespec times[2], int flags, int fd, void *fdprivate); \
 int VU_SYSNAME(name, symlink) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, link) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, rename) (const char *target, const char *linkpath, int flags); \
@@ -65,14 +65,14 @@ typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data, int permanent);
+		void *ht_private_data, int permanent);
 
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
 		struct vu_service_t *service,
 		unsigned char trailingnumbers,
-		confirmfun_t confirmfun, void *private_data);
+		confirmfun_t confirmfun, void *ht_private_data);
 
 struct vuht_entry_t *vu_mod_getht(void);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
@@ -82,7 +82,7 @@ __attribute__((always_inline))
   }
 
 void *vuht_get_private_data(struct vuht_entry_t *hte);
-void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
+void vuht_set_private_data(struct vuht_entry_t *hte, void *ht_private_data);
 
 __attribute__((always_inline))
 	static inline void *vu_get_ht_private_data(void) {
@@ -90,8 +90,8 @@ __attribute__((always_inline))
 	}
 
 __attribute__((always_inline))
-	static inline void vu_set_ht_private_data(void *private_data) {
-		vuht_set_private_data(vu_mod_getht(), private_data);
+	static inline void vu_set_ht_private_data(void *ht_private_data) {
+		vuht_set_private_data(vu_mod_getht(), ht_private_data);
 	}
 
 void vuht_invalidate(struct vuht_entry_t *hte);

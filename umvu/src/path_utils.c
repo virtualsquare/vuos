@@ -43,7 +43,7 @@ char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags) {
 	char *ret_value;
 	umvu_peek_str(addr, path, PATH_MAX);
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_path %d %s->%s errno %d", dirfd, path, ret_value, errno);
+	printkdebug(p,"get_path %d %s->%s errno:%d epoch:%d", dirfd, path, ret_value, errno, get_vepoch());
 	return ret_value;
 }
 
@@ -122,7 +122,7 @@ char *get_nested_path(int dirfd, char *path, struct vu_stat *buf, int flags) {
 		.statbuf = buf};
 	char *ret_value;
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_nested_path %d %s->%s errno %d", dirfd, path, ret_value, errno);
+	printkdebug(p,"get_nested_path %d %s->%s errno:%d epoch:%d", dirfd, path, ret_value, errno, get_vepoch());
 	return ret_value;
 }
 
@@ -228,6 +228,7 @@ static int vu_getcwd(char *pathname, size_t size, void *private) {
 }
 
 static int vu_getroot(char *pathname, size_t size, void *private) {
+	/* XXX this should not be applied again on nested calls.. isn't it? */
 	vu_fs_get_rootdir(pathname, size);
 	return 0;
 }
