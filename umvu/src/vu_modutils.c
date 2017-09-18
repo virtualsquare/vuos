@@ -106,7 +106,7 @@ struct vu_service_t *module_load(const char *modname)
 		service->ht = NULL;
 		service->private = NULL;
 		snprintf(fname, fnamelen, "vu_%s_",module->name);
-		for (i = 0; i < VU_NR_SYSCALLS; i++) {
+		for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {
 			strcpy(fname+prefixlen, vu_syscall_names[i]);
 			service->module_syscall[i] = dlsym(handle, fname);
 			if (service->module_syscall[i] == NULL) {
@@ -125,7 +125,7 @@ struct vu_service_t *module_load(const char *modname)
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name) {
 	int i;
 	static syscall_t useless;
-	for (i = 0; i < VU_NR_SYSCALLS; i++) {
+	for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {
 		if (strcmp(name, vu_syscall_names[i]) == 0) 
 			return &service->module_syscall[i];
 	}

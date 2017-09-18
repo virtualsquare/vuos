@@ -20,9 +20,12 @@ vvu_syscall_max_namelen = 0
 with open(sys.argv[1]) as f:
 	counter = 0
 	vcounter = 1
+	mcounter = 0
 	for line in f:
 		line = line.strip()
-		if not line.startswith('#'):
+		if line == "BUILTIN":
+			mcounter = counter
+		elif not line.startswith('#'):
 			syscall_line = line.split(':')
 			if len(syscall_line) > 1:
 				syscall = syscall_line[0].strip()
@@ -42,7 +45,10 @@ with open(sys.argv[1]) as f:
 							vu_syscall_max_namelen = syscall_len
 					code += "#define __VU_{} {}\n".format(syscall,counter)
 					counter += 1
+if mcounter == 0:
+	mcounter = counter
 code += "\n#define VU_NR_SYSCALLS {}".format(counter)
+code += "\n#define VU_NR_MODULE_SYSCALLS {}".format(mcounter)
 code += "\n#define VVU_NR_SYSCALLS {}".format(vcounter)
 code += "\n#define VU_SYSCALL_MAX_NAMELEN {}".format(vu_syscall_max_namelen)
 code += "\n#define VVU_SYSCALL_MAX_NAMELEN {}".format(vvu_syscall_max_namelen)
