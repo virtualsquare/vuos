@@ -12,9 +12,9 @@ typedef long (*syscall_t)();
 
 struct binfmt_req_t {
 	char *path;
-	char *interp;
-	char *extraarg;
-	char *buf;
+	char *filehead;
+	int fileheadsize;
+	int fileheadlen;
 	int flags;
 };
 

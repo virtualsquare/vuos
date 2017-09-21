@@ -52,7 +52,7 @@ struct vu_vnode_t *vu_vnode_open(ino_t dev, ino_t inode) {
 		fatal(new_vnode);
 		new_vnode->dev = dev;
 		new_vnode->inode = inode;
-		new_vnode->vpath = vu_tmpfilename(dev, inode);
+		new_vnode->vpath = vu_tmpfilename(dev, inode, NULL);
 		new_vnode->usage_count = 1;
 		new_vnode->flags = 0;
 		new_vnode->next = NULL;

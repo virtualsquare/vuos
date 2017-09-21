@@ -306,8 +306,12 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->action = SKIP;
+	sd->ret_value = -ENOSYS;
+}
+
 __attribute__((constructor))
   static void init(void) {
     vu_fnode_set_close_upcall(fnode_close_upcall);
   }
-

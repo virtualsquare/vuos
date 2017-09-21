@@ -11,11 +11,12 @@
 #define TMP_PATTERN_EXAMPLE "/tmp/.vu_0123456789_XXXXXX"
 static char dirpath[sizeof(TMP_PATTERN_EXAMPLE)+1];
 
-char *vu_tmpfilename(dev_t dev, ino_t inode) {
+char *vu_tmpfilename(dev_t dev, ino_t inode, char *suffix) {
 	char *ret_value;
 	unsigned long ldev = dev;
   unsigned long linode = inode;
-	asprintf(&ret_value, "%s/%lx_%lx", dirpath, ldev, linode);
+	asprintf(&ret_value, "%s/%lx_%lx%s", dirpath, ldev, linode,
+			suffix ? suffix : "");
 	return ret_value;
 }
 
