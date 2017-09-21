@@ -114,13 +114,13 @@ int interpreter_fill_args(struct binfmt_req_t *req, char *argv[2]) {
   *term = 0;
 	argv[0] = interpreter;
 	argv[1] = extra_arg;
-	//printk("++ interpreter_fill_args |%s|%s|\n", interpreter, extra_arg);
 	
 	return *extra_arg == '\0' ? 1 : 2;
 }
 
 struct argv_item {
 	uintptr_t arg;
+	char *larg;
 	struct argv_item *next;
 };
 
@@ -144,7 +144,9 @@ static struct argv_list load_argv(struct syscall_descriptor_t *sd) {
 			break;
 		ret_value.argc++;
 		new = malloc(sizeof(struct argv_item));
+		fatal(new);
 		new->arg = arg;
+		new->larg = NULL;
 		new->next = NULL;
 		(*argv_item_scan) = new;
 		argv_item_scan = &(new->next);
@@ -153,34 +155,165 @@ static struct argv_list load_argv(struct syscall_descriptor_t *sd) {
 	return ret_value;
 }
 
-static void copy_argv(uintptr_t *newargv, struct argv_list *oldargv) {
+static void argv_behead(struct argv_list *list) {
+	if (list->argv_head != NULL) {
+		struct argv_item *old = list->argv_head;
+		list->argv_head = list->argv_head->next;
+		xfree(old);
+		list->argc -= 1;
+	}
+}
+
+static void argv_addhead(struct argv_list *list, uintptr_t arg, char *larg) {
+	struct argv_item *new;
+	new = malloc(sizeof(struct argv_item));
+	fatal(new);
+	new->arg = arg;
+	new->larg = larg;
+	new->next = list->argv_head;
+	list->argv_head = new;
+	list->argc += 1;
+}
+
+static void copy_argv(uintptr_t *newargv, struct argv_list *argv) {
 	struct argv_item *scan, *next;
-	for (scan = oldargv->argv_head; scan != NULL; scan = next, newargv++) {
+	for (scan = argv->argv_head; scan != NULL; scan = next, newargv++) {
 		*newargv = scan->arg;
-		//char *tmp;
-		//tmp = umvu_peekdup_path(scan->arg);
-		//printk("+arg %s\n", tmp);
-		//xfree(tmp);
+		char *tmp;
+		tmp = umvu_peekdup_path(scan->arg);
+		xfree(tmp);
 		next = scan->next;
 		free(scan);
 	}
 	*newargv = 0;
 }
 
-static void rewrite_execve_argv(struct syscall_descriptor_t *sd, int extra_argc, char *extra_argv[], int flags) {
-	//printk("rewrite_execve_argv\n");
-	struct argv_list argv_list = load_argv(sd);
-	uintptr_t newargv[argv_list.argc + extra_argc + 1];
-	newargv[0] = vu_push(sd, extra_argv[0], strlen(extra_argv[0]) + 1);
-	//printk("argv[0] = %s\n", extra_argv[0]);
-	if (extra_argc > 1) {
-		newargv[1] = vu_push(sd, extra_argv[1], strlen(extra_argv[1]) + 1);
-		//printk("argv[1] = %s\n", extra_argv[1]);
+static void push_argv(struct syscall_descriptor_t *sd, struct argv_list *argv) {
+	struct argv_item *scan;
+  for (scan = argv->argv_head; scan != NULL; scan = scan->next) {
+		if (scan->arg == 0)
+			scan->arg =  vu_push(sd, scan->larg, strlen(scan->larg) + 1);
 	}
-	copy_argv(newargv + extra_argc, &argv_list);
-	/* XXX */ newargv[extra_argc] = sd->syscall_args[0];
-	sd->syscall_args[1] = vu_push(sd, newargv, sizeof(uintptr_t) * (argv_list.argc + extra_argc + 1));
 }
+
+static void rewrite_execve_argv(struct syscall_descriptor_t *sd, struct argv_list *argv_list) {
+	uintptr_t newargv[argv_list->argc + 1];
+	push_argv(sd, argv_list);
+	copy_argv(newargv, argv_list);
+	sd->syscall_args[1] = vu_push(sd, newargv, sizeof(uintptr_t) * (argv_list->argc + 1));
+}
+
+static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
+	if (buf->st_mode == 0) {
+		sd->ret_value = -ENOENT;
+		sd->action = SKIP;
+		return -1;
+	} else 
+		return 0;
+}
+
+static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path) {
+	int ret_value;
+	if (ht)
+		ret_value = service_syscall(ht,__VU_access)(path, X_OK, 0);
+	else
+		ret_value = r_access(path, X_OK);
+	if (ret_value != 0) {
+		sd->ret_value = -errno;
+		sd->action = SKIP;
+		return -1;
+	} else
+		return 0;
+}
+
+#define EXECVE_MAX_DEPTH 4
+
+static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descriptor_t *sd, struct argv_list *argv_list, int depth) {
+	char exec_head[BINFMTBUFLEN];
+	struct binfmt_req_t new_req = {
+		.path = NULL,
+		.filehead = exec_head,
+		.fileheadsize = sizeof(exec_head),
+		.fileheadlen = 0,
+		.flags = 0
+	};
+	char *extra_argv[2];
+	int extra_argc;
+	struct vu_stat statbuf;
+	struct vuht_entry_t *interpreter_ht;
+	int ret_value;
+
+	if (depth > EXECVE_MAX_DEPTH) {
+		sd->ret_value = -ELOOP;
+    sd->action = SKIP;
+    return;
+  }
+
+	epoch_t e = set_vepoch(sd->extra->epoch);
+	if ((extra_argc = interpreter_fill_args(req, extra_argv)) < 0) {
+		sd->ret_value = -errno;
+		sd->action = SKIP;
+		return;
+	}
+	extra_argv[0] = get_nested_path(AT_FDCWD, extra_argv[0], &statbuf, FOLLOWLINK);
+	if (extra_argv[0] == NULL) {
+		sd->ret_value = -errno;
+		sd->action = SKIP;
+		return;
+	}
+	if (existence_check(sd, &statbuf) < 0) {
+		xfree(extra_argv[0]);
+		return;
+	}
+	interpreter_ht = vuht_pick(CHECKPATH, extra_argv[0], &statbuf, SET_EPOCH);
+	if (xok_check(interpreter_ht, sd, extra_argv[0]) < 0) {
+		xfree(extra_argv[0]);
+		return;
+	}
+
+	if (!(req->flags & BINFMT_KEEP_ARG0))
+		argv_behead(argv_list);
+
+	if (depth == 1) 
+		argv_addhead(argv_list, sd->syscall_args[0], NULL);
+	else
+		argv_addhead(argv_list, 0, req->path);
+
+	if (extra_argc > 1)
+		argv_addhead(argv_list, 0, extra_argv[1]);
+
+	argv_addhead(argv_list, 0, extra_argv[0]);
+
+	new_req.path = extra_argv[0];
+	ret_value = read_exec_header(interpreter_ht, &new_req);
+	if (ret_value < 0) {
+		sd->ret_value = ret_value;
+		sd->action = SKIP;
+		xfree(extra_argv[0]);
+		if (interpreter_ht)
+			vuht_drop(interpreter_ht);
+		return;
+	}
+
+	check_binfmt_misc(&new_req);
+
+	if (need_interpreter(&new_req)) {
+		recursive_interpreter(&new_req, sd, argv_list, depth + 1);
+	} else {
+		rewrite_execve_argv(sd, argv_list);
+		if (interpreter_ht) {
+			rewrite_execve_filename(interpreter_ht, sd, extra_argv[0], &statbuf);
+			sd->action = DOIT_CB_AFTER;
+		} else
+			rewrite_syspath(sd, extra_argv[0]);
+	}
+	set_vepoch(e);
+	xfree(extra_argv[0]);
+	if (interpreter_ht)
+		vuht_drop(interpreter_ht);
+}
+
+
 
 void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -195,20 +328,11 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		};
 		int ret_value;
 		//printk("execve %s %x ht=%p\n", sd->extra->path, sd->extra->statbuf.st_mode, ht);
-		if (sd->extra->statbuf.st_mode == 0) {
-			sd->ret_value = -ENOENT;
-			sd->action = SKIP;
+		if (existence_check(sd, &sd->extra->statbuf) < 0)
 			return;
-		}  
-		if (ht)
-			ret_value = service_syscall(ht,__VU_access)(sd->extra->path, X_OK, 0);
-		else
-			ret_value = r_access(sd->extra->path, X_OK);
-		if (ret_value != 0) {
-			sd->ret_value = -errno;
-      sd->action = SKIP;
-      return;
-    }
+
+		if (xok_check(ht, sd, sd->extra->path) < 0)
+			return;
 
 		ret_value = read_exec_header(ht, &binfmt_req);
 		if (ret_value < 0) {
@@ -220,54 +344,14 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		check_binfmt_misc(&binfmt_req);
 
 		if (need_interpreter(&binfmt_req)) {
-			char *extra_argv[2];
-			int extra_argc;
-			struct vu_stat statbuf;
-			struct vuht_entry_t *interpreter_ht;
-			epoch_t e = set_vepoch(sd->extra->epoch);
-			/* parse header + check absolute path */
-			if ((extra_argc = interpreter_fill_args(&binfmt_req, extra_argv)) < 0) {
-				sd->ret_value = -errno;
-				sd->action = SKIP;
-				return;
-			}
-			extra_argv[0] = get_nested_path(AT_FDCWD, extra_argv[0], &statbuf, FOLLOWLINK);
-			if (extra_argv[0] == NULL) {
-				sd->ret_value = -errno;
-        sd->action = SKIP;
-        return;
-      }
-			if (statbuf.st_mode == 0) {
-				sd->ret_value = -ENOENT;
-				sd->action = SKIP;
-				xfree(extra_argv[0]);
-				return;
-			}
-			interpreter_ht = vuht_pick(CHECKPATH, extra_argv[0], &statbuf, SET_EPOCH);
-			
-			if (interpreter_ht)
-				ret_value = service_syscall(interpreter_ht,__VU_access)(extra_argv[0], X_OK, 0);
-			else
-				ret_value = r_access(extra_argv[0], X_OK);
-			if (ret_value != 0) {
-				sd->ret_value = -errno;
-				sd->action = SKIP;
-				xfree(extra_argv[0]);
-				return;
-			}
-			rewrite_execve_argv(sd, extra_argc, extra_argv, binfmt_req.flags);
-			if (interpreter_ht) {
-				rewrite_execve_filename(interpreter_ht, sd, extra_argv[0], &statbuf);
-				vuht_drop(interpreter_ht);
-				sd->action = DOIT_CB_AFTER;
-			} else
-				rewrite_syspath(sd, extra_argv[0]);
-			set_vepoch(e);
-			xfree(extra_argv[0]);
+			struct argv_list argv_list = load_argv(sd);
+
+			recursive_interpreter(&binfmt_req, sd, &argv_list, 1);
 		} else {
-			if (ht) 
+			if (ht) {
 				rewrite_execve_filename(ht, sd, sd->extra->path, &sd->extra->statbuf);
-			sd->action = DOIT_CB_AFTER;
+				sd->action = DOIT_CB_AFTER;
+			}
 		}
 	}
 }
