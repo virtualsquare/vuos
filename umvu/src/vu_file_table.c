@@ -40,7 +40,7 @@ struct vu_fnode_t *vu_fnode_create(
 	fnode->ht = ht;
 	fnode->path = xstrdup(path);
 	if (stat != NULL) {
-		fnode->vnode = vu_vnode_open(stat->st_dev, stat->st_ino);
+		fnode->vnode = vu_vnode_open(ht, stat->st_dev, stat->st_ino);
 		fnode->mode = stat->st_mode;
 	} else {
 		fnode->vnode = NULL;
@@ -141,6 +141,14 @@ int vu_fnode_get_sfd(struct vu_fnode_t *v, void **pprivate) {
 	ret_value = v->sfd;
 	if (pprivate != NULL)
 		*pprivate = v->private;
+	pthread_rwlock_unlock(&v->lock);
+	return ret_value;
+}
+
+int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp) {
+  int ret_value;
+	pthread_rwlock_rdlock(&v->lock);
+	ret_value = vu_vnode_copyinout(v->vnode, v->path, cp);
 	pthread_rwlock_unlock(&v->lock);
 	return ret_value;
 }

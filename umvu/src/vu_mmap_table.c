@@ -12,8 +12,9 @@
 
 struct vu_mmap_area_t {
 	uintptr_t addr;
-	uintptr_t length;
+	size_t length;
 	struct vu_fnode_t *fnode;
+	off_t offset;
 	struct vu_mmap_area_t *next;
 };
 
@@ -24,6 +25,95 @@ struct vu_mmap_t {
 };
 
 static __thread struct vu_mmap_t *vu_mmap = NULL;
+
+void vu_mmap_mmap(uintptr_t addr, size_t length, struct vu_fnode_t *fnode, off_t offset) {
+	struct vu_mmap_area_t *new = malloc(sizeof(*new));
+	struct vu_mmap_area_t **scan;
+	fatal(new);
+	new->addr = addr;
+	new->length = length;
+	new->fnode = fnode;
+	new->offset = offset;
+	fatal(vu_mmap);
+	for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < addr;
+			scan = &((*scan)->next))
+		;
+	vu_fnode_dup(fnode);
+	new->next = *scan;
+	*scan = new;
+}
+
+void vu_mmap_munmap(uintptr_t addr, size_t length) {
+	struct vu_mmap_area_t **scan;
+	struct vu_mmap_area_t **next;
+	fatal(vu_mmap);
+	for (scan = &vu_mmap->area_list_head; *scan != NULL; scan = next) {
+		struct vu_mmap_area_t *this = *scan;
+		next = &((*scan)->next);
+		if (addr + length <= this->addr)
+			continue;
+		if (this->addr + this->length <= addr)
+			break;
+		if (addr <= this->addr) {
+			if (addr + length >= this->addr + this->length) {
+				/* entirely in the interval */
+				/* unload this->addr,this->length */
+				*scan = this->next;
+				vu_fnode_close(this->fnode);
+				free(this);
+				next = scan;
+			} else {
+				/* partial unmapping (heading) */
+				/* unload this->addr, addr + length - this->addr */
+				this->length = this->addr + this->length - (addr + length);
+				this->offset += addr + length - this->addr;
+				this->addr = addr;
+				break;
+			}
+		} else {
+			if (addr + length >= this->addr + this->length) {
+				/* partial unmapping (trailing)*/
+				/* unload  addr, this->addr + this->length - addr */
+				this->length = addr + length - this->addr;
+			} else {
+				/* partial **nested** interval */
+				/* unload addr, length */
+				struct vu_mmap_area_t *new = malloc(sizeof(*new));
+				fatal(new);
+				new->addr = this->addr;
+				new->length = addr - this->addr;
+				new->fnode = this->fnode;
+				new->offset = this->offset;
+				new->next = this;
+				*scan = new;
+				this->length = this->addr + this->length - (addr + length);
+				this->offset += addr + length - this->addr;
+				this->addr = addr + length;
+				vu_fnode_dup(this->fnode);
+				break;
+			}
+		}
+	}
+}
+
+void vu_mmap_mremap(uintptr_t addr, size_t length, uintptr_t newaddr, size_t newlength) {
+	struct vu_mmap_area_t **scan;
+	struct vu_mmap_area_t *this;
+  fatal(vu_mmap);
+	for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < addr;
+			scan = &((*scan)->next))
+    ;
+	this = *scan;
+	if (this->addr == addr && this->length == length) {
+		this->addr = newaddr;
+		this->length = newlength;
+		for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < newaddr;
+				scan = &((*scan)->next))
+			;
+		this->next = *scan;
+		*scan = this;
+	}
+}
 
 static void vu_mmap_create(void) {
 	struct vu_mmap_t *newmmap;
@@ -61,8 +151,9 @@ static void vu_mmap_terminate(void) {
 	vu_mmap->count -= 1;
 	if (vu_mmap->count == 0) {
 		struct vu_mmap_t *old_vu_mmap = vu_mmap;
-		vu_mmap = NULL;
 		/* sync and close all the mmapped areas */
+		vu_mmap_munmap(0, (size_t) -1);
+		vu_mmap = NULL;
 		pthread_rwlock_unlock(&old_vu_mmap->lock);
 		pthread_rwlock_destroy(&old_vu_mmap->lock);
 		xfree(old_vu_mmap);

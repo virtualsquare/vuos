@@ -25,32 +25,16 @@
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
+#include <vu_fnode_copy.h>
 
 #define BINFMTBUFLEN 128
-static __thread char *tmp_path;
-
-void copyfile(struct vuht_entry_t *ht, char *path, char *tmp_path) {
-	int fdin, fdout, n;
-	char *buf[BUFSIZ];
-	void *private;
-	fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_TRUNC, 0700);
-	if (fdout < 0)
-		return;
-	fdin = service_syscall(ht, __VU_open)(path, O_RDONLY, 0, &private);
-	if (fdin < 0)
-	 goto close_fdout;	
-	while ((n = service_syscall(ht, __VU_read)(fdin, buf, BUFSIZ, private)) > 0) {
-		r_write(fdout, buf, n);
-	}
-	service_syscall(ht, __VU_close)(fdin, private);
-close_fdout:
-	r_close(fdout);
-}
+static __thread struct vu_fnode_t *tmp_fnode;
 
 static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path, struct vu_stat *statbuf) {
-	/* counter/random suffix needed (or mmap/vnode mgmgt) */
-	tmp_path = vu_tmpfilename(statbuf->st_dev, statbuf->st_ino, "_x");
-	copyfile(ht, path, tmp_path);
+	char *tmp_path;
+	tmp_fnode = vu_fnode_create(ht, path, statbuf, 0, -1, NULL);
+	tmp_path = vu_fnode_get_vpath(tmp_fnode);
+	vu_fnode_copyin(tmp_fnode);
 	rewrite_syspath(sd, tmp_path);
 }
 
@@ -356,22 +340,21 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-static void clean_tmp_path(void) {
-	if (tmp_path != NULL) {
-		r_unlink(tmp_path);
-		free(tmp_path);
-		tmp_path = NULL;
+static void clean_tmp_fnode(void) {
+	if (tmp_fnode != NULL) {
+		vu_fnode_close(tmp_fnode);
+		tmp_fnode = NULL;
 	}
 }
 
 void wo_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	clean_tmp_path();
+	clean_tmp_fnode();
 	sd->ret_value = sd->orig_ret_value;
 }
 
 static void *execve_tracer_upcall(inheritance_state_t state, void *arg) {
 	if (state == INH_EXEC)
-		clean_tmp_path();
+		clean_tmp_fnode();
 	return NULL;
 }
 

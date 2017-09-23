@@ -11,7 +11,7 @@ int vu_fd_close(int fd, int nested);
 
 void vu_fd_dup(int fd, int nested, int oldfd, int fdflags);
 
-struct fnode_t *vu_fd_mmapdup(int fd, int nested);
+struct fnode_t *vu_fd_get_fnode(int fd, int nested);
 
 struct vuht_entry_t *vu_fd_get_ht(int fd, int nested);
 

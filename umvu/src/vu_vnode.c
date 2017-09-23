@@ -12,6 +12,8 @@
 #include <vu_vnode.h>
 
 struct vu_vnode_t {
+	pthread_mutex_t mutex;
+	struct vuht_entry_t *ht;
 	dev_t dev;
 	ino_t inode;
 	char *vpath;
@@ -28,33 +30,38 @@ static pthread_mutex_t vnode_mutex = PTHREAD_MUTEX_INITIALIZER;
 static struct vu_vnode_t *vnode_hash[VU_VNODE_HASH_SIZE];
 
 __attribute__((always_inline))
-	static inline int vnode_hashfun(dev_t dev, ino_t inode)
+	static inline int vnode_hashfun(struct vuht_entry_t *ht, dev_t dev, ino_t inode)
 {
-	return (major(dev) + minor(dev) + inode) & VU_VNODE_HASH_MASK;
+	uintptr_t htint = (uintptr_t) ht;
+	return (major(dev) + minor(dev) + inode + ((13 * htint) ^ (htint >> 13))) & VU_VNODE_HASH_MASK;
 }
 
-static struct vu_vnode_t **vnode_search(dev_t dev, ino_t inode) {
+static struct vu_vnode_t **vnode_search(struct vuht_entry_t *ht, dev_t dev, ino_t inode) {
 	struct vu_vnode_t **scan;
-	for (scan = &vnode_hash[vnode_hashfun(dev, inode)];
+	for (scan = &vnode_hash[vnode_hashfun(ht, dev, inode)];
 			*scan != NULL; scan = &((*scan) -> next)) {
 		struct vu_vnode_t *this = *scan;
-		if (this->dev == dev && this->inode == inode)
+		if (this->ht == ht && this->dev == dev && this->inode == inode)
 			break;
 	}
 	return scan;
 }
 
-struct vu_vnode_t *vu_vnode_open(ino_t dev, ino_t inode) {
+struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode) {
 	struct vu_vnode_t **vnode_ptr;
 
 	pthread_mutex_lock(&vnode_mutex);
-	vnode_ptr = vnode_search(dev, inode);
+	vnode_ptr = vnode_search(ht, dev, inode);
 	if (*vnode_ptr == NULL) {
 		struct vu_vnode_t *new_vnode = malloc(sizeof(struct vu_vnode_t));
 		fatal(new_vnode);
+		pthread_mutex_init(&new_vnode->mutex, NULL);
+		new_vnode->ht = ht;
 		new_vnode->dev = dev;
 		new_vnode->inode = inode;
-		new_vnode->vpath = vu_tmpfilename(dev, inode, NULL);
+		asprintf(&new_vnode->vpath, "%s/%p_%lx_%lx",
+				vu_tmpdirpath(), (void *) ht,
+				(unsigned long) dev, (unsigned long) inode);
 		new_vnode->usage_count = 1;
 		new_vnode->flags = 0;
 		new_vnode->next = NULL;
@@ -73,12 +80,13 @@ void vu_vnode_close(struct vu_vnode_t *vnode) {
 	pthread_mutex_lock(&vnode_mutex);
 	printkdebug(v, "vnode close %s count %d", vnode->vpath, vnode->usage_count);
 	if (--vnode->usage_count == 0) {
-		struct vu_vnode_t **vnode_ptr = vnode_search(vnode->dev, vnode->inode);
+		struct vu_vnode_t **vnode_ptr = vnode_search(vnode->ht, vnode->dev, vnode->inode);
 		struct vu_vnode_t *this = *vnode_ptr;
 		fatal(this);
 		*vnode_ptr = this->next;
 		if (this->vpath) {
 			/* XXX update file if mmapped and dirty */
+			pthread_mutex_destroy(&this->mutex);
 			r_unlink(this->vpath);
 			free(this->vpath);
 		}
@@ -90,6 +98,14 @@ void vu_vnode_close(struct vu_vnode_t *vnode) {
 /* no lock needed, usage count guarantees that there are no risks */
 char *vu_vnode_getvpath(struct vu_vnode_t *vnode) {
 	return vnode->vpath; 
+}
+
+int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
+	int ret_value;
+	pthread_mutex_lock(&vnode->mutex);
+	ret_value = cp(vnode->ht, path, vnode->vpath);
+  pthread_mutex_unlock(&vnode->mutex);
+	return ret_value;
 }
 
 void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
