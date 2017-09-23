@@ -9,4 +9,6 @@ void vu_vnode_close(struct vu_vnode_t *vnode);
 
 char *vu_vnode_getvpath(struct vu_vnode_t *vnode);
 
+void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length);
+
 #endif

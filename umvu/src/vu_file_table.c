@@ -145,8 +145,14 @@ int vu_fnode_get_sfd(struct vu_fnode_t *v, void **pprivate) {
 	return ret_value;
 }
 
+void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length) {
+	pthread_rwlock_rdlock(&v->lock);
+	vu_vnode_setminsize(v->vnode, length);
+	pthread_rwlock_unlock(&v->lock);
+}
+
 __attribute__((constructor))
-  static void init(void) {
+	static void init(void) {
     debug_set_name(f, "FILETABLE");
   }
 

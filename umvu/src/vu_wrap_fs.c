@@ -174,6 +174,38 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* truncate, ftruncate */
+void wi_truncate(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht) {
+		/* standard args */
+		int nested = sd->extra->nested;
+		int syscall_number = sd->syscall_number;
+		int ret_value;
+		/* args */
+		off_t length = sd->syscall_args[1];
+		int sfd = -1;
+		void *private = NULL;
+		switch (syscall_number) {
+			case __NR_truncate:
+				sfd = -1;
+				private = NULL;
+				break;
+			case __NR_ftruncate:
+				sfd = sd->syscall_args[0];
+				sfd = (vu_fd_get_sfd(sfd, &private, nested));
+				break;
+		}
+		/* call */
+		sd->action = SKIP;
+		ret_value = service_syscall(ht, __VU_truncate)(sd->extra->path, length, sfd, private);
+		if (ret_value < 0) {
+			sd->ret_value = -errno;
+			return;
+		}
+		sd->ret_value = ret_value;
+	}
+}
+
 /* mkdir */
 void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {

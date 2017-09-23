@@ -185,6 +185,20 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
 	}
 }
 
+struct fnode_t *vu_fd_mmapdup(int fd, int nested) {
+	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
+	struct fnode_t *ret_value;
+	fatal(fd_table);
+	pthread_rwlock_rdlock(&fd_table->lock);
+	if (fd >= 0 && fd < fd_table->table_size) {
+		ret_value = fd_table->fnode[fd];
+		vu_fnode_dup(ret_value);
+	} else
+		ret_value = NULL;
+	pthread_rwlock_unlock(&fd_table->lock);
+  return ret_value;
+}
+
 static struct vu_fnode_t *get_fnode_nolock(struct vu_fd_table_t *fd_table, int fd) {
 	fatal(fd_table);
 	if (fd >= 0 && fd < fd_table->table_size)

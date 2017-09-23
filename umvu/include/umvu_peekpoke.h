@@ -63,5 +63,7 @@ char *umvu_peekdup_path(uintptr_t addr);
 int umvu_peek_data(uintptr_t addr, void *buf, size_t datalen);
 int umvu_poke_data(uintptr_t addr, void *buf, size_t datalen);
 
+unsigned long umvu_get_pagesize(void);
+
 #endif
 

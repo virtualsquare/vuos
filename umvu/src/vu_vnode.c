@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pthread.h>
+
+#include <linux_32_64.h>
 #include <r_table.h>
 #include <vu_log.h>
 #include <vu_tmpdir.h>
@@ -88,6 +90,15 @@ void vu_vnode_close(struct vu_vnode_t *vnode) {
 /* no lock needed, usage count guarantees that there are no risks */
 char *vu_vnode_getvpath(struct vu_vnode_t *vnode) {
 	return vnode->vpath; 
+}
+
+void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
+	struct vu_stat buf;
+	pthread_mutex_lock(&vnode_mutex);
+	r_vu_lstat(vnode->vpath, &buf);
+	if (length > buf.st_size)
+		r_truncate(vnode->vpath, length);
+	pthread_mutex_unlock(&vnode_mutex);
 }
 
 /* XXX flags field has been added for mmap support

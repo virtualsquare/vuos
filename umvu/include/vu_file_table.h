@@ -35,4 +35,6 @@ void vu_fnode_set_flags(struct vu_fnode_t *v, int flags);
 
 int vu_fnode_get_sfd(struct vu_fnode_t *v, void **pprivate);
 
+void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length);
+
 #endif

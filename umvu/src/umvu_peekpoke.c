@@ -157,6 +157,10 @@ int umvu_poke_data(uintptr_t addr, void *buf, size_t datalen)
 		return 0;
 }
 
+unsigned long umvu_get_pagesize(void) {
+	return page_size;
+}
+
 __attribute__((constructor))
 	static void __init__(void) {
 		page_size = sysconf(_SC_PAGESIZE);
