@@ -182,29 +182,15 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			void *buf;
 			ssize_t ret_value;
 			size_t bufsize;
-			vu_peek_alloc_arg(iovaddr, iov, sizeof(*iov) * iovcnt, nested);
-			bufsize = iovec_bufsize(iov, iovcnt);
-			buf = malloc(bufsize);
-			fatal(buf);
+			vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
 			ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
 			else {
 				sd->ret_value = ret_value;
-				if (ret_value > 0) {
-					int i;
-					char *cbuf = buf;
-					for (i = 0; i < iovcnt; i++) {
-						ssize_t len = iov[i].iov_len;
-						if (ret_value < len) len = ret_value;
-						vu_poke_arg((uintptr_t) iov[i].iov_base, cbuf, len, nested);
-						ret_value -= len;
-						cbuf += len;
-					}
-				}
+				vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
 			}
-			vu_free_arg(iov, nested);
-			xfree(buf);
+			vu_free_iov_arg(iov, buf, nested);
 		}
 		sd->action = SKIP;
 	}
@@ -236,25 +222,13 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       void *buf;
       ssize_t ret_value;
       size_t bufsize;
-			int i;
-			char *cbuf;
-      vu_peek_alloc_arg(iovaddr, iov, sizeof(*iov) * iovcnt, nested);
-      bufsize = iovec_bufsize(iov, iovcnt);
-      buf = malloc(bufsize);
-      fatal(buf);
-			cbuf = buf;
-			for (i = 0; i < iovcnt; i++) {
-				ssize_t len = iov[i].iov_len;
-				vu_peek_arg((uintptr_t) iov[i].iov_base, cbuf, len, nested);
-				cbuf += len;
-			}
+			vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
 			ret_value = service_syscall(ht, __VU_write)(sfd, buf, bufsize, private);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
 			else
         sd->ret_value = ret_value;
-			vu_free_arg(iov, nested);
-      xfree(buf);
+			vu_free_iov_arg(iov, buf, nested);
 		}
 		sd->action = SKIP;
 	}
@@ -285,13 +259,32 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 			vu_free_arg(buf, nested);
 		} else { // preadv, preadv2
-			sd->ret_value = -ENOSYS; // XXX TBD
+			uintptr_t iovaddr = sd->syscall_args[1];
+			int iovcnt = sd->syscall_args[2];
+			off_t offset = sd->syscall_args[3];
+#ifdef __NR_preadv2
+			if (sd->syscall_number == __NR_preadv2) 
+				flags = sd->syscall_args[4];
+#endif
+      struct iovec *iov;
+      void *buf;
+      ssize_t ret_value;
+      size_t bufsize;
+      vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
+			ret_value = service_syscall(ht, __VU_pread64)(sfd, buf, bufsize, offset, flags, private);
+      if (ret_value < 0)
+        sd->ret_value = -errno;
+      else {
+        sd->ret_value = ret_value;
+        vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
+      }
+      vu_free_iov_arg(iov, buf, nested);
     }
 		sd->action = SKIP;
 	}
 }
 
-/* pread64, preadv, preadv2 */
+/* pwrite64, pwritev, pwritev2 */
 void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
@@ -313,12 +306,26 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       else
         sd->ret_value = ret_value;
     } else { // pwritev, pwritev2
-      sd->ret_value = -ENOSYS; // XXX TBD
+			uintptr_t iovaddr = sd->syscall_args[1];
+			int iovcnt = sd->syscall_args[2];
+			off_t offset = sd->syscall_args[3];
+#ifdef __NR_pwritev2
+			if (sd->syscall_number == __NR_pwritev2) 
+				flags = sd->syscall_args[4];
+#endif
+      struct iovec *iov;
+      void *buf;
+      ssize_t ret_value;
+      size_t bufsize;
+      vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
+      ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
+      if (ret_value < 0)
+        sd->ret_value = -errno;
+      else
+        sd->ret_value = ret_value;
+      vu_free_iov_arg(iov, buf, nested);
     }
     sd->action = SKIP;
-
-		sd->ret_value = -ENOSYS; // XXX TBD
-		sd->action = SKIP;
 	}
 }
 

@@ -120,19 +120,19 @@ __attribute__((always_inline))
 		vu_peek_alloc_arg(iovaddr, iov, sizeof(struct iovec) * iovcnt, nested); \
 		bufsize = iovec_bufsize(iov, iovcnt); \
 		buf = malloc(bufsize); \
-	} while 0
+	} while(0)
 
 #define vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested) \
 	do { \
 		vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested); \
 		vu_peek_iov_arg(iovaddr, iov, iovcnt, buf, nested); \
-	} while 0
+	} while(0)
 
 #define vu_free_iov_arg(iov, buf, nested) \
 	do {\
 		vu_free_arg(iov, nested); \
     xfree(buf); \
-  } while 0
+  } while(0)
 
 #endif
 
