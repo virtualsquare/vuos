@@ -28,8 +28,11 @@ with open(sys.argv[1]) as f:
 					value = value[1:].strip()
 					for s in um_syscall:
 						sys_arg = s.split('/')
+						vsysname = sys_arg[0].strip()
+						if vsysname.startswith('-'):
+							vsysname = vsysname[1:].strip()
 						if len(sys_arg) > 1:
-							vvu_sysargs[sys_arg[0].strip()] = sys_arg[1].strip()
+							vvu_sysargs[vsysname] = sys_arg[1].strip()
 				else:
 					for s in um_syscall:
 						vu_syscalls[s.split('/')[0].strip()] = value
@@ -61,6 +64,6 @@ print(footer);
 print('''uint8_t vvu_arch_args[VVU_NR_SYSCALLS] = {
 \t[0] = 0,''')
 for syscall in sorted(vvu_sysargs):
-	print("\t\t[__NR_{}] = 0{},".format(syscall, vvu_sysargs[syscall]))
+	print("\t[-__VVU_{}] = 0{},".format(syscall, vvu_sysargs[syscall]))
 print(footer);
 

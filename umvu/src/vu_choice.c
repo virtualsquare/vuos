@@ -156,6 +156,15 @@ struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
   return ht;
 }
 
+struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
+	struct syscall_extra_t *extra = sd->extra;
+	int domain = sd->syscall_args[0];
+  int nested = extra->nested;
+	struct vuht_entry_t *ht = vuht_pick(CHECKSOCKET, &domain, NULL, SET_EPOCH);
+	printkdebug(c, "socket: fam:%d %c ht %p", domain, nested ? 'N' : '-', ht);
+	return ht;
+}
+
 __attribute__((constructor))
 	static void init(void) {
 		debug_set_name(c, "CHOICE");

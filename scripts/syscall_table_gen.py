@@ -27,7 +27,6 @@ cset = set()
 wiset = set()
 wdset = set()
 woset = set()
-vcset = set()
 vwset = set()
 
 table = "struct syscall_tab_entry vu_syscall_table[] = {\n"
@@ -47,11 +46,11 @@ with open(sys.argv[1]) as f:
 					s = s[1:].strip()
 					stag = "__VVU_" + s
 					args = args.split(',')
-					c = "vchoice_" + args[0].strip()
+					c = "choice_" + args[0].strip()
 					w = "vw_" + args[1].strip()
 					vtable += "\t[-{}] = {{{}, {}}},\n".format(stag, c, w)
 					vntable += "\t[-{}] = \"{}\",\n".format(stag, s)
-					vcset.add(c)
+					cset.add(c)
 					vwset.add(w)
 				else:
 					stag = "__VU_" + s
@@ -82,8 +81,6 @@ for f in sorted(wdset):
 	print("wrapf_t {};".format(f))
 for f in sorted(woset):
 	print("wrapf_t {};".format(f))
-for f in sorted(vcset):
-	print("choicef_t {};".format(f))
 for f in sorted(vwset):
 	print("wrapf_t {};".format(f))
 print()

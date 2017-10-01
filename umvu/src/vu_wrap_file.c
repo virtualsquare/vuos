@@ -208,7 +208,7 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			size_t bufsize = sd->syscall_args[2];
 			void *buf;
 			ssize_t ret_value;
-			vu_peek_alloc_arg(addr, buf, bufsize, nested);
+			vu_alloc_peek_arg(addr, buf, bufsize, nested);
 			ret_value = service_syscall(ht, __VU_write)(sfd, buf, bufsize, private);
 			vu_free_arg(buf, nested);
 			if (ret_value < 0)
@@ -298,7 +298,7 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			off_t offset = sd->syscall_args[3];
       void *buf;
       ssize_t ret_value;
-      vu_peek_alloc_arg(addr, buf, bufsize, nested);
+      vu_alloc_peek_arg(addr, buf, bufsize, nested);
       ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
       vu_free_arg(buf, nested);
       if (ret_value < 0)

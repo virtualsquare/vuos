@@ -58,10 +58,6 @@ void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
-struct vuht_entry_t *vchoice_NULL(struct syscall_descriptor_t *sd) {
-	return NULL;
-}
-
 static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
 		char *(*getpath)(struct syscall_descriptor_t *sd, struct vu_stat *buf)) {
 	static __thread struct syscall_extra_t extra;

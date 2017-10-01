@@ -10,13 +10,13 @@
  *    vu_poke_arg(addr, var, size, nested)
  *    vu_free_arg(var, nested)
  * stucture for write wrappers/large buffers:
- *    vu_peek_alloc_arg(addr, var, size, nested)
+ *    vu_alloc_peek_arg(addr, var, size, nested)
  *    vu_free_arg(var, nested)
  * stucture for read wrappers/small buffers (stack allocation)
  *    vu_alloc_local_arg(addr, var, size, nested)
  *    vu_poke_arg(addr, var, size, nested)
  * stucture for write wrappers/small buffers (stack allocation)
- *    vu_peek_alloc_local_arg(addr, var, size, nested)
+ *    vu_alloc_peek_local_arg(addr, var, size, nested)
  * stucture for read wrappers IOVEC
  *    vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested) 
  *          it assigns buf and bufsize...
@@ -37,7 +37,7 @@
 		} \
 	} while(0)
 
-#define vu_peek_alloc_arg(addr, var, size, nested) \
+#define vu_alloc_peek_arg(addr, var, size, nested) \
 	do { \
 		if (nested) { \
 			var = (typeof(var)) addr; \
@@ -124,7 +124,7 @@ __attribute__((always_inline))
 
 #define vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested) \
 	do { \
-		vu_peek_alloc_arg(iovaddr, iov, sizeof(struct iovec) * iovcnt, nested); \
+		vu_alloc_peek_arg(iovaddr, iov, sizeof(struct iovec) * iovcnt, nested); \
 		bufsize = iovec_bufsize(iov, iovcnt); \
 		buf = malloc(bufsize); \
 	} while(0)

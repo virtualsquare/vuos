@@ -77,7 +77,7 @@ void wi_lsetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		vu_alloc_peek_local_strarg(nameaddr, name, PATH_MAX, nested);
-		vu_peek_alloc_arg(valueaddr, value, size, nested);
+		vu_alloc_peek_arg(valueaddr, value, size, nested);
 		sd->action = SKIP;
 		ret_value = service_syscall(ht, __VU_lsetxattr)(sd->extra->path, name, value, size, flags, sfd, private);
 		if (ret_value < 0)
