@@ -5,10 +5,11 @@
 #include <pthread.h>
 
 #include <sys/ptrace.h>
+#include <r_table.h>
 
 #define PTRACE(action, tracee_tid, data)                                       \
     if (r_ptrace(action, tracee_tid, 0L, data) == -1) {                        \
-        char errmsg[70];                                                       \
+        char errmsg[80];                                                       \
         sprintf(errmsg, "%s line %d, ptrace", __FILE__, __LINE__);             \
         perror(errmsg);                                                        \
         pthread_exit(NULL);                                                    \
@@ -16,7 +17,7 @@
 
 #define PTRACE_NODIE(action, tracee_tid, data)                                 \
     if (r_ptrace(action, tracee_tid, 0L, data) == -1) {                        \
-        char errmsg[70];                                                       \
+        char errmsg[80];                                                       \
         sprintf(errmsg, "%s line %d, ptrace", __FILE__, __LINE__);             \
         perror(errmsg);                                                        \
     }

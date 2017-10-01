@@ -83,6 +83,10 @@ unsigned int umvu_gettid()
 	return tracee_tid;
 }
 
+void umvu_unblock(void) {
+	P_INTERRUPT(tracee_tid, 0L);
+}
+
 static inline long compute_chunk_len(uintptr_t addr, size_t len) {
 	unsigned long chunk_len = len > page_size ? page_size : len;
 	unsigned long end_in_page = ((uintptr_t)(addr + chunk_len) & page_mask);

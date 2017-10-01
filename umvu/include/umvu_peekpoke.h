@@ -50,6 +50,7 @@ struct syscall_descriptor_t {
 
 void umvu_settid(int tid);
 unsigned int umvu_gettid();
+void umvu_unblock(void);
 
 void umvu_peek_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
