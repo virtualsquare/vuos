@@ -35,6 +35,7 @@ ssize_t VU_SYSNAME(name, write)(int fd, const void *buf, size_t count, void *fdp
 int VU_SYSNAME(name, getdents64) (unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate); \
 off_t VU_SYSNAME(name, lseek) (int fd, off_t offset, int whence, void *fdprivate); \
 int VU_SYSNAME(name, unlink) (const char *pathname); \
+int VU_SYSNAME(name, truncate) (const char *path, off_t length, int fd, void *fdprivate); \
 int VU_SYSNAME(name, mkdir) (const char *pathname, mode_t mode); \
 int VU_SYSNAME(name, rmdir) (const char *pathname); \
 int VU_SYSNAME(name, chmod) (const char *pathname, mode_t mode, int fd, void *fdprivate); \
@@ -48,6 +49,14 @@ int VU_SYSNAME(name, mount) (const char *source, const char *target, \
 		const char *filesystemtype, unsigned long mountflags, \
 		const void *data); \
 int VU_SYSNAME(name, umount2) (const char *target, int flags); \
+ssize_t VU_SYSNAME(name, lgetxattr) (const char *path, const char *name, \
+		void *value, size_t size, int fd, void *fdprivate); \
+int VU_SYSNAME(name, lsetxattr) (const char *path, const char *name, \
+		const void *value, size_t size, int flags, int fd, void *fdprivate); \
+ssize_t VU_SYSNAME(name, llistxattr) (const char *path, \
+		char *list, size_t size, int fd, void *fdprivate); \
+int VU_SYSNAME(name, lremovexattr) (const char *path, const char *name, int fd, void *fdprivate); \
+
 
 
 #define CHECKMODULE 0        // Module name
@@ -56,6 +65,8 @@ int VU_SYSNAME(name, umount2) (const char *target, int flags); \
 #define CHECKCHRDEVICE 3     // chr device maj/min
 #define CHECKBLKDEVICE 4     // blk device
 #define CHECKSC 5            // Syscall #
+#define CHECKIOCTL 6         // ioctl request
+#define CHECKBINFMT 7        // Binfmt search
 
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)

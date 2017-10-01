@@ -33,7 +33,7 @@
 		if (nested) { \
 			var = (typeof(var)) addr; \
 		} else { \
-			if (!nested) var = malloc(size); \
+			var = malloc(size); \
 		} \
 	} while(0)
 
@@ -62,8 +62,19 @@
 		if (nested) {\
 			var = (typeof(var)) addr; \
 		} else { \
-			var = (typeof(var)) __ ## var \
+			var = (typeof(var)) __ ## var ;\
 			umvu_peek_data(addr, var, size); \
+		} \
+	} while(0)
+
+#define vu_alloc_peek_local_strarg(addr, var, size, nested) \
+	char *__ ## var[(nested) ? 0 : size]; \
+	do { \
+		if (nested) {\
+			var = (typeof(var)) addr; \
+		} else { \
+			var = (typeof(var)) __ ## var ;\
+			umvu_peek_str(addr, var, size); \
 		} \
 	} while(0)
 
@@ -71,11 +82,7 @@
 	if (!nested) umvu_poke_data(addr, var, size)
 
 #define vu_peek_arg(addr, var, size, nested) \
-	if (!nested) \
-	umvu_peek_data(addr, var, size); \
-	else \
-	memcpy(var, (void *) addr, size)
-
+	if (!nested) umvu_peek_data(addr, var, size); 
 
 #define vu_free_arg(var, nested) \
 	if (!nested) xfree(var)

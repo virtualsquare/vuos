@@ -15,9 +15,10 @@ struct vu_service_t;
 #define CHECKCHRDEVICE 3     // chr device maj/min
 #define CHECKBLKDEVICE 4     // blk device
 #define CHECKSC 5            // Syscall #
-#define CHECKBINFMT 6        // Binfmt search
-#define CHECKFSALIAS 7       // FSAlias (just a string->string matching) */
-#define NCHECKS 8
+#define CHECKIOCTL 6         // ioctl request 
+#define CHECKBINFMT 7        // Binfmt search
+#define CHECKFSALIAS 8       // FSAlias (just a string->string matching) */
+#define NCHECKS 9
 #define CHECKFSTYPE (PSEUDO_CHECK | CHECKMODULE)
 #define CHECKPATHEXACT (PSEUDO_CHECK | CHECKPATH)
 

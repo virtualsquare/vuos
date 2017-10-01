@@ -149,6 +149,8 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 		case CHECKBLKDEVICE:
 		case CHECKSC: /* array of int, or null keys */
 			return ((len % sizeof(int)) == 0);
+		case CHECKIOCTL: 
+			return ((len % sizeof(unsigned long)) == 0);
 		case CHECKFSALIAS: /* end of string */
 			return (*objc == 0);
 		case CHECKMODULE:
@@ -175,6 +177,7 @@ static inline int vuht_scan_terminate(uint8_t type, char *objc, int len,
 		case CHECKCHRDEVICE:
 		case CHECKBLKDEVICE:
 		case CHECKSC:
+		case CHECKIOCTL:
 			return (len == objlen);
 		default:
 			return 0;
@@ -466,6 +469,9 @@ struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int 
 		case CHECKSC:
 			hte = vuht_search(type, arg, sizeof(int), 0);
 			break;
+		case CHECKIOCTL:
+			hte = vuht_search(type, arg, sizeof(unsigned long), 0);
+      break;
 		case CHECKFSALIAS:
 		case CHECKMODULE:
 			hte = vuht_search(type, arg, 0, 1);

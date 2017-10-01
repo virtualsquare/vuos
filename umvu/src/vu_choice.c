@@ -45,6 +45,26 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+struct vuht_entry_t *choice_ioctl(struct syscall_descriptor_t *sd) {
+  struct syscall_extra_t *extra = sd->extra;
+  int fd = sd->syscall_args[0];
+	unsigned long request = sd->syscall_args[1];
+  int nested = extra->nested;
+  struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+  char path[PATH_MAX];
+  vu_fd_get_path(fd, nested, path, PATH_MAX);
+  extra->path = strdup(path);
+  extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+  if (ht) {
+    set_vepoch(vuht_get_vepoch(ht));
+    vuht_pick_again(ht);
+  } else 
+		ht = vuht_pick(CHECKIOCTL, &request, NULL, SET_EPOCH);
+  printkdebug(c, "ioctl %d %s: %c ht %p", fd, extra->path,
+      nested ? 'N' : '-', ht);
+  return ht;
+}
+
 struct vuht_entry_t *choice_std(struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int patharg = vu_arch_table_patharg(syscall_number);
