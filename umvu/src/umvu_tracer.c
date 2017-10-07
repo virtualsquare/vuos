@@ -180,10 +180,18 @@ static int umvu_trace(pid_t tracee_tid)
 					P_GETREGS(sig_tid, &regs);
 					umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 					syscall_handler(syscall_state, &syscall_desc);
-					if (syscall_desc.action == SKIP)
-						syscall_desc.syscall_number = __NR_getpid;
-					if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
+					if (syscall_desc.action == BLOCKIT) {
+						struct syscall_descriptor_t sys_modified = syscall_desc;
+						umvu_block(&sys_modified);
+						umvu_poke_syscall(&regs, &sys_modified, syscall_state);
 						P_SETREGS(sig_tid, &regs);
+						syscall_desc.action = DOIT_CB_AFTER;
+					} else {
+						if (syscall_desc.action == SKIPIT)
+							syscall_desc.syscall_number = __NR_getpid;
+						if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
+							P_SETREGS(sig_tid, &regs);
+					}
 					P_SYSCALL(sig_tid, 0L);
 					if (syscall_desc.action == DOIT_CB_AFTER) {
 						syscall_state = DURING_SYSCALL;

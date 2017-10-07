@@ -34,7 +34,7 @@ void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		char *data = umvu_peekdup_path(sd->syscall_args[4]);
 		/* fetch args */
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_mount)(source, target, filesystemtype, mountflags, data);
 		if (ret_value < 0) 
       sd->ret_value = -errno;
@@ -65,7 +65,7 @@ void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_umount2: flags = sd->syscall_args[1];
 												 break;
 		}
-    sd->action = SKIP;
+    sd->action = SKIPIT;
     ret_value = service_syscall(ht, __VU_umount2)(target, flags);
     if (ret_value < 0)
       sd->ret_value = -errno;

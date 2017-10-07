@@ -91,6 +91,8 @@ void *vu_unreal_init(void) {
 	vu_syscall_handler(s, read) = read;
 	vu_syscall_handler(s, write) = write;
 	vu_syscall_handler(s, lseek) = lseek;
+	vu_syscall_handler(s, pread64) = pread;
+	vu_syscall_handler(s, pwrite64) = pwrite;
 
 	ht1 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
 	ht2 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);

@@ -51,7 +51,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
     ret_value = service_syscall(ht, __VU_open)(sd->extra->path, domain, type, protocol, &private);
 		if (ret_value < 0) {
       sd->ret_value = -errno;
@@ -122,7 +122,7 @@ void wi_bind(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (addrlen > MAX_SOCKADDR_LEN)
 			addrlen = MAX_SOCKADDR_LEN;
 		vu_alloc_peek_local_arg(addraddr, addr, addrlen, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_bind)(sfd, addr, addrlen, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -144,7 +144,7 @@ void wi_connect(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (addrlen > MAX_SOCKADDR_LEN)
 			addrlen = MAX_SOCKADDR_LEN;
 		vu_alloc_peek_local_arg(addraddr, addr, addrlen, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_connect)(sfd, addr, addrlen, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -161,7 +161,7 @@ void wi_listen(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int backlog = sd->syscall_args[1];
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_listen)(sfd, backlog, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -192,7 +192,7 @@ void wi_getsockname(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (*addrlen > MAX_SOCKADDR_LEN)
 			*addrlen = MAX_SOCKADDR_LEN;
 		vu_alloc_local_arg(addraddr, addr, *addrlen, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_getsockname)(sfd, addr, addrlen, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -219,7 +219,7 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (*addrlen > MAX_SOCKADDR_LEN)
 			*addrlen = MAX_SOCKADDR_LEN;
 		vu_alloc_local_arg(addraddr, addr, *addrlen, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_getpeername)(sfd, addr, addrlen, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -231,12 +231,26 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+struct packetio {
+	void *buf;
+	size_t len;
+	int flags;
+	void *msg_name;
+	socklen_t msg_namelen;
+	void *msg_control;    /* ancillary data */
+	size_t msg_controllen; /* ancillary data buffer len */
+	int msg_flags; /* flags on received message */
+	struct packetio *next; /* {send|recv]mmsg */
+};
+
+/* sendto, send, sendmsg, sendmmsg */
 void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		sd->ret_value = -ENOSYS;
 	}
 }
 
+/* recvfrom, recv, recvmsg, recvmmsg */
 void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		sd->ret_value = -ENOSYS;
@@ -251,7 +265,7 @@ void wi_shutdown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int how = sd->syscall_args[1];
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_shutdown)(sfd, how, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -273,7 +287,7 @@ void wi_setsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
     socklen_t optlen = sd->syscall_args[4];
     void *optval;
     vu_alloc_peek_arg(optvaladdr, optval, optlen, nested);
-    sd->action = SKIP;
+    sd->action = SKIPIT;
     ret_value = service_syscall(ht, __VU_setsockopt)(sfd, level, optname, optval, optlen, private);
     if (ret_value < 0)
       sd->ret_value = -errno;
@@ -298,7 +312,7 @@ void wi_getsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		socklen_t *optlen;
 		vu_alloc_peek_local_arg(optlenaddr, optlen, sizeof(socklen_t), nested);
 		vu_alloc_arg(optvaladdr, optval, *optlen, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_getsockopt)(sfd, level, optname, optval, optlen, private);
 		if (ret_value < 0)
       sd->ret_value = -errno;

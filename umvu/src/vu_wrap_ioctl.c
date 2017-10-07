@@ -40,7 +40,7 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		void *private = NULL;
 		void *buf = NULL;
 		int len;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		if (fd < 0) {
 			sd->ret_value = -EBADF;
 			return;

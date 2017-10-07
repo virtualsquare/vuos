@@ -87,6 +87,13 @@ void umvu_unblock(void) {
 	P_INTERRUPT(tracee_tid, 0L);
 }
 
+void umvu_block(struct syscall_descriptor_t *sd) {
+	sd->syscall_number = __NR_poll;
+  sd->syscall_args[0] = 0;
+  sd->syscall_args[1] = 0;
+  sd->syscall_args[2] = -1;
+}
+
 static inline long compute_chunk_len(uintptr_t addr, size_t len) {
 	unsigned long chunk_len = len > page_size ? page_size : len;
 	unsigned long end_in_page = ((uintptr_t)(addr + chunk_len) & page_mask);

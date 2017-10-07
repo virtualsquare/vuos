@@ -88,7 +88,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				printkdebug(s, "IN %d (%d) %s %s", umvu_gettid(), native_syscall(__NR_gettid), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				ht = tab_entry->choicef(sd);
-				if (sd->action == SKIP)
+				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);
 				else {
 					tab_entry->wrapinf(ht, sd);
@@ -119,7 +119,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 			ht = tab_entry->choicef(sd);
 			tab_entry->wrapf(ht, sd);
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }
 

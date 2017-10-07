@@ -190,7 +190,7 @@ static void rewrite_execve_argv(struct syscall_descriptor_t *sd, struct argv_lis
 static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
 	if (buf->st_mode == 0) {
 		sd->ret_value = -ENOENT;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		return -1;
 	} else 
 		return 0;
@@ -204,7 +204,7 @@ static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, c
 		ret_value = r_access(path, X_OK);
 	if (ret_value != 0) {
 		sd->ret_value = -errno;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		return -1;
 	} else
 		return 0;
@@ -229,20 +229,20 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 
 	if (depth > EXECVE_MAX_DEPTH) {
 		sd->ret_value = -ELOOP;
-    sd->action = SKIP;
+    sd->action = SKIPIT;
     return;
   }
 
 	epoch_t e = set_vepoch(sd->extra->epoch);
 	if ((extra_argc = interpreter_fill_args(req, extra_argv)) < 0) {
 		sd->ret_value = -errno;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		return;
 	}
 	extra_argv[0] = get_nested_path(AT_FDCWD, extra_argv[0], &statbuf, FOLLOWLINK);
 	if (extra_argv[0] == NULL) {
 		sd->ret_value = -errno;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		return;
 	}
 	if (existence_check(sd, &statbuf) < 0) {
@@ -272,7 +272,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 	ret_value = read_exec_header(interpreter_ht, &new_req);
 	if (ret_value < 0) {
 		sd->ret_value = ret_value;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		xfree(extra_argv[0]);
 		if (interpreter_ht)
 			vuht_drop(interpreter_ht);
@@ -321,7 +321,7 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		ret_value = read_exec_header(ht, &binfmt_req);
 		if (ret_value < 0) {
 			sd->ret_value = ret_value;
-			sd->action = SKIP;
+			sd->action = SKIPIT;
 			return;
 		}
 

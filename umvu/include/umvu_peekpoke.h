@@ -29,8 +29,9 @@ typedef enum syscall_state_t {
 
 typedef enum syscall_action_t {
 	DOIT,
-	SKIP,
-	DOIT_CB_AFTER
+	SKIPIT,
+	DOIT_CB_AFTER,
+	BLOCKIT
 } syscall_action_t;
 
 struct syscall_extra_t;
@@ -50,6 +51,7 @@ struct syscall_descriptor_t {
 
 void umvu_settid(int tid);
 unsigned int umvu_gettid();
+void umvu_block(struct syscall_descriptor_t *sd);
 void umvu_unblock(void);
 
 void umvu_peek_syscall(struct user_regs_struct *regs,

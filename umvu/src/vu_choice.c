@@ -15,15 +15,15 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 	if (extra->path == NULL) {
 		if (extra->path_errno != 0) {
 			sd->ret_value = -extra->path_errno;
-			sd->action = SKIP;
+			sd->action = SKIPIT;
 		}
 		ht = NULL;
 	} else
 		ht = vuht_pick(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
 	printkdebug(c, "path %s: %c ht %p err = %d %s", extra->path, 
 			nested ? 'N' : '-', ht,
-			(sd->action == SKIP) ? -sd->ret_value : 0,
-			(sd->action == SKIP) ? "SKIP" : "");
+			(sd->action == SKIPIT) ? -sd->ret_value : 0,
+			(sd->action == SKIPIT) ? "SKIPIT" : "");
 	return ht;
 }
 
@@ -126,14 +126,14 @@ struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
 		if (extra->path == NULL) {
 			if (extra->path_errno != 0) {
 				sd->ret_value = -extra->path_errno;
-				sd->action = SKIP;
+				sd->action = SKIPIT;
 			}
 			ht = NULL;
 		} else
 			ht = vuht_pick(CHECKPATHEXACT, extra->path, &extra->statbuf, SET_EPOCH);
 		printkdebug(c, "umount2 %s: - ht %p err = %d %s", extra->path, ht,
-      (sd->action == SKIP) ? -sd->ret_value : 0,
-      (sd->action == SKIP) ? "SKIP" : "");
+      (sd->action == SKIPIT) ? -sd->ret_value : 0,
+      (sd->action == SKIPIT) ? "SKIPIT" : "");
 		return ht;
 	}
 }

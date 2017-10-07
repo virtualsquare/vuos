@@ -39,7 +39,7 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->ret_value = -sd->extra->path_errno;
 			else
 				sd->ret_value = -ENOTDIR;
-			sd->action = SKIP;
+			sd->action = SKIPIT;
 		}
 	}
 }
@@ -75,6 +75,6 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			bufsize = cwdlen;
 		umvu_poke_data(bufaddr, cwd, bufsize);
 		sd->ret_value = cwdlen;
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }

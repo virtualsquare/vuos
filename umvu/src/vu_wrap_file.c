@@ -53,7 +53,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_open)(sd->extra->path, flags, mode, &private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -128,7 +128,7 @@ void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				int ret_value = vu_fd_close(fd, VU_NESTED);
 				sd->ret_value = ret_value < 0 ? -errno : 0;
 				r_close(fd);
-				sd->action = SKIP;
+				sd->action = SKIPIT;
 			}
 		} else {
 			sd->action = DOIT_CB_AFTER;
@@ -192,7 +192,7 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 			vu_free_iov_arg(iov, buf, nested);
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }
 
@@ -230,7 +230,7 @@ void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
         sd->ret_value = ret_value;
 			vu_free_iov_arg(iov, buf, nested);
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }
 
@@ -280,7 +280,7 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       }
       vu_free_iov_arg(iov, buf, nested);
     }
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }
 
@@ -325,7 +325,7 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
         sd->ret_value = ret_value;
       vu_free_iov_arg(iov, buf, nested);
     }
-    sd->action = SKIP;
+    sd->action = SKIPIT;
 	}
 }
 
@@ -351,7 +351,7 @@ void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = ret_value;
 		}
 		vu_free_arg(buf, nested);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 	}
 }
 
@@ -419,7 +419,7 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		off_t offset = sd->syscall_args[1];
 		int whence = sd->syscall_args[2];
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_lseek)(sfd, offset, whence, private);
 		if (ret_value < 0) 
 			sd->ret_value = -errno;
@@ -429,7 +429,7 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	sd->action = SKIP;
+	sd->action = SKIPIT;
 	sd->ret_value = -ENOSYS;
 }
 

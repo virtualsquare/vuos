@@ -55,7 +55,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		vu_alloc_local_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_lstat)(sd->extra->path, statbuf, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -93,7 +93,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		vu_alloc_local_arg(bufaddr, buf, PATH_MAX + 1, nested);
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_readlink)(sd->extra->path, buf, PATH_MAX + 1);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -130,7 +130,7 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_access)(sd->extra->path, mode, flags);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -160,7 +160,7 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		if (flags & AT_REMOVEDIR)
 			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
 		else
@@ -196,7 +196,7 @@ void wi_truncate(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_truncate)(sd->extra->path, length, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -225,7 +225,7 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_mkdir)(sd->extra->path, mode);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -242,7 +242,7 @@ void wi_rmdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* standard args */
 		int ret_value;
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -286,7 +286,7 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		/* call */
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->path, owner, group, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -324,7 +324,7 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				flags = sd->syscall_args[3];
 				break;
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->path, mode, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -426,7 +426,7 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				}
 			}
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht,__VU_utimensat)(AT_FDCWD, sd->extra->path, times, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -457,7 +457,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 												oldaddr = sd->syscall_args[1];
 												break;
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		if (sd->extra->statbuf.st_mode != 0) {
 			sd->ret_value = -EEXIST;
       return;
@@ -501,7 +501,7 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			target = (char *) sd->syscall_args[0];
 		else
 			target = umvu_peekdup_path(sd->syscall_args[0]);
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_symlink)(target, sd->extra->path);
 		if (!nested)
 			xfree(target);
@@ -539,7 +539,7 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 													 flags = sd->syscall_args[4];
 													 break;
 		}
-		sd->action = SKIP;
+		sd->action = SKIPIT;
 		if (nested)
 			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0);
 		else
