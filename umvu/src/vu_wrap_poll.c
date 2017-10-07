@@ -24,7 +24,23 @@
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
 
-#define MAX_SOCKADDR_LEN sizeof(struct sockaddr_storage)
+void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
 
 struct poll_inout {
 	nfds_t nfds;

@@ -156,6 +156,24 @@ struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
   return ht;
 }
 
+struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
+  struct syscall_extra_t *extra = sd->extra;
+  int fd = sd->syscall_args[2];
+  int nested = extra->nested;
+  struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+  char path[PATH_MAX];
+  vu_fd_get_path(fd, nested, path, PATH_MAX);
+  extra->path = strdup(path);
+  extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+  printkdebug(c, "fd2 %d %s: %c ht %p", fd, extra->path,
+      nested ? 'N' : '-', ht);
+  if (ht) {
+    set_vepoch(vuht_get_vepoch(ht));
+    vuht_pick_again(ht);
+  }
+  return ht;
+}
+
 struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int domain = sd->syscall_args[0];

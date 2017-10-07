@@ -6,6 +6,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <attr/xattr.h>
 #include <vumodule.h>
 #include <errno.h>
 
@@ -80,6 +81,29 @@ int vu_unreal_link(const char *target, const char *linkpath) {
 
 int vu_unreal_rename(const char *target, const char *linkpath, int flags) {
 	return rename(unwrap(target), unwrap(linkpath));
+}
+
+int vu_unreal_truncate(const char *path, off_t length, int fd, void *fdprivate) {
+	return truncate(unwrap(path), length);
+}
+
+ssize_t vu_unreal_lgetxattr(const char *path, const char *name,
+		void *value, size_t size, int fd, void *fdprivate) {
+	return lgetxattr(unwrap(path), name, value, size);
+}
+
+int vu_unreal_lsetxattr(const char *path, const char *name, 
+		const void *value, size_t size, int flags, int fd, void *fdprivate) {
+	return lsetxattr(unwrap(path), name, value, size, flags);
+}
+
+ssize_t vu_unreal_llistxattr(const char *path,
+		char *list, size_t size, int fd, void *fdprivate) {
+	return llistxattr(unwrap(path), list, size);
+}
+
+int vu_unreal_lremovexattr(const char *path, const char *name, int fd, void *fdprivate) {
+	return lremovexattr(unwrap(path), name);
 }
 
 static struct vuht_entry_t *ht1,*ht2;

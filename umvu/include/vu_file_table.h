@@ -7,7 +7,7 @@ struct vuht_entry_t;
 struct vu_fnode_t;
 
 typedef int (* close_upcall_t)(struct vuht_entry_t *ht, int sfd, void *private);
-void vu_fnode_set_close_upcall(close_upcall_t close_upcall);
+void vu_fnode_set_close_upcall(mode_t mode, close_upcall_t close_upcall);
 
 struct vu_fnode_t *vu_fnode_create(
 		struct vuht_entry_t *ht,

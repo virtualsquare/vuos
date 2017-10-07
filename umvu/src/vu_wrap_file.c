@@ -143,7 +143,7 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
-static int fnode_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
+static int file_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
   if (ht) {
 		int ret_value;
     ret_value = service_syscall(ht, __VU_close)(sfd, private);
@@ -435,5 +435,9 @@ void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 __attribute__((constructor))
   static void init(void) {
-    vu_fnode_set_close_upcall(fnode_close_upcall);
+    vu_fnode_set_close_upcall(S_IFREG, file_close_upcall);
+    vu_fnode_set_close_upcall(S_IFDIR, file_close_upcall);
+    vu_fnode_set_close_upcall(S_IFCHR, file_close_upcall);
+    vu_fnode_set_close_upcall(S_IFBLK, file_close_upcall);
+    vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
   }

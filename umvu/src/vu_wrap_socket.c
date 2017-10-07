@@ -52,7 +52,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
 		sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_open)(sd->extra->path, domain, type, protocol, &private);
+    ret_value = service_syscall(ht, __VU_msocket)(sd->extra->path, domain, type, protocol, &private);
 		if (ret_value < 0) {
       sd->ret_value = -errno;
       return;
@@ -97,7 +97,7 @@ void wo_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       vu_fnode_close(fnode);
       vuht_drop(ht);
     }
-  } 
+  }
   sd->ret_value = sd->orig_ret_value;
 }
 
@@ -107,6 +107,16 @@ void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		wi_msocket(ht, sd);
   else
 		sd->ret_value = -EINVAL;
+}
+
+static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
+  if (ht) {
+    int ret_value;
+    ret_value = service_syscall(ht, __VU_close)(sfd, private);
+    vuht_drop(ht);
+    return ret_value;
+  } else
+    return 0;
 }
 
 void wi_bind(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -291,7 +301,7 @@ void wi_setsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
     ret_value = service_syscall(ht, __VU_setsockopt)(sfd, level, optname, optval, optlen, private);
     if (ret_value < 0)
       sd->ret_value = -errno;
-    else 
+    else
       sd->ret_value = ret_value;
     vu_free_arg(optval, nested);
   }
@@ -308,7 +318,7 @@ void wi_getsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
     int sfd = vu_fd_get_sfd(fd, &private, nested);
 		uintptr_t optvaladdr =  sd->syscall_args[3];
 		uintptr_t optlenaddr =  sd->syscall_args[4];
-		void *optval; 
+		void *optval;
 		socklen_t *optlen;
 		vu_alloc_peek_local_arg(optlenaddr, optlen, sizeof(socklen_t), nested);
 		vu_alloc_arg(optvaladdr, optval, *optlen, nested);
@@ -323,3 +333,8 @@ void wi_getsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_free_arg(optval, nested);
 	}
 }
+
+__attribute__((constructor))
+  static void init(void) {
+    vu_fnode_set_close_upcall(S_IFSOCK, socket_close_upcall);
+  }

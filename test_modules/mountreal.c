@@ -7,6 +7,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <attr/xattr.h>
 #include <vumodule.h>
 #include <errno.h>
 
@@ -105,9 +106,37 @@ int vu_mountreal_rename(const char *target, const char *linkpath, int flags) {
 	return rename(unwrap(target, pathbuf, PATH_MAX), unwrap(linkpath, pathbuf2, PATH_MAX));
 }
 
+int vu_unreal_truncate(const char *path, off_t length, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+	return truncate(unwrap(path, pathbuf, PATH_MAX), length);
+}
+
+ssize_t vu_unreal_lgetxattr(const char *path, const char *name,
+		void *value, size_t size, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+	return lgetxattr(unwrap(path, pathbuf, PATH_MAX), name, value, size);
+}
+
+int vu_unreal_lsetxattr(const char *path, const char *name,
+		const void *value, size_t size, int flags, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+	return lsetxattr(unwrap(path, pathbuf, PATH_MAX), name, value, size, flags);
+}
+
+ssize_t vu_unreal_llistxattr(const char *path,
+		char *list, size_t size, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+	return llistxattr(unwrap(path, pathbuf, PATH_MAX), list, size);
+}
+
+int vu_unreal_lremovexattr(const char *path, const char *name, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+	return lremovexattr(unwrap(path, pathbuf, PATH_MAX), name);
+}
+
 int vu_mountreal_mount(const char *source, const char *target,
-                 const char *filesystemtype, unsigned long mountflags,
-                 const void *data) {
+		const char *filesystemtype, unsigned long mountflags,
+		const void *data) {
 	//struct vu_service_t *s = vu_module.service;
 	struct vu_service_t *s = vu_mod_getservice();
 	struct mountreal_entry *entry = malloc(sizeof(struct mountreal_entry));
@@ -141,6 +170,8 @@ void *vu_mountreal_init(void) {
 	vu_syscall_handler(s, read) = read;
 	vu_syscall_handler(s, write) = write;
 	vu_syscall_handler(s, lseek) = lseek;
+	vu_syscall_handler(s, pread64) = pread;
+	vu_syscall_handler(s, pwrite64) = pwrite;
 
 	return NULL;
 }

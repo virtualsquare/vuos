@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <vu_log.h>
 #include <xcommon.h>
+#include <xstat.h>
 #include <vu_vnode.h>
 #include <vu_file_table.h>
 
@@ -22,10 +23,10 @@ struct vu_fnode_t {
 };
 
 static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private);
-static close_upcall_t vu_fnode_close_upcall = null_close_upcall;
+static close_upcall_t vu_fnode_close_upcall[S_TYPES] = {S_TYPES_INIT(null_close_upcall)};
 
-void vu_fnode_set_close_upcall(close_upcall_t close_upcall) {
-	vu_fnode_close_upcall = close_upcall;
+void vu_fnode_set_close_upcall(mode_t mode, close_upcall_t close_upcall) {
+	vu_fnode_close_upcall[S_MODE2TYPE(mode)] = close_upcall;
 }
 
 struct vu_fnode_t *vu_fnode_create(
@@ -72,7 +73,7 @@ int vu_fnode_close(struct vu_fnode_t *fnode) {
 		xfree(fnode->path);
 		pthread_rwlock_unlock(&fnode->lock);
 		/* it should never fail. */
-		ret_value = vu_fnode_close_upcall(fnode->ht, fnode->sfd, fnode->private);
+		ret_value = vu_fnode_close_upcall[S_MODE2TYPE(fnode->mode)](fnode->ht, fnode->sfd, fnode->private);
 		pthread_rwlock_destroy(&fnode->lock);
 		xfree(oldfnode);
 	} else {
