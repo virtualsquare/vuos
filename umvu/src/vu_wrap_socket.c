@@ -64,7 +64,6 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
-			printf("wi_msocket vu_fnode_create %s\n", sd->extra->path);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
@@ -317,7 +316,7 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 struct slow_inout {
 	int epfd;
-	int slow_errno;
+	pthread_t slowtid;
 };
 
 /* sendto, send, sendmsg, sendmmsg */
@@ -332,7 +331,7 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (epfd > 0) {
 				struct slow_inout *inout = malloc(sizeof(struct slow_inout));
 				inout->epfd = epfd;
-				inout->slow_errno = 0;
+				inout->slowtid = 0;
 				sd->inout = inout;
 				sd->action = BLOCKIT;
 				return;
@@ -344,9 +343,7 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wd_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slow_inout *inout = sd->inout;
-	if (vu_slowcall_during(inout->epfd) < 0)
-		inout->slow_errno = errno;
-	umvu_unblock();
+	inout->slowtid = vu_slowcall_during(inout->epfd);
 }
 
 void _wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -428,14 +425,13 @@ void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
 	if (inout != NULL) {
-		int slow_errno = inout->slow_errno;
-		vu_slowcall_out(inout->epfd, ht, fd, EPOLLOUT, nested);
+		vu_slowcall_out(inout->epfd, inout->slowtid, ht, fd, EPOLLOUT, nested);
 		xfree(inout);
-		if (slow_errno != 0) {
+	/*	if (slow_errno != 0) {
 			sd->ret_value = -errno;
 			sd->action = SKIPIT;
 			return;
-		}
+		} */
 	}
 	switch (syscall_number) {
 		case __NR_write:
@@ -463,7 +459,7 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (epfd > 0) {
 				struct slow_inout *inout = malloc(sizeof(struct slow_inout));
 				inout->epfd = epfd;
-				inout->slow_errno = 0;
+				inout->slowtid = 0;
 				sd->inout = inout;
 				sd->action = BLOCKIT;
 				return;
@@ -475,9 +471,7 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wd_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slow_inout *inout = sd->inout;
-	if (vu_slowcall_during(inout->epfd) < 0)
-		inout->slow_errno = errno;
-	umvu_unblock();
+	inout->slowtid = vu_slowcall_during(inout->epfd);
 }
 
 void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -570,14 +564,13 @@ void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
 	if (inout != NULL) {
-		int slow_errno = inout->slow_errno;
-		vu_slowcall_out(inout->epfd, ht, fd, EPOLLIN, nested);
+		vu_slowcall_out(inout->epfd, inout->slowtid, ht, fd, EPOLLIN, nested);
 		xfree(inout);
-		if (slow_errno != 0) {
+		/*if (slow_errno != 0) {
 			sd->ret_value = -slow_errno;
 			sd->action = SKIPIT;
 			return;
-		}
+		}*/
 	}
 	switch (syscall_number) {
 		case __NR_read:

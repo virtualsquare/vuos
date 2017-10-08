@@ -137,6 +137,7 @@ static int umvu_trace(pid_t tracee_tid)
 	while (1) {
 		sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
 		if (sig_tid == -1) {
+			perror("r_wait4 -1");
 			umvu_inheritance_call(INH_TERMINATE, NULL, NULL);
 			return -1;
 		} else if (WIFSTOPPED(wstatus)) {
@@ -214,6 +215,9 @@ static int umvu_trace(pid_t tracee_tid)
 				/*group-stop or signal injection*/
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
+		} else {
+			printk("TERMINATION? %lu\n", pthread_self());
+			umvu_unblock();
 		}
 	}
 }
@@ -244,10 +248,11 @@ int umvu_tracer_fork(void) {
 	}
 }
 
+#if 0
 /* an empty handler is needed to get EINTR */
 
 static void handler(int signum, siginfo_t *info, void *useless) {
-#if 1
+#if 0
 	int tid = syscall(__NR_gettid);
 	printf("HANDLER signum %d %d (%d)\n",signum,tid,info->si_pid);
 #endif
@@ -264,5 +269,6 @@ __attribute__((constructor))
 		sigaction(SIGCHLD, &sa, NULL);
 		sigemptyset(&chld_set);
 		sigaddset(&chld_set, SIGCHLD);
-		pthread_sigmask(SIG_BLOCK, &chld_set, NULL);
+		//pthread_sigmask(SIG_BLOCK, &chld_set, NULL);
 	}
+#endif
