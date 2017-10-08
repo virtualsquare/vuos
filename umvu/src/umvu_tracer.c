@@ -198,7 +198,7 @@ static int umvu_trace(pid_t tracee_tid)
 						syscall_handler(syscall_state, &syscall_desc);
 					}
 					syscall_state = OUT_SYSCALL;
-				} else {
+				} else { /* OUT_SYSCALL */
 					if (syscall_desc.action != DOIT) {
 						P_GETREGS(sig_tid, &regs);
 						umvu_peek_syscall(&regs, &syscall_desc, syscall_state);

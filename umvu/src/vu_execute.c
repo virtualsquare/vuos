@@ -92,7 +92,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					execute_cleanup(ht,sd);
 				else {
 					tab_entry->wrapinf(ht, sd);
-					if (sd->action != DOIT_CB_AFTER)
+					if (sd->action != DOIT_CB_AFTER &&
+							sd->action != BLOCKIT)
 						execute_cleanup(ht,sd);
 				}
 				break;

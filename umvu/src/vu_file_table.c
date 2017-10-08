@@ -102,7 +102,8 @@ struct vuht_entry_t *vu_fnode_get_ht(struct vu_fnode_t *v) {
 void vu_fnode_get_path(struct vu_fnode_t *v, char *dest,  size_t n) {
 	*dest = 0;
 	pthread_rwlock_rdlock(&v->lock);
-	strncat(dest, v->path, n);
+	if (v->path != NULL)
+		strncat(dest, v->path, n);
 	pthread_rwlock_unlock(&v->lock);
 }
 
