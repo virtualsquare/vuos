@@ -28,12 +28,12 @@
 #define MAX_SOCKADDR_LEN sizeof(struct sockaddr_storage)
 
 void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  int nested = sd->extra->nested;
+	int nested = sd->extra->nested;
 	if (ht) {
 		/* standard args */
-    int syscall_number = sd->syscall_number;
-    int ret_value;
-    /* args */
+		int syscall_number = sd->syscall_number;
+		int ret_value;
+		/* args */
 		int domain = sd->syscall_args[0];
 		int type = sd->syscall_args[1];
 		int protocol = sd->syscall_args[2];
@@ -54,11 +54,11 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
 		sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_msocket)(sd->extra->path, domain, type, protocol, &private);
+		ret_value = service_syscall(ht, __VU_msocket)(sd->extra->path, domain, type, protocol, &private);
 		if (ret_value < 0) {
-      sd->ret_value = -errno;
-      return;
-    } else {
+			sd->ret_value = -errno;
+			return;
+		} else {
 			struct fnode_t *fnode;
 			/* fake dev = 0, inode = sfd */
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
@@ -84,42 +84,42 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->syscall_args[1] = O_CREAT | O_RDWR | (flags & O_CLOEXEC);
 				sd->syscall_args[2] = 0600;
 				sd->action = DOIT_CB_AFTER;
-      }
+			}
 		}
-  }
+	}
 }
 
 void wo_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  int fd = sd->orig_ret_value;
-  if (ht) {
-    struct fnode_t *fnode = sd->inout;
-    int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
-    if (fd >= 0) {
-      vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
-    } else {
-      vu_fnode_close(fnode);
-      vuht_drop(ht);
-    }
-  }
-  sd->ret_value = sd->orig_ret_value;
+	int fd = sd->orig_ret_value;
+	if (ht) {
+		struct fnode_t *fnode = sd->inout;
+		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
+		if (fd >= 0) {
+			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
+		} else {
+			vu_fnode_close(fnode);
+			vuht_drop(ht);
+		}
+	}
+	sd->ret_value = sd->orig_ret_value;
 }
 
 
 void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  if (ht)
+	if (ht)
 		wi_msocket(ht, sd);
-  else
+	else
 		sd->ret_value = -EINVAL;
 }
 
 static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
-  if (ht) {
-    int ret_value;
-    ret_value = service_syscall(ht, __VU_close)(sfd, private);
-    vuht_drop(ht);
-    return ret_value;
-  } else
-    return 0;
+	if (ht) {
+		int ret_value;
+		ret_value = service_syscall(ht, __VU_close)(sfd, private);
+		vuht_drop(ht);
+		return ret_value;
+	} else
+		return 0;
 }
 
 void wi_bind(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -186,11 +186,11 @@ void wi_listen(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 /* accept accept4 */
 void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-  if (ht) {
-    /* standard args */
+	if (ht) {
+		/* standard args */
 		int syscall_number = sd->syscall_number;
-    int ret_value;
-    /* args */
+		int ret_value;
+		/* args */
 		int fd = sd->syscall_args[0];
 		void *private = NULL;
 		void *connprivate;
@@ -315,16 +315,9 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-struct packetio {
-	void *buf;
-	size_t len;
-	int flags;
-	void *msg_name;
-	socklen_t msg_namelen;
-	void *msg_control;    /* ancillary data */
-	size_t msg_controllen; /* ancillary data buffer len */
-	int msg_flags; /* flags on received message */
-	struct packetio *next; /* {send|recv]mmsg */
+struct slow_inout {
+	int epfd;
+	int slow_errno;
 };
 
 /* sendto, send, sendmsg, sendmmsg */
@@ -336,11 +329,11 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (!nested) {
 			int fd = sd->syscall_args[0];
 			int epfd = vu_slowcall_in(ht, fd, EPOLLOUT, nested);
-			int *inout_epfd;
 			if (epfd > 0) {
-				inout_epfd = malloc(sizeof(int));
-				*inout_epfd = epfd;
-				sd->inout = inout_epfd;
+				struct slow_inout *inout = malloc(sizeof(struct slow_inout));
+				inout->epfd = epfd;
+				inout->slow_errno = 0;
+				sd->inout = inout;
 				sd->action = BLOCKIT;
 				return;
 			}
@@ -350,8 +343,9 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wd_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int *epfd = sd->inout;
-	vu_slowcall_during(*epfd);
+	struct slow_inout *inout = sd->inout;
+	if (vu_slowcall_during(inout->epfd) < 0)
+		inout->slow_errno = errno;
 	umvu_unblock();
 }
 
@@ -405,7 +399,7 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	ssize_t ret_value;
 	vu_alloc_peek_local_arg(msgaddr, msg, sizeof(struct msghdr), nested);
 	if (msg->msg_namelen > MAX_SOCKADDR_LEN)
-    msg->msg_namelen = MAX_SOCKADDR_LEN;
+		msg->msg_namelen = MAX_SOCKADDR_LEN;
 	dest_addraddr = (uintptr_t) msg->msg_name;
 	vu_alloc_peek_local_arg(dest_addraddr, dest_addr, msg->msg_namelen, nested);
 	iovaddr = (uintptr_t) msg->msg_name;
@@ -415,9 +409,9 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	ret_value = service_syscall(ht, __VU_sendto)(sfd, buf, bufsize, flags, 
 			dest_addr, msg->msg_namelen, control, msg->msg_controllen, private);
 	if (ret_value < 0)
-    sd->ret_value = -errno;
-  else
-    sd->ret_value = ret_value;
+		sd->ret_value = -errno;
+	else
+		sd->ret_value = ret_value;
 	vu_free_iov_arg(iov, buf, nested);
 	vu_free_arg(control, nested);
 }
@@ -429,13 +423,19 @@ void _wo_sendmmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	int *epfd = sd->inout;
+	struct slow_inout *inout = sd->inout;
 	/* standard args */
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
-	if (epfd != NULL) {
-		vu_slowcall_out(*epfd, ht, fd, EPOLLOUT, nested);
-		xfree(epfd);
+	if (inout != NULL) {
+		int slow_errno = inout->slow_errno;
+		vu_slowcall_out(inout->epfd, ht, fd, EPOLLOUT, nested);
+		xfree(inout);
+		if (slow_errno != 0) {
+			sd->ret_value = -errno;
+			sd->action = SKIPIT;
+			return;
+		}
 	}
 	switch (syscall_number) {
 		case __NR_write:
@@ -460,11 +460,11 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (!nested) {
 			int fd = sd->syscall_args[0];
 			int epfd = vu_slowcall_in(ht, fd, EPOLLIN, nested);
-			int *inout_epfd;
 			if (epfd > 0) {
-				inout_epfd = malloc(sizeof(int));
-				*inout_epfd = epfd;
-				sd->inout = inout_epfd;
+				struct slow_inout *inout = malloc(sizeof(struct slow_inout));
+				inout->epfd = epfd;
+				inout->slow_errno = 0;
+				sd->inout = inout;
 				sd->action = BLOCKIT;
 				return;
 			}
@@ -474,68 +474,69 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wd_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int *epfd = sd->inout;
-	vu_slowcall_during(*epfd);
+	struct slow_inout *inout = sd->inout;
+	if (vu_slowcall_during(inout->epfd) < 0)
+		inout->slow_errno = errno;
 	umvu_unblock();
 }
 
 void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  /* standard args */
-  int syscall_number = sd->syscall_number;
-  int nested = sd->extra->nested;
-  /* args */
-  int fd = sd->syscall_args[0];
-  uintptr_t addr =  sd->syscall_args[1];
-  size_t bufsize = sd->syscall_args[2];
-  int flags = (syscall_number != __NR_read) ? sd->syscall_args[3] : 0;
-  uintptr_t src_addraddr = (syscall_number == __NR_recvfrom) ? sd->syscall_args[4] : 0;
-  uintptr_t paddrlen = (syscall_number == __NR_recvfrom) ? sd->syscall_args[5] : 0;
+	/* standard args */
+	int syscall_number = sd->syscall_number;
+	int nested = sd->extra->nested;
+	/* args */
+	int fd = sd->syscall_args[0];
+	uintptr_t addr =  sd->syscall_args[1];
+	size_t bufsize = sd->syscall_args[2];
+	int flags = (syscall_number != __NR_read) ? sd->syscall_args[3] : 0;
+	uintptr_t src_addraddr = (syscall_number == __NR_recvfrom) ? sd->syscall_args[4] : 0;
+	uintptr_t paddrlen = (syscall_number == __NR_recvfrom) ? sd->syscall_args[5] : 0;
 	socklen_t *addrlen;
-  void *src_addr = NULL;
-  void *private = NULL;
-  int sfd = vu_fd_get_sfd(fd, &private, nested);
-  void *buf;
-  ssize_t ret_value;
-  vu_alloc_arg(addr, buf, bufsize, nested);
+	void *src_addr = NULL;
+	void *private = NULL;
+	int sfd = vu_fd_get_sfd(fd, &private, nested);
+	void *buf;
+	ssize_t ret_value;
+	vu_alloc_arg(addr, buf, bufsize, nested);
 	vu_alloc_peek_local_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
-  if (*addrlen > MAX_SOCKADDR_LEN)
-    *addrlen = MAX_SOCKADDR_LEN;
+	if (*addrlen > MAX_SOCKADDR_LEN)
+		*addrlen = MAX_SOCKADDR_LEN;
 	vu_alloc_local_arg(src_addraddr, src_addr, *addrlen, nested);
-  sd->action = SKIPIT;
-  ret_value = service_syscall(ht, __VU_recvfrom)(sfd, buf, bufsize, flags, src_addr, addrlen, NULL, 0, private);
-  if (ret_value < 0)
-    sd->ret_value = -errno;
-  else {
-    sd->ret_value = ret_value;
+	sd->action = SKIPIT;
+	ret_value = service_syscall(ht, __VU_recvfrom)(sfd, buf, bufsize, flags, src_addr, addrlen, NULL, 0, private);
+	if (ret_value < 0)
+		sd->ret_value = -errno;
+	else {
+		sd->ret_value = ret_value;
 		vu_poke_arg(addr, buf, bufsize, nested);
 		vu_poke_arg(src_addraddr, src_addr, ret_value, nested);
 		vu_poke_arg(paddrlen, addrlen, sizeof(addrlen), nested);
 	}
-  vu_free_arg(buf, nested);
+	vu_free_arg(buf, nested);
 }
 
 void _wo_recvmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	  /* standard args */
-  int nested = sd->extra->nested;
-  /* args */
-  int fd = sd->syscall_args[0];
-  uintptr_t msgaddr = sd->syscall_args[1];
-  int flags = sd->syscall_args[2];
-  struct msghdr *msg;
+	/* standard args */
+	int nested = sd->extra->nested;
+	/* args */
+	int fd = sd->syscall_args[0];
+	uintptr_t msgaddr = sd->syscall_args[1];
+	int flags = sd->syscall_args[2];
+	struct msghdr *msg;
 	uintptr_t src_addraddr;
 	void *src_addr = NULL;
 	uintptr_t iovaddr;
-  struct iovec *iov;
-  uintptr_t controladdr;
+	struct iovec *iov;
+	uintptr_t controladdr;
 	void *control = NULL;
 	void *private = NULL;
-  int sfd = vu_fd_get_sfd(fd, &private, nested);
-  void *buf;
-  size_t bufsize;
-  ssize_t ret_value;
+	int sfd = vu_fd_get_sfd(fd, &private, nested);
+	void *buf;
+	size_t bufsize;
+	ssize_t ret_value;
 	vu_alloc_peek_local_arg(msgaddr, msg, sizeof(struct msghdr), nested);
-  if (msg->msg_namelen > MAX_SOCKADDR_LEN)
-    msg->msg_namelen = MAX_SOCKADDR_LEN;
+	if (msg->msg_namelen > MAX_SOCKADDR_LEN)
+		msg->msg_namelen = MAX_SOCKADDR_LEN;
 	src_addraddr = (uintptr_t) msg->msg_name;
 	vu_alloc_local_arg(src_addraddr, src_addr, msg->msg_namelen, nested);
 	iovaddr = (uintptr_t) msg->msg_name;
@@ -543,11 +544,11 @@ void _wo_recvmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	controladdr = (uintptr_t) msg->msg_control;
 	vu_alloc_arg(controladdr, control, msg->msg_controllen, nested);
 	ret_value = service_syscall(ht, __VU_recvfrom)(sfd, buf, bufsize, flags,
-      src_addr, &msg->msg_namelen, control, &msg->msg_controllen, private);
-  if (ret_value < 0)
-    sd->ret_value = -errno;
-  else {
-    sd->ret_value = ret_value;
+			src_addr, &msg->msg_namelen, control, &msg->msg_controllen, private);
+	if (ret_value < 0)
+		sd->ret_value = -errno;
+	else {
+		sd->ret_value = ret_value;
 		vu_poke_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, ret_value, nested);
 		vu_poke_arg(controladdr, control, msg->msg_controllen, nested);
 		vu_poke_arg(src_addraddr, src_addr, msg->msg_namelen, nested);
@@ -558,19 +559,25 @@ void _wo_recvmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void _wo_recvmmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  sd->ret_value = -ENOSYS;
-  sd->action = SKIPIT;
+	sd->ret_value = -ENOSYS;
+	sd->action = SKIPIT;
 }
 
 void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	int *epfd = sd->inout;
+	struct slow_inout *inout = sd->inout;
 	/* standard args */
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
-	if (epfd != NULL) {
-		vu_slowcall_out(*epfd, ht, fd, EPOLLIN, nested);
-		xfree(epfd);
+	if (inout != NULL) {
+		int slow_errno = inout->slow_errno;
+		vu_slowcall_out(inout->epfd, ht, fd, EPOLLIN, nested);
+		xfree(inout);
+		if (slow_errno != 0) {
+			sd->ret_value = -slow_errno;
+			sd->action = SKIPIT;
+			return;
+		}
 	}
 	switch (syscall_number) {
 		case __NR_read:

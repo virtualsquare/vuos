@@ -247,9 +247,9 @@ int umvu_tracer_fork(void) {
 /* an empty handler is needed to get EINTR */
 
 static void handler(int signum, siginfo_t *info, void *useless) {
-#if 0
+#if 1
 	int tid = syscall(__NR_gettid);
-	printf("HANDLER signum %d %d\n",signum,tid);
+	printf("HANDLER signum %d %d (%d)\n",signum,tid,info->si_pid);
 #endif
 }
 
@@ -257,12 +257,12 @@ __attribute__((constructor))
 	static void init (void) {
 		struct sigaction sa;
 		sigset_t chld_set;
-		sa.sa_flags = SA_RESTART;
+		sa.sa_flags = SA_RESTART | SA_SIGINFO;
 		sa.sa_sigaction = handler;
 		sigfillset(&sa.sa_mask);
 		sa.sa_restorer = NULL;
 		sigaction(SIGCHLD, &sa, NULL);
 		sigemptyset(&chld_set);
 		sigaddset(&chld_set, SIGCHLD);
-		sigprocmask(SIG_BLOCK, &chld_set, NULL);
+		pthread_sigmask(SIG_BLOCK, &chld_set, NULL);
 	}
