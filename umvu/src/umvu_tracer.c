@@ -244,6 +244,7 @@ int umvu_tracer_fork(void) {
 	}
 }
 
+#if 0
 /* an empty handler is needed to get EINTR */
 
 static void handler(int signum, siginfo_t *info, void *useless) {
@@ -266,3 +267,4 @@ __attribute__((constructor))
 		sigaddset(&chld_set, SIGCHLD);
 		pthread_sigmask(SIG_BLOCK, &chld_set, NULL);
 	}
+#endif

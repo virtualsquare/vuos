@@ -346,7 +346,7 @@ void wd_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slow_inout *inout = sd->inout;
 	if (vu_slowcall_during(inout->epfd) < 0)
 		inout->slow_errno = errno;
-	umvu_unblock();
+	//umvu_unblock();
 }
 
 void _wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -477,7 +477,7 @@ void wd_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slow_inout *inout = sd->inout;
 	if (vu_slowcall_during(inout->epfd) < 0)
 		inout->slow_errno = errno;
-	umvu_unblock();
+	//umvu_unblock();
 }
 
 void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
