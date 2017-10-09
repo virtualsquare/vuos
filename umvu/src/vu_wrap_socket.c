@@ -114,6 +114,7 @@ void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	if (ht) {
 		int ret_value;
+		printk("CLOSE SOCKET\n");
 		ret_value = service_syscall(ht, __VU_close)(sfd, private);
 		vuht_drop(ht);
 		return ret_value;
@@ -316,7 +317,7 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 struct slow_inout {
 	int epfd;
-	pthread_t slowtid;
+	pid_t slowtid;
 };
 
 /* sendto, send, sendmsg, sendmmsg */
@@ -564,13 +565,13 @@ void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
 	if (inout != NULL) {
-		vu_slowcall_out(inout->epfd, inout->slowtid, ht, fd, EPOLLIN, nested);
+		int rv = vu_slowcall_out(inout->epfd, inout->slowtid, ht, fd, EPOLLIN, nested);
 		xfree(inout);
-		/*if (slow_errno != 0) {
-			sd->ret_value = -slow_errno;
+		if (rv == 0) {
+			sd->ret_value = -EINTR;
 			sd->action = SKIPIT;
 			return;
-		}*/
+		}
 	}
 	switch (syscall_number) {
 		case __NR_read:
@@ -584,6 +585,7 @@ void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			_wo_recvmmsg(ht, sd);
 			break;
 	}
+	printk(" wo_recvfrom returns\n");
 }
 
 void wi_shutdown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
