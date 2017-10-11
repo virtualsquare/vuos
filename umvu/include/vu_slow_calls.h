@@ -2,10 +2,9 @@
 #define VU_SLOW_CALLS_H
 #include <stdint.h>
 struct vuht_entry_t;
+struct slowcall;
 
-int vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
-
-pid_t vu_slowcall_during(int epfd);
-
-int vu_slowcall_out(int epfd, pid_t slowtid, struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
+struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
+void vu_slowcall_during(struct slowcall *sc);
+int vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
 #endif

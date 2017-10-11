@@ -216,7 +216,7 @@ static int umvu_trace(pid_t tracee_tid)
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
 		} else {
-			printk("TERMINATION? %lu\n", pthread_self());
+			//printk("TERMINATION? %lu\n", pthread_self());
 			umvu_unblock();
 		}
 	}
