@@ -130,11 +130,14 @@ int vuht_del(struct vuht_entry_t *hte, int delayed);
 int vprintk(const char *fmt, va_list ap);
 int printk(const char *fmt, ...);
 
+extern uint64_t debugmask;
+extern __thread uint64_t tdebugmask;
+
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
-	if (__builtin_expect(debugmask & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
-		basename(__FILE__), __LINE__, ##__VA_ARGS__)
+  if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
+  _printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
+      basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_TAG2INDEX_A 1
 #define DEBUG_TAG2INDEX_B 2

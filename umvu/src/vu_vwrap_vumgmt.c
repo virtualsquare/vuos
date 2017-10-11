@@ -149,10 +149,11 @@ void vuctl_setname(struct syscall_descriptor_t *sd) {
 void vuctl_get_debugtags(struct syscall_descriptor_t *sd) {
 	syscall_arg_t tags_addr = sd->syscall_args[1];
 	syscall_arg_t len = sd->syscall_args[2];
+	int local = sd->syscall_args[3];
 	char tags[DEBUG_NTAGS+1];
 	if (len > DEBUG_NTAGS+1)
 		len = DEBUG_NTAGS+1;
-	debug_get_tags(tags, len);
+	debug_get_tags(tags, len, local);
 	if (umvu_poke_data(tags_addr, tags, strlen(tags) + 1) < 0)
 		sd->ret_value = -EINVAL;
 	else
@@ -162,22 +163,24 @@ void vuctl_get_debugtags(struct syscall_descriptor_t *sd) {
 void vuctl_add_debugtags(struct syscall_descriptor_t *sd) {
 	char tags[DEBUG_NTAGS+1];
 	syscall_arg_t tags_addr = sd->syscall_args[1];
+	int local = sd->syscall_args[2];
 	if (umvu_peek_str(tags_addr, tags, DEBUG_NTAGS+1) < 0) {
     sd->ret_value = -EINVAL;
     return;
   }
-	debug_add_tags(tags);
+	debug_add_tags(tags, local);
 	sd->ret_value = 0;
 }
 
 void vuctl_del_debugtags(struct syscall_descriptor_t *sd) {
 	char tags[DEBUG_NTAGS+1];
 	syscall_arg_t tags_addr = sd->syscall_args[1];
+	int local = sd->syscall_args[2];
 	if (umvu_peek_str(tags_addr, tags, DEBUG_NTAGS+1) < 0) {
 		sd->ret_value = -EINVAL;
 		return;
 	}
-	debug_del_tags(tags);
+	debug_del_tags(tags, local);
 	sd->ret_value = 0;
 }
 

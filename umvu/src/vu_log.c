@@ -7,8 +7,10 @@
 #include <errno.h>
 #include <vu_log.h>
 #include <r_table.h>
+#include <umvu_tracer.h>
 
 uint64_t debugmask;
+__thread uint64_t tdebugmask;
 
 #define BLACK 0
 #define RED 1
@@ -99,26 +101,33 @@ static int debug_tag2index(int tag) {
 		return tagp - debug_alltags;
 }
 
-void debug_add_tags(char *tags) {
+void debug_add_tags(char *tags, int local) {
 	for (; *tags; tags++) {
 		int index = debug_tag2index(tags[0]);
-		debugmask |= (1ULL << index);
+		if (local)
+			tdebugmask |= (1ULL << index);
+		else
+			debugmask |= (1ULL << index);
 	}
 }
 
-void debug_del_tags(char *tags) {
+void debug_del_tags(char *tags, int local) {
 	for (; *tags; tags++) {
 		int index = debug_tag2index(tags[0]);
-		debugmask &= ~(1ULL << index);
+		if (local) 
+			tdebugmask &= ~(1ULL << index);
+		else
+			debugmask &= ~(1ULL << index);
 	}
 }
 
-void debug_get_tags(char *tags, size_t size) {
+void debug_get_tags(char *tags, size_t size, int local) {
 	size_t index;
 	size_t len;
+	uint64_t mask = local ? tdebugmask : debugmask;
 	tags[0] = '\0';
 	for (index = len = 1; index < DEBUG_NTAGS && len < size; index++) {
-		if (debugmask & (1ULL << index)) {
+		if (mask & (1ULL << index)) {
 			tags[len - 1] = debug_alltags[index];
 			tags[len++] = '\0';
 		}
@@ -297,3 +306,25 @@ void printkdump(void *buf, int count) {
   }
   printk("\n");
 }
+
+static void *vu_log_upcall(inheritance_state_t state, void *arg) {
+	void *ret_value;
+  switch (state) {
+    case INH_CLONE:
+      ret_value = &tdebugmask;
+      break;
+    case INH_START:
+      tdebugmask = *(uint64_t *)arg;
+      break;
+		default:
+			break;
+  }
+  return ret_value;
+}
+
+
+__attribute__((constructor))
+  static void init(void) {
+    umvu_inheritance_upcall_register(vu_log_upcall);
+  }
+

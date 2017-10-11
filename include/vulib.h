@@ -61,16 +61,16 @@ static inline long vu_setname(char *vuname) {
 	return syscall(__NR_vuctl, VUCTL_SETNAME, vuname);
 }
 
-static inline long vu_get_debugtags(char *debugtags, size_t len) {
-	return syscall(__NR_vuctl, VUCTL_GET_DEBUGTAGS, debugtags, len);
+static inline long vu_get_debugtags(char *debugtags, size_t len, int local) {
+	return syscall(__NR_vuctl, VUCTL_GET_DEBUGTAGS, debugtags, len, local);
 }
 
-static inline long vu_add_debugtags(char *debugtags) {
-	return syscall(__NR_vuctl, VUCTL_ADD_DEBUGTAGS, debugtags);
+static inline long vu_add_debugtags(char *debugtags, int local) {
+	return syscall(__NR_vuctl, VUCTL_ADD_DEBUGTAGS, debugtags, local);
 }
 
-static inline long vu_del_debugtags(char *debugtags) {
-	return syscall(__NR_vuctl, VUCTL_DEL_DEBUGTAGS, debugtags);
+static inline long vu_del_debugtags(char *debugtags, int local) {
+	return syscall(__NR_vuctl, VUCTL_DEL_DEBUGTAGS, debugtags, local);
 }
 
 static inline long vu_get_debugtagname(int tag, char *string, size_t len) {

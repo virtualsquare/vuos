@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 		switch (c) {
 			case '?': usage_n_exit();
 								break;
-			case 'd': debug_add_tags(optarg);
+			case 'd': debug_add_tags(optarg, 0);
 								break;
 			case 'D': debug_set_color_string(optarg);
 								break;	

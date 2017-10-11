@@ -52,9 +52,9 @@ int printk(const char *fmt, ...);
 void set_console_log_level(int level);
 void set_syslog_log_level(int level);
 
-void debug_add_tags(char *tags); 
-void debug_del_tags(char *tags); 
-void debug_get_tags(char *tags, size_t size);
+void debug_add_tags(char *tags, int local); 
+void debug_del_tags(char *tags, int local); 
+void debug_get_tags(char *tags, size_t size, int local);
 
 void debug_set_color(char *tags, const char *s);
 void debug_set_color_string(const char *s);
@@ -66,10 +66,11 @@ void debug_get_name(char tag, char *buf, size_t bufsize);
 	_debug_set_name(DEBUG_TAG2INDEX_##tag, "" s)
 
 extern uint64_t debugmask;
+extern __thread uint64_t tdebugmask;
 
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
-	if (__builtin_expect(debugmask & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
+	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
 	_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
 			basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
