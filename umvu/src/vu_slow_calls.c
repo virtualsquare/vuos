@@ -39,11 +39,6 @@ void printsigpending(void) {
 	}
 }
 
-struct slow_thread_arg {
-	int epfd;
-	pthread_t tid;
-};
-
 static void slow_thread(int epfd) {
 	struct epoll_event useless;
 	printk("vu_slowcall_during... %d\n", epfd);
