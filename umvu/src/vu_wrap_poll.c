@@ -47,6 +47,7 @@ struct poll_inout {
 	struct pollfd *fds;
 	struct pollfd *fds_real;
 	struct pollfd *fds_virt;
+	int epfd;
 	int poll_rv;
 };
 
@@ -58,6 +59,7 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		nfds_t i, nvirt;
 		fatal(pollio);
 		pollio->nfds = sd->syscall_args[1];
+		/* get the pollfd array */
 		vu_alloc_peek_arg(fdsaddr, pollio->fds, pollio->nfds * sizeof(struct pollfd), nested);
 		pollio->fds_real = malloc(pollio->nfds * sizeof(struct pollfd));
 		fatal(pollio->fds_real);

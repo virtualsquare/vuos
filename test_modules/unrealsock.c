@@ -46,8 +46,6 @@ void *vu_unrealsock_init(void) {
 	vu_syscall_handler(s, getsockopt) = getsockopt;
 	vu_syscall_handler(s, epoll_ctl) = epoll_ctl;
 	vu_syscall_handler(s, close) = close;
-	vu_syscall_handler(s, read) = read;
-	vu_syscall_handler(s, write) = write;
 
 	for (i = 0; i < 3; i++)
 		ht[i] = vuht_add(CHECKSOCKET, &afs[i], sizeof(int), s, NULL, NULL, 0);

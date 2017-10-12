@@ -23,6 +23,7 @@
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
+#include <vu_wrap_rw_multiplex.h>
 #include <vu_slow_calls.h>
 
 #define MAX_SOCKADDR_LEN sizeof(struct sockaddr_storage)
@@ -645,4 +646,10 @@ void wi_getsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 __attribute__((constructor))
 	static void init(void) {
 		vu_fnode_set_close_upcall(S_IFSOCK, socket_close_upcall);
+		set_wi_read(S_IFSOCK, wi_recvfrom);
+		set_wd_read(S_IFSOCK, wd_recvfrom);
+		set_wo_read(S_IFSOCK, wo_recvfrom);
+		set_wi_write(S_IFSOCK, wi_sendto);
+		set_wd_write(S_IFSOCK, wd_sendto);
+		set_wo_write(S_IFSOCK, wo_sendto);
 	}

@@ -21,6 +21,7 @@
 #include <vu_fs.h>
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
+#include <vu_wrap_rw_multiplex.h>
 #include <vu_wrapper_utils.h>
 
 /* open, creat, openat */
@@ -154,7 +155,7 @@ static int file_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 }
 
 /* read, readv */
-void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+void file_wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		int nested = sd->extra->nested;
@@ -197,7 +198,7 @@ void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* write, writev */
-void wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+void file_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		int nested = sd->extra->nested;
@@ -440,4 +441,8 @@ __attribute__((constructor))
     vu_fnode_set_close_upcall(S_IFCHR, file_close_upcall);
     vu_fnode_set_close_upcall(S_IFBLK, file_close_upcall);
     vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
+		set_wi_read(S_IFREG, file_wi_read);
+		set_wi_read(S_IFBLK, file_wi_read);
+		set_wi_write(S_IFREG, file_wi_write);
+		set_wi_write(S_IFBLK, file_wi_write);
   }

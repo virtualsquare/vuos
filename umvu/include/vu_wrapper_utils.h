@@ -125,7 +125,6 @@ __attribute__((always_inline))
 #define vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested) \
 	do { \
 		vu_alloc_peek_arg(iovaddr, iov, sizeof(struct iovec) * iovcnt, nested); \
-		printk("%p %d %ld %p %d\n",iov[0].iov_base, iov[0].iov_len, iovaddr, iov, sizeof(struct iovec) * iovcnt);\
 		bufsize = iovec_bufsize(iov, iovcnt); \
 		buf = malloc(bufsize); \
 	} while(0)
