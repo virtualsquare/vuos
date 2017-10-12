@@ -27,11 +27,17 @@ typedef enum syscall_state_t {
 	DURING_SYSCALL,
 	OUT_SYSCALL } syscall_state_t;
 
+#define UMVU_SKIP 0x1
+#define UMVU_CB_AFTER 0x2
+#define UMVU_BLOCKIT 0x4
+#define UMVU_DO_IT_AGAIN 0x8
+
 typedef enum syscall_action_t {
-	DOIT,
-	SKIPIT,
-	DOIT_CB_AFTER,
-	BLOCKIT
+	DOIT = 0,
+	SKIPIT = UMVU_SKIP,
+	DOIT_CB_AFTER = UMVU_CB_AFTER,
+	BLOCKIT = UMVU_BLOCKIT | UMVU_CB_AFTER,
+	DO_IT_AGAIN = UMVU_DO_IT_AGAIN
 } syscall_action_t;
 
 struct syscall_extra_t;

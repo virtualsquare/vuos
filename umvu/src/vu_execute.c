@@ -92,8 +92,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					execute_cleanup(ht,sd);
 				else {
 					tab_entry->wrapinf(ht, sd);
-					if (sd->action != DOIT_CB_AFTER &&
-							sd->action != BLOCKIT)
+					if ((sd->action & UMVU_CB_AFTER) == 0)
 						execute_cleanup(ht,sd);
 				}
 				break;
@@ -101,7 +100,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				printkdebug(s, "DURING %d %s %s", umvu_gettid(), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapduringf(ht, sd);
-				if (sd->action != DOIT_CB_AFTER)
+				if ((sd->action & UMVU_CB_AFTER) == 0)
 					execute_cleanup(ht,sd);
 				break;
 			case OUT_SYSCALL:

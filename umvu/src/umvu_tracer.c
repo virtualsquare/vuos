@@ -181,20 +181,19 @@ static int umvu_trace(pid_t tracee_tid)
 					P_GETREGS(sig_tid, &regs);
 					umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 					syscall_handler(syscall_state, &syscall_desc);
-					if (syscall_desc.action == BLOCKIT) {
+					if (syscall_desc.action & UMVU_BLOCKIT) {
 						struct syscall_descriptor_t sys_modified = syscall_desc;
 						umvu_block(&sys_modified);
 						umvu_poke_syscall(&regs, &sys_modified, syscall_state);
 						P_SETREGS(sig_tid, &regs);
-						syscall_desc.action = DOIT_CB_AFTER;
 					} else {
-						if (syscall_desc.action == SKIPIT)
+						if (syscall_desc.action & UMVU_SKIP)
 							syscall_desc.syscall_number = __NR_getpid;
 						if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
 							P_SETREGS(sig_tid, &regs);
 					}
 					P_SYSCALL(sig_tid, 0L);
-					if (syscall_desc.action == DOIT_CB_AFTER) {
+					if (syscall_desc.action & UMVU_CB_AFTER) {
 						syscall_state = DURING_SYSCALL;
 						syscall_handler(syscall_state, &syscall_desc);
 					}
@@ -203,9 +202,14 @@ static int umvu_trace(pid_t tracee_tid)
 					if (syscall_desc.action != DOIT) {
 						P_GETREGS(sig_tid, &regs);
 						umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
-						if (syscall_desc.action == DOIT_CB_AFTER)
+						if (syscall_desc.action & UMVU_CB_AFTER)
 							syscall_handler(syscall_state, &syscall_desc);
-						if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
+						if (syscall_desc.action & UMVU_DO_IT_AGAIN) {
+							  syscall_desc.prog_counter -= SYSCALL_INSTRUCTION_LEN;
+								umvu_poke_syscall(&regs, &syscall_desc, IN_SYSCALL);
+								P_SETREGS(sig_tid, &regs);
+						}
+						else if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
 							P_SETREGS(sig_tid, &regs);
 					}
 					syscall_state = IN_SYSCALL;
