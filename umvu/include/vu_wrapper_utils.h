@@ -82,7 +82,7 @@
 	if (!nested) umvu_poke_data(addr, var, size)
 
 #define vu_peek_arg(addr, var, size, nested) \
-	if (!nested) umvu_peek_data(addr, var, size); 
+	if (!nested) umvu_peek_data(addr, var, size)
 
 #define vu_free_arg(var, nested) \
 	if (!nested) xfree(var)

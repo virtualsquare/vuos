@@ -220,8 +220,10 @@ static int umvu_trace(pid_t tracee_tid)
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
 		} else {
-			//printk("TERMINATION? %lu\n", pthread_self());
-			umvu_unblock();
+			printk("TERMINATION? %lu\n", pthread_self());
+			printk("TERMINATION? %d %d\n", sig_tid, WEXITSTATUS(wstatus));
+			if (WEXITSTATUS(wstatus) == 1)
+				umvu_unblock();
 		}
 	}
 }

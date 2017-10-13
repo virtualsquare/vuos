@@ -54,7 +54,7 @@ void vu_slowcall_during(struct slowcall *sc) {
 
 	if ((sc->pid = r_fork()) == 0) {
 		slow_thread(sc->epfd);
-		r_exit(0);
+		r_exit(1);
 	}
 	//printk(">>>>>>>>> NEW %d\n", newthread);
 }
