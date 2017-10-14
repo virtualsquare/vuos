@@ -46,7 +46,6 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wo_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value = sd->orig_ret_value;
-
 	if (ret_value >= 0)
 		vu_fs_set_cwd(sd->extra->path);
 	sd->ret_value = sd->orig_ret_value;

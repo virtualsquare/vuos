@@ -103,7 +103,6 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	} else {
 		if (fd >= 0) {
 			struct vu_fnode_t *fnode;
-			/* are flags/mode needed for non virtualized files? */
 			int fdflags;
 			switch (sd->syscall_number) {
 				case __NR_open: fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
@@ -112,7 +111,9 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 													break;
 				default: fdflags = 0;
 			}
-			fnode = vu_fnode_create(NULL, sd->extra->path, NULL, 0, -1, NULL); 
+			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
+        r_lstat(sd->extra->path, &sd->extra->statbuf);
+			fnode = vu_fnode_create(NULL, sd->extra->path, &sd->extra->statbuf, 0, -1, NULL); 
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
 		}
 	}

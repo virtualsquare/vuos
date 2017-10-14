@@ -46,7 +46,11 @@ void vu_mmap_mmap(uintptr_t addr, size_t length, struct vu_fnode_t *fnode, off_t
 void vu_mmap_munmap(uintptr_t addr, size_t length) {
 	struct vu_mmap_area_t **scan;
 	struct vu_mmap_area_t **next;
-	fatal(vu_mmap);
+	/* it seems that the deallocation of ptrheads' stacks happens after
+		 vu_mmap_terminate */
+	if (vu_mmap == NULL)
+		return;
+	//fatal(vu_mmap);
 	for (scan = &vu_mmap->area_list_head; *scan != NULL; scan = next) {
 		struct vu_mmap_area_t *this = *scan;
 		next = &((*scan)->next);
