@@ -178,6 +178,7 @@ static int umvu_trace(pid_t tracee_tid)
 				/*SYSCALL*/
 				if (syscall_state == IN_SYSCALL) {
 					syscall_desc.action = DOIT;
+					syscall_desc.waiting_pid = 0;
 					P_GETREGS(sig_tid, &regs);
 					umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 					syscall_handler(syscall_state, &syscall_desc);
@@ -200,6 +201,8 @@ static int umvu_trace(pid_t tracee_tid)
 					syscall_state = OUT_SYSCALL;
 				} else { /* OUT_SYSCALL */
 					if (syscall_desc.action != DOIT) {
+						if (syscall_desc.waiting_pid != 0)
+							r_kill(syscall_desc.waiting_pid, SIGTERM);
 						P_GETREGS(sig_tid, &regs);
 						umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 						if (syscall_desc.action & UMVU_CB_AFTER)
@@ -213,6 +216,7 @@ static int umvu_trace(pid_t tracee_tid)
 							P_SETREGS(sig_tid, &regs);
 					}
 					syscall_state = IN_SYSCALL;
+					syscall_desc.waiting_pid = 0;
 					P_SYSCALL(sig_tid, 0L);
 				}
 			} else {
@@ -220,10 +224,11 @@ static int umvu_trace(pid_t tracee_tid)
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
 		} else {
-			printk("TERMINATION? %lu\n", pthread_self());
-			printk("TERMINATION? %d %d\n", sig_tid, WEXITSTATUS(wstatus));
-			if (WEXITSTATUS(wstatus) == 1)
+			//printk("TERMINATION? %d %d\n", sig_tid, syscall_desc.waiting_pid);
+			if (sig_tid == syscall_desc.waiting_pid) {
 				umvu_unblock();
+				syscall_desc.waiting_pid = 0;
+			}
 		}
 	}
 }

@@ -51,6 +51,7 @@ struct syscall_descriptor_t {
 	syscall_arg_t ret_value;
 	uintptr_t prog_counter;
 	uintptr_t stack_pointer;
+	pid_t waiting_pid;
 	struct syscall_extra_t *extra;
 	void *inout;
 };

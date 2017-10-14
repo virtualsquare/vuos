@@ -18,7 +18,6 @@
 
 struct slowcall {
 	int epfd;
-	pid_t pid;
 	//char *stack[2048 - sizeof(int) - sizeof(pid_t)];
 };
 
@@ -49,24 +48,27 @@ static void slow_thread(int epfd) {
 	//printk("vu_slowcall_wakeup %d %d\n", ret_value, errno);
 }	
 
-void vu_slowcall_during(struct slowcall *sc) {
+pid_t vu_slowcall_during(struct slowcall *sc) {
 	//printk(">>>>>>>>>%lu\n", pthread_self());
 
-	if ((sc->pid = r_fork()) == 0) {
+	pid_t pid;
+	if ((pid = r_fork()) == 0) {
 		slow_thread(sc->epfd);
 		r_exit(1);
 	}
+
+	return pid;
 	//printk(">>>>>>>>> NEW %d\n", newthread);
 }
 
-int vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
+void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
 	void *private = NULL;
   int sfd = vu_fd_get_sfd(fd, &private, nested);
-	int rv = r_kill(sc->pid, SIGTERM);
+	//int rv = r_kill(sc->pid, SIGTERM);
 	struct epoll_event event = {.events = events, .data.fd = fd};
 	//printk("vu_slowcall_wakeup...\n");
 	service_syscall(ht, __VU_epoll_ctl)(sc->epfd, EPOLL_CTL_DEL, sfd, &event);
 	r_close(sc->epfd);
 	free(sc);
-	return rv;
+	//return rv;
 }

@@ -337,7 +337,7 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wd_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slowcall *sc = sd->inout;
-	vu_slowcall_during(sc);
+	sd->waiting_pid = vu_slowcall_during(sc);
 }
 
 void _wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -419,8 +419,8 @@ void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
 	if (sc != NULL) {
-		int rv = vu_slowcall_out(sc, ht, fd, EPOLLOUT, nested);
-		if (rv == 0) {
+		vu_slowcall_out(sc, ht, fd, EPOLLOUT, nested);
+		if (sd->waiting_pid != 0) {
 			sd->ret_value = -EINTR;
 			sd->action = SKIPIT;
 			return;
@@ -462,7 +462,7 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wd_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct slowcall *sc = sd->inout;
-	vu_slowcall_during(sc);
+	sd->waiting_pid = vu_slowcall_during(sc);
 }
 
 void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -555,8 +555,8 @@ void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int fd = sd->syscall_args[0];
 	if (sc != NULL) {
-		int rv = vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
-		if (rv == 0) {
+		vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
+		if (sd->waiting_pid != 0) {
 			sd->ret_value = -EINTR;
 			sd->action = SKIPIT;
 			return;
