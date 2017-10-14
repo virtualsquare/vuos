@@ -26,6 +26,7 @@
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
 #define ERESTARTNOHAND 514
+#define ERESTART_RESTARTBLOCK 516
 
 static int always_ready_fd;
 
@@ -93,13 +94,13 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
 				void *private;
 				int sfd = vu_fd_get_sfd(fd, &private, nested);
-				struct epoll_event event = {.events = 0, .data.fd = fds[i].fd};
+				struct epoll_event event = {.events = 0, .data.fd = fd};
 				int j;
 				for (j = 0; j < nfds; j++) {
 					if (fd == fds[j].fd)
 						event.events |= fds[j].events;
 				}
-				printk("EPOLL ADD %d %d\n", fd, fds[i].events);
+				//printk("EPOLL ADD %d %d\n", fd, event.events);
 				if (service_syscall(ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_ADD, sfd, &event) < 0)
 					pollio->fd[i] = -1;
 				else
@@ -153,48 +154,55 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct epoll_event eventv[pollio->nvirt];
 	int nepoll;
 	int orig_ret_value = sd->orig_ret_value;
-	int ret_value = 0;
 	int i;
 	vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
 	for (i = 0; i < nfds; i++) {
 		if (fds[i].fd < 0) {
 			fds[i].fd = pollio->fds[i].fd;
 			fds[i].events = pollio->fds[i].events;
+			fds[i].revents = 0;
 		}
 	}
-	nepoll = r_epoll_wait(pollio->epfd, eventv, pollio->nvirt, 0);
-	for (i = 0; i < nepoll; i++) {
-		int fd = eventv[i].data.fd;
-		uint32_t events = eventv[i].events;
-		int j;
-		for (j = 0; j < nfds; j++) {
-			if (fd == fds[j].fd) {
-				uint32_t fdevents = events & fds[j].events;
-				if (fdevents) {
-					fds[j].revents = fdevents;
-					ret_value++;
+	if (sd->waiting_pid != 0) {
+		sd->ret_value = orig_ret_value;
+	} else {
+		int ret_value = 0;
+		nepoll = r_epoll_wait(pollio->epfd, eventv, pollio->nvirt, 0);
+		for (i = 0; i < nepoll; i++) {
+			int fd = eventv[i].data.fd;
+			uint32_t events = eventv[i].events;
+			int j;
+			for (j = 0; j < nfds; j++) {
+				if (fd == fds[j].fd) {
+					uint32_t fdevents = events & fds[j].events;
+					if (fdevents) 
+						fds[j].revents |= fdevents;
 				}
-				break;
 			}
 		}
+		for (i = ret_value = 0; i < nfds; i++) {
+			if (fds[i].revents)
+				ret_value++;
+		}
+		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTART_RESTARTBLOCK)
+			sd->ret_value = ret_value;
+		else if (orig_ret_value < 0)
+			sd->ret_value = orig_ret_value;
+		else
+			sd->ret_value = ret_value;
 	}
-	if (orig_ret_value == -EINTR)
-		sd->ret_value = ret_value;
-	else if (orig_ret_value < 0)
-		sd->ret_value = orig_ret_value;
-	else
-		sd->ret_value = orig_ret_value + ret_value;
+	//printk("orig_ret_value %d ret_value %d -> %d\n", orig_ret_value, ret_value, sd->ret_value );
 	vu_poke_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
 	for (i = 0; i < pollio->nvirt; i++) {
 		int fd = pollio->fd[i];
-    if (fd >= 0) {
-      struct vuht_entry_t *fd_ht = vu_fd_get_ht(fd, VU_NOT_NESTED);
-      void *private = NULL;
-      int sfd = vu_fd_get_sfd(fd, &private, VU_NOT_NESTED);
-      struct epoll_event event = {.events = 0, .data.fd = fd};
-      service_syscall(fd_ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_DEL, sfd, &event);
-    }
-  }
+		if (fd >= 0) {
+			struct vuht_entry_t *fd_ht = vu_fd_get_ht(fd, VU_NOT_NESTED);
+			void *private = NULL;
+			int sfd = vu_fd_get_sfd(fd, &private, VU_NOT_NESTED);
+			struct epoll_event event = {.events = 0, .data.fd = fd};
+			service_syscall(fd_ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_DEL, sfd, &event);
+		}
+	}
 	r_close(pollio->epfd);
   xfree(pollio->fds);
   xfree(pollio);
