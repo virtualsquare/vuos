@@ -48,6 +48,11 @@ static void slow_thread(int epfd) {
 	//printk("vu_slowcall_wakeup %d %d\n", ret_value, errno);
 }	
 
+int vu_slowcall_test(struct slowcall *sc) {
+	struct pollfd pfd = {sc->epfd, POLLIN, 0};
+	return poll(&pfd, 1, 0);
+}
+
 pid_t vu_slowcall_during(struct slowcall *sc) {
 	//printk(">>>>>>>>>%lu\n", pthread_self());
 

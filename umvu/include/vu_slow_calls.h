@@ -5,6 +5,7 @@ struct vuht_entry_t;
 struct slowcall;
 
 struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
+int vu_slowcall_test(struct slowcall *sc);
 pid_t vu_slowcall_during(struct slowcall *sc);
 void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested);
 #endif
