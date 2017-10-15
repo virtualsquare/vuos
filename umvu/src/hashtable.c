@@ -23,7 +23,6 @@
 	 @mtabline: mount tab line
 	 @type: type
 	 @trailingnumbers: boolean, match pathnames with trailing numbers
-	 @invalid: boolean, the element is logically deleted
 	 @service: service associated to this item
 	 @service_hte: hte of the service associated to this item
 	 @private_data: opaque container for module data
@@ -40,7 +39,6 @@ struct vuht_entry_t {
 	epoch_t timestamp;
 	uint8_t type;
 	uint8_t trailingnumbers;
-	uint8_t invalid;
 	struct vu_service_t *service;
 	struct vuht_entry_t *service_hte;
 	void *private_data;
@@ -51,6 +49,8 @@ struct vuht_entry_t {
 	confirmfun_t confirmfun;
 	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
 };
+
+#define VUHT_DELETED(ht) ((ht)->next == NULL)
 
 /* it must be a power of two (masks are used instead of modulo) */
 #define VU_HASHTABLE_SIZE 512
@@ -230,8 +230,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 						memcmp(obj, ht->obj, len) == 0 &&
 						(ht->trailingnumbers || !trailnum(objc)) &&
 						(tst > ht->timestamp) &&
-						(e = matching_epoch(ht->timestamp)) > 0 &&
-						(ht->invalid == 0)) {
+						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
 					if (ht->confirmfun == NEGATIVE_MOUNT)
 						carh = carrot_delete(carh, ht->private_data);
@@ -297,7 +296,6 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->mtabline = mtabline;
 	new->timestamp = update_epoch();
 	new->trailingnumbers = trailingnumbers;
-	new->invalid = 0;
 	new->private_data = private_data;
 	new->service = service;
 	new->service_hte = service->service_ht;
@@ -402,7 +400,7 @@ static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
 	uint8_t type = ht->type;
 	if (ht->count > delayed)
 		return -EBUSY;
-	if (ht->next == NULL) 
+	if (VUHT_DELETED(ht))
 		return -EINVAL;
 	if (ht == vuht_head[type]) {
 		if (ht->next == ht)
@@ -423,11 +421,6 @@ static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
 	if (ht->count == 0)
 		vuht_free(ht);
 	return 0;
-}
-
-void vuht_invalidate(struct vuht_entry_t *ht) {
-	if (ht)
-		ht->invalid = 1;
 }
 
 int vuht_del(struct vuht_entry_t *ht, int delayed) {
@@ -501,7 +494,7 @@ void vuht_pick_again(struct vuht_entry_t *hte) {
 void vuht_drop(struct vuht_entry_t *hte) {
 	if (hte)
 		hte->count--;
-	if (hte->count == 0 && hte->next == NULL)
+	if (hte->count == 0 && VUHT_DELETED(hte))
 		vuht_free(hte);
 }
 
@@ -514,12 +507,6 @@ static void forall_vuht_terminate(uint8_t type)
 		struct vuht_entry_t *next = scanht;
 		do {
 			scanht = next;
-			if (scanht->invalid == 0) {
-				/* if (scanht->service != NULL &&
-						scanht->service->destructor != NULL)
-					scanht->service->destructor(type, scanht); */
-			}
-			next = scanht->prev;
 		} while (vuht_head[type] != NULL && next != vuht_head[type]);
 	}
 	pthread_rwlock_unlock(&vuht_rwlock);
@@ -533,10 +520,8 @@ void forall_vuht_do(uint8_t type,
 		struct vuht_entry_t *scanht = vuht_head[type];
 		do {
 			scanht = scanht->next;
-			if (scanht->invalid == 0) {
-				if ((matching_epoch(scanht->timestamp)) > 0)
-					fun(scanht, arg);
-			}
+			if ((matching_epoch(scanht->timestamp)) > 0)
+				fun(scanht, arg);
 		} while (vuht_head[type] != NULL && scanht != vuht_head[type]);
 	}
 	pthread_rwlock_unlock(&vuht_rwlock);

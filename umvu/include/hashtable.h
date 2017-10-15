@@ -39,7 +39,6 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		unsigned char trailingnumbers,
 		confirmfun_t confirmfun, void *private_data);
 
-void vuht_invalidate(struct vuht_entry_t *hte);
 /* del takes the element out from the data structure.... */
 int vuht_del(struct vuht_entry_t *hte, int delayed);
 ///* free dealloc memory, vuht_free must follow a vuht_del */
