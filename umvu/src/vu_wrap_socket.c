@@ -201,6 +201,18 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		socklen_t *addrlen;
 		int flags = 0;
 		int fflags = 0;
+		if (!nested) {
+			int fd = sd->syscall_args[0];
+			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
+      if (sc != NULL) {
+				sd->inout = sc;
+				if (vu_slowcall_test(sc) <= 0) {
+					sd->action = BLOCKIT;
+					return;
+				} else 
+					vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
+			}
+		}
 		vu_alloc_peek_local_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
 		if (*addrlen > MAX_SOCKADDR_LEN)
 			*addrlen = MAX_SOCKADDR_LEN;
@@ -246,19 +258,42 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-void wo_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int fd = sd->orig_ret_value;
-	if (ht) {
-		struct fnode_t *fnode = sd->inout;
-		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
-		if (fd >= 0) {
-			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
-		} else {
-			vu_fnode_close(fnode);
-			vuht_drop(ht);
-		}
+void wd_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (sd->action == BLOCKIT) {
+		struct slowcall *sc = sd->inout;
+		sd->waiting_pid = vu_slowcall_during(sc);
 	}
-	sd->ret_value = sd->orig_ret_value;
+}
+
+void wo_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (sd->action == BLOCKIT) {
+		int nested = sd->extra->nested;
+		struct slowcall *sc = sd->inout;
+		/* standard args */
+		int fd = sd->syscall_args[0];
+		if (sc != NULL) {
+			vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
+			if (sd->waiting_pid != 0) {
+				sd->ret_value = -EINTR;
+				sd->action = SKIPIT;
+				return;
+			}
+		}
+		sd->action = DO_IT_AGAIN;
+	} else {
+		int fd = sd->orig_ret_value;
+		if (ht) {
+			struct fnode_t *fnode = sd->inout;
+			int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
+			if (fd >= 0) {
+				vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
+			} else {
+				vu_fnode_close(fnode);
+				vuht_drop(ht);
+			}
+		}
+		sd->ret_value = sd->orig_ret_value;
+	}
 }
 
 void wi_getsockname(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
