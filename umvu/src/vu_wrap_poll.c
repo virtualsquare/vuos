@@ -225,11 +225,13 @@ void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int pepfd = sd->syscall_args[0];
 	struct epoll_tab *tab;
 	int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
-	struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
-	epollio->epfd = epfd;
-	epollio->tab = tab;
-	sd->action = DOIT_CB_AFTER;
-	sd->inout = epollio;
+	if (epoll_tab_head(tab) != NULL) {
+		struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
+		epollio->epfd = epfd;
+		epollio->tab = tab;
+		sd->action = DOIT_CB_AFTER;
+		sd->inout = epollio;
+	}
 }
 
 static void epoll_thread(int epfd) {
