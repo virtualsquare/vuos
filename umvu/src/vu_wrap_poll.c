@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <string.h>
+#include <pthread.h>
 #include <sys/syscall.h>
 #include <sys/select.h>
 #include <sys/epoll.h>
@@ -13,6 +14,7 @@
 
 #include <linux_32_64.h>
 #include <xstat.h>
+#include <xcommon.h>
 #include <vu_log.h>
 #include <r_table.h>
 #include <umvu_peekpoke.h>
@@ -29,7 +31,68 @@
 #define ERESTARTNOHAND 514
 #define ERESTART_RESTARTBLOCK 516
 
-//static int always_ready_fd;
+#define EPOLL_TAB_SIZE_INCREMENT 8;
+struct epoll_tab {
+	pthread_mutex_t mutex;
+	int nested;
+	int nfd;
+	int tab_size;
+	int *fd;
+};
+
+static struct epoll_tab *epoll_tab_create(int nested) {
+	struct epoll_tab *tab = malloc(sizeof(struct epoll_tab));
+	fatal(tab);
+	pthread_mutex_init(&tab->mutex, NULL);
+	tab->nested = nested;
+	tab->nfd = tab->tab_size = 0;
+	tab->fd = NULL;
+	return tab;
+}
+
+static void epoll_tab_lock(struct epoll_tab *tab) {
+	pthread_mutex_lock(&tab->mutex);
+}
+
+static void epoll_tab_unlock(struct epoll_tab *tab) {
+	pthread_mutex_unlock(&tab->mutex);
+}
+
+static void epoll_tab_destroy(struct epoll_tab *tab) {
+	if (tab) {
+		pthread_mutex_destroy(&tab->mutex);
+		xfree(tab->fd);
+		xfree(tab);
+	}
+}
+
+static int epoll_tab_search(struct epoll_tab *tab, int fd) {
+	int i;
+	for (i = 0; i < tab->nfd; i++) {
+		if (tab->fd[i] == fd)
+			return 1;
+	}
+	return 0;
+}
+
+static void epoll_tab_del(struct epoll_tab *tab, int fd) {
+	int i;
+	for (i = 0; i < tab->nfd; i++) {
+		if (tab->fd[i] == fd) {
+			tab->fd[i] = tab->fd[--tab->nfd];
+			break;
+		}
+	}
+}
+
+static void epoll_tab_add(struct epoll_tab *tab, int fd) {
+	if (tab->nfd == tab->tab_size) {
+		tab->tab_size += EPOLL_TAB_SIZE_INCREMENT;
+		tab->fd = realloc(tab->fd, tab->tab_size * sizeof(int));
+		fatal(tab->fd);
+	}
+	tab->fd[tab->nfd++] = fd;
+}
 
 void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -53,6 +116,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
     int flags;
 		int epfd;
 		struct fnode_t *fnode;
+		struct epoll_tab *tab = epoll_tab_create(nested);
     switch (syscall_number) {
 			case __NR_epoll_create:
 				flags = 0;
@@ -65,7 +129,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
 		sd->extra->statbuf.st_dev = 0;
 		sd->extra->statbuf.st_ino = epfd;
-		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, NULL);
+		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, tab);
 		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
 	} 
 	sd->ret_value = sd->orig_ret_value;
@@ -80,21 +144,48 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int fd = sd->syscall_args[2];
 		uintptr_t eventaddr = sd->syscall_args[3];
 		struct epoll_event *event;
-		void *epfd_private = NULL;
-		int epfd = vu_fd_get_sfd(pepfd, &epfd_private, nested);
+		struct epoll_tab *tab;
+		int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
     void *private = NULL;
     int sfd = vu_fd_get_sfd(fd, &private, nested);
-		int ret_value;
+		int ret_value = 0;
+		int fd_in_tab;
 
-		vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
-
-		ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, event, private);
-		//perror("CTL");
-		//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
-		if (ret_value >= 0) {
+		epoll_tab_lock(tab);
+		fd_in_tab = epoll_tab_search(tab, fd);
+		switch (op) {
+			case EPOLL_CTL_ADD:
+				if (fd_in_tab)
+					ret_value = -EEXIST;
+				break;
+			case EPOLL_CTL_MOD:
+			case EPOLL_CTL_DEL:
+				if (!fd_in_tab)
+					ret_value = -ENOENT;
+				break;
+		}
+		if (ret_value < 0) {
 			sd->ret_value = ret_value;
 			sd->action = SKIPIT;
+		} else {
+			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
+			ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, event, private);
+			//perror("CTL");
+			//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
+			if (ret_value >= 0) {
+				sd->ret_value = ret_value;
+				sd->action = SKIPIT;
+				switch (op) {
+					case EPOLL_CTL_ADD:
+						epoll_tab_add(tab, fd);
+						break;
+					case EPOLL_CTL_DEL:
+						epoll_tab_del(tab, fd);
+						break;
+				}
+			}
 		}
+		epoll_tab_unlock(tab);
 	}
 }
 
@@ -166,6 +257,13 @@ void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static int epoll_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
+	struct epoll_tab *tab = private;
+	int i;
+	epoll_tab_lock(tab);
+	for (i = 0; i < tab->nfd; i++) {
+	}
+	epoll_tab_unlock(tab);
+	epoll_tab_destroy(tab);
 	r_close(sfd);
 	return 0;
 }
@@ -509,7 +607,5 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 __attribute__((constructor))
 	static void init (void) {
-		//always_ready_fd = eventfd(1, EFD_CLOEXEC);
 		vu_fnode_set_close_upcall(S_IFEPOLL, epoll_close_upcall);
-
 	}
