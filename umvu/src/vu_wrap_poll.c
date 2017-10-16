@@ -12,6 +12,7 @@
 #include <poll.h>
 
 #include <linux_32_64.h>
+#include <xstat.h>
 #include <vu_log.h>
 #include <r_table.h>
 #include <umvu_peekpoke.h>
@@ -28,24 +29,145 @@
 #define ERESTARTNOHAND 514
 #define ERESTART_RESTARTBLOCK 516
 
-static int always_ready_fd;
+//static int always_ready_fd;
 
 void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	if (!nested)
+		sd->action = DOIT_CB_AFTER;
 }
 
+/* private field of fnode entry should be used to store the list of tracked fds (close) */
+struct epoll_el {
+	int fd;
+	struct epoll_el *next;
+};
+
 void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	int fd = sd->orig_ret_value;
+	if (fd >= 0) {
+		/* standard args */
+    int syscall_number = sd->syscall_number;
+		 /* args */
+    int flags;
+		int epfd;
+		struct fnode_t *fnode;
+    switch (syscall_number) {
+			case __NR_epoll_create:
+				flags = 0;
+				break;
+			case __NR_epoll_create1:
+				flags = sd->syscall_args[0];
+				break;
+		}
+		epfd = r_epoll_create1(EPOLL_CLOEXEC);
+		sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
+		sd->extra->statbuf.st_dev = 0;
+		sd->extra->statbuf.st_ino = epfd;
+		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, NULL);
+		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
+	} 
+	sd->ret_value = sd->orig_ret_value;
 }
 
 void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	if (ht) {
+		 /* args */
+		int pepfd = sd->syscall_args[0];
+		int op = sd->syscall_args[1];
+		int fd = sd->syscall_args[2];
+		uintptr_t eventaddr = sd->syscall_args[3];
+		struct epoll_event *event;
+		void *epfd_private = NULL;
+		int epfd = vu_fd_get_sfd(pepfd, &epfd_private, nested);
+    void *private = NULL;
+    int sfd = vu_fd_get_sfd(fd, &private, nested);
+		int ret_value;
+
+		vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
+
+		ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, event, private);
+		//perror("CTL");
+		//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
+		if (ret_value >= 0) {
+			sd->ret_value = ret_value;
+			sd->action = SKIPIT;
+		}
+	}
 }
+
+struct epoll_inout {
+	int epfd;
+};
 
 void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	int pepfd = sd->syscall_args[0];
+	void *epfd_private = NULL;
+	int epfd = vu_fd_get_sfd(pepfd, &epfd_private, nested);
+	struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
+	epollio->epfd = epfd;
+	sd->action = DOIT_CB_AFTER;
+	sd->inout = epollio;
 }
 
+static void epoll_thread(int epfd) {
+  struct pollfd pfd = {epfd, POLLIN, 0};
+  //printk("epoll_thread... %d\n", epfd);
+  //int ret_value =
+  r_poll(&pfd, 1, -1);
+  //printk("epoll_thread %d %d\n", ret_value, errno);
+}
+
+
 void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	struct epoll_inout *epollio = sd->inout;
+	if ((sd->waiting_pid = r_fork()) == 0) {
+    epoll_thread(epollio->epfd);
+    r_exit(1);
+  }
 }
 
 void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	struct epoll_inout *epollio = sd->inout;
+	int orig_ret_value = sd->orig_ret_value;
+	/* args */
+	uintptr_t eventaddr = sd->syscall_args[1];
+	struct epoll_event *events;
+	int maxevents = sd->syscall_args[2];
+	//printk("wo_epoll_wait %d %d\n", maxevents, orig_ret_value);
+	if(orig_ret_value >= 0 || orig_ret_value == -EINTR) {
+		int ret_value = orig_ret_value;
+		if (ret_value < 0)
+			ret_value = 0;
+		if (maxevents > ret_value) {
+			int available_events = maxevents - ret_value;
+			int epoll_ret_value;
+			//printk("available_events %d\n", available_events);
+			vu_alloc_peek_arg(eventaddr, events, maxevents * sizeof(struct epoll_event), nested);
+			//printk("VU alloc okay\n");
+			epoll_ret_value = r_epoll_wait(epollio->epfd, events + ret_value, available_events, 0);
+			//printk("epoll_ret_value %d\n", epoll_ret_value);
+			if (epoll_ret_value > 0) {
+				ret_value += epoll_ret_value;
+				vu_poke_arg(eventaddr, events, ret_value * sizeof(struct epoll_event), nested);
+				sd->ret_value = ret_value;
+			} else
+				sd->ret_value = orig_ret_value;
+			vu_free_arg(events, nested);
+		}
+	} else
+		sd->ret_value = orig_ret_value;
+	//printk("wo_epoll_wait %d\n", sd->ret_value);
+	xfree(epollio);
+}
+
+static int epoll_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
+	r_close(sfd);
+	return 0;
 }
 
 struct poll_inout {
@@ -130,7 +252,6 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static void poll_thread(int epfd) {
-  //struct epoll_event useless;
   struct pollfd pfd = {epfd, POLLIN, 0};
   //printk("poll_thread... %d\n", epfd);
   //int ret_value =
@@ -260,10 +381,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					int sfd = vu_fd_get_sfd(fd, &private, nested);
 					struct epoll_event event = {.events = events, .data.fd = fd};
 					//printk("EPOLL ADD %d %d\n", fd, events);
-					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event) < 0) {
-						event.data.fd = -1;
-						r_epoll_ctl(selectio->epfd, EPOLL_CTL_ADD, always_ready_fd, &event);
-					} else {
+					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event) >= 0) {
 						FD_CLR(fd, &readfds);
 						FD_CLR(fd, &writefds);
 						FD_CLR(fd, &exceptfds);
@@ -285,7 +403,6 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static void select_thread(int epfd) {
-	//struct epoll_event useless;
 	struct pollfd pfd = {epfd, POLLIN, 0};
 	//printk("select_thread... %d\n", epfd);
 	//int ret_value =
@@ -392,5 +509,7 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 __attribute__((constructor))
 	static void init (void) {
-		always_ready_fd = eventfd(1, EFD_CLOEXEC);
+		//always_ready_fd = eventfd(1, EFD_CLOEXEC);
+		vu_fnode_set_close_upcall(S_IFEPOLL, epoll_close_upcall);
+
 	}
