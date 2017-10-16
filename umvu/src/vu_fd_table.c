@@ -114,7 +114,7 @@ static void vu_fd_close_on_exec(void) {
 	pthread_rwlock_unlock(&vu_fd->lock);
 }
 
-static void vu_td_table_resize(struct vu_fd_table_t *fd_table, int fd) {
+static void vu_fd_table_resize(struct vu_fd_table_t *fd_table, int fd) {
 	if (fd >= fd_table->table_size) {
     int i;
     int new_size = (fd + (FD_TABLE_CHUNK)) & ~(FD_TABLE_CHUNK - 1);
@@ -134,7 +134,7 @@ void vu_fd_set_fnode(int fd, int nested, struct fnode_t *fnode, int fdflags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   fatal(fd_table);
 	pthread_rwlock_wrlock(&fd_table->lock);
-	vu_td_table_resize(fd_table, fd);
+	vu_fd_table_resize(fd_table, fd);
 	fd_table->fnode[fd] = fnode;
 	fd_table->flags[fd] = fdflags;
 	pthread_rwlock_unlock(&fd_table->lock);
@@ -170,7 +170,7 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
   fatal(fd_table);
   pthread_rwlock_wrlock(&fd_table->lock);
 	if (fd >= 0) {
-		vu_td_table_resize(fd_table, fd);
+		vu_fd_table_resize(fd_table, fd);
 		if (fd_table->fnode[fd] != NULL)
 			vu_fnode_close(fd_table->fnode[fd]);
 		if (oldfd >= 0 && oldfd < fd_table->table_size) {

@@ -202,7 +202,7 @@ static int umvu_trace(pid_t tracee_tid)
 				} else { /* OUT_SYSCALL */
 					if (syscall_desc.action != DOIT) {
 						if (syscall_desc.waiting_pid != 0)
-							r_kill(syscall_desc.waiting_pid, SIGTERM);
+							r_kill(syscall_desc.waiting_pid, SIGKILL);
 						P_GETREGS(sig_tid, &regs);
 						umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 						if (syscall_desc.action & UMVU_CB_AFTER)
@@ -224,7 +224,7 @@ static int umvu_trace(pid_t tracee_tid)
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
 		} else {
-			//printk("TERMINATION? %d %d\n", sig_tid, syscall_desc.waiting_pid);
+			//printk("waiting_pid? %d %d\n", sig_tid, syscall_desc.waiting_pid);
 			if (sig_tid == syscall_desc.waiting_pid) {
 				umvu_unblock();
 				syscall_desc.waiting_pid = 0;

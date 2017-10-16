@@ -1,7 +1,12 @@
 #ifndef VUMODULE_H
 #define VUMODULE_H
+#include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/epoll.h>
+
 
 struct vu_service_t;
 struct vuht_entry_t;
@@ -56,7 +61,7 @@ int VU_SYSNAME(name, lsetxattr) (const char *path, const char *name, \
 ssize_t VU_SYSNAME(name, llistxattr) (const char *path, \
 		char *list, size_t size, int fd, void *fdprivate); \
 int VU_SYSNAME(name, lremovexattr) (const char *path, const char *name, int fd, void *fdprivate); \
-
+int VU_SYSNAME(name, epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event, void *fdprivate); \
 
 
 #define CHECKMODULE 0        // Module name
