@@ -35,41 +35,18 @@
 #include <r_table.h>
 #include <vu_log.h>
 #include <vu_execute.h>
+#include <vu_fs.h>
 #include <xcommon.h>
-#ifdef TESTS
-#include <poll.h>
-#include <signal.h>
-#endif
 
 struct vuht_entry_t *choice_NULL(struct syscall_descriptor_t *sd) {
-#ifdef TESTS
-	char *path = getsyspath(sd);
-	if (path != NULL) {
-		printf("%s ", syscallname(sd->syscall_number));
-		printf("PATH %s\n", path);
-		free(path);
-	}
-#endif
 	return NULL;
 }
 
 void wi_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-#if 0
-	if (sd->syscall_number == __NR_open)
-		sd->action = DOIT_CB_AFTER;
-#endif
+	//printk("UNMANAGED %s\n", syscallname(sd->syscall_number));
 }
 
 void wd_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-#if 0
-	int tid = syscall(__NR_gettid);
-	printf("DURING %d\n",tid);
-	sigset_t sm;
-	sigemptyset(&sm);
-	ppoll(NULL, 0, NULL, &sm);
-	printf("%d:\n",tid);
-	perror("PPOLL");
-#endif
 }
 
 void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -112,6 +89,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);
 				else {
+					if (vu_fs_is_chroot())
+						rewrite_syspath(sd, sd->extra->path);
 					tab_entry->wrapinf(ht, sd);
 					if ((sd->action & UMVU_CB_AFTER) == 0)
 						execute_cleanup(ht,sd);

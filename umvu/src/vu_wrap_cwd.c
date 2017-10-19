@@ -85,16 +85,41 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		size_t cwdlen;
 		vu_fs_get_cwd(plaincwd, PATH_MAX);
 		vu_fs_get_rootdir(root, PATH_MAX);
-		rootlen = strlen(root);
 		if (root[1] == 0) 
 			root[0] = 0;
-		if (strncmp(plaincwd, root, rootlen) == 0)
-			cwd += rootlen;
+		rootlen = strlen(root);
+		if (strncmp(plaincwd, root, rootlen) == 0) {
+			if (cwd[rootlen] == '\0')
+				strcpy(cwd, "/");
+			else
+				cwd += rootlen;
+		}
 		cwdlen = strlen(cwd)+1;
 		if (cwdlen < bufsize)
 			bufsize = cwdlen;
 		umvu_poke_data(bufaddr, cwd, bufsize);
 		sd->ret_value = cwdlen;
 		sd->action = SKIPIT;
+	}
+}
+
+/* chroot */
+void wi_chroot(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	if (!nested) {
+		int mode = sd->extra->statbuf.st_mode;
+		if (S_ISDIR(mode)) {
+			vu_fs_set_rootdir(sd->extra->path);
+			sd->action = SKIPIT;
+			sd->ret_value = 0;
+		} else {
+			if (mode == 0)
+				sd->ret_value = -ENOENT;
+			else if (sd->extra->path_errno != 0)
+				sd->ret_value = -sd->extra->path_errno;
+			else
+				sd->ret_value = -ENOTDIR;
+			sd->action = SKIPIT;
+		}
 	}
 }

@@ -81,6 +81,14 @@ void vu_fs_get_rootdir(char *dest, size_t n) {
 	pthread_rwlock_unlock(&vu_fs->lock);
 }
 
+int vu_fs_is_chroot(void) {
+	char ret_value;
+	pthread_rwlock_rdlock(&vu_fs->lock);
+	ret_value = (vu_fs->rootdir[1] != '\0');
+	pthread_rwlock_unlock(&vu_fs->lock);
+	return ret_value;
+}
+
 void vu_fs_get_cwd(char *dest, size_t n) {
 	*dest = 0;
 	pthread_rwlock_rdlock(&vu_fs->lock);
