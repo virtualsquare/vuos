@@ -424,6 +424,22 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	int fd = sd->syscall_args[0];
 	int cmd = sd->syscall_args[1];
+	int ret_value;
+	switch (cmd) { /* common mgmt */
+		case F_GETFD:
+			ret_value = vu_fd_get_fdflags(fd, nested);
+			sd->ret_value = (ret_value < 0) ? -EBADF : ret_value;
+			sd->action = SKIPIT;
+			return;
+		case F_SETFD:
+			{
+				int flags = sd->syscall_args[2];
+				vu_fd_set_fdflags(fd, nested, flags);
+				sd->ret_value = 0;
+				/* DO IT */
+			}
+      return;
+	}
 	if (nested) {
 		switch(cmd) {
 			case F_DUPFD:
@@ -431,7 +447,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				{
 					int newfd;
 					int arg = sd->syscall_args[2];
-					int flags = (cmd == F_DUPFD_CLOEXEC) ? O_CLOEXEC : 0;
+					int flags = (cmd == F_DUPFD_CLOEXEC) ? FD_CLOEXEC : 0;
 					newfd = fcntl(fd, cmd, arg);
 					sd->action = SKIPIT;
 					if (newfd < 0)
@@ -465,7 +481,7 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		case F_DUPFD_CLOEXEC:
 			{
 				int newfd = sd->orig_ret_value;
-				int flags = (cmd == F_DUPFD_CLOEXEC) ? O_CLOEXEC : 0;
+				int flags = (cmd == F_DUPFD_CLOEXEC) ? FD_CLOEXEC : 0;
 				if (newfd >= 0 && fd != newfd)  
 					vu_fd_dup(newfd, VU_NOT_NESTED, fd, flags);
 				sd->ret_value = newfd;

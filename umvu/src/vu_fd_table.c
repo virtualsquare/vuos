@@ -37,6 +37,7 @@
 
 /* it must be power of two */
 #define FD_TABLE_CHUNK 16
+#define FDFLAGS_MASK FD_CLOEXEC
 
 struct vu_fd_table_t {
 	pthread_rwlock_t lock;
@@ -157,7 +158,7 @@ void vu_fd_set_fnode(int fd, int nested, struct fnode_t *fnode, int fdflags) {
 	pthread_rwlock_wrlock(&fd_table->lock);
 	vu_fd_table_resize(fd_table, fd);
 	fd_table->fnode[fd] = fnode;
-	fd_table->flags[fd] = fdflags;
+	fd_table->flags[fd] = fdflags & FDFLAGS_MASK;
 	pthread_rwlock_unlock(&fd_table->lock);
 }
 
@@ -197,7 +198,7 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
 		if (oldfd >= 0 && oldfd < fd_table->table_size) {
 			vu_fnode_dup(fd_table->fnode[oldfd]);
 			fd_table->fnode[fd] = fd_table->fnode[oldfd];
-			fd_table->flags[fd] = fdflags;
+			fd_table->flags[fd] = fdflags & FDFLAGS_MASK;
 		} else {
 			fd_table->fnode[fd] = NULL;
 			fd_table->flags[fd] = 0;
@@ -284,7 +285,7 @@ void vu_fd_set_fdflags(int fd, int nested, int flags) {
 	pthread_rwlock_wrlock(&fd_table->lock);
 	flags_addr = get_flags_addr_nolock(fd_table, fd);
 	if (flags_addr) 
-		*flags_addr = flags;
+		*flags_addr = flags & FDFLAGS_MASK;
 	pthread_rwlock_unlock(&fd_table->lock);
 }
 
