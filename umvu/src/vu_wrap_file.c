@@ -386,15 +386,16 @@ void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int newfd;
 		int flags;
 		switch (sd->syscall_number) {
-			case __NR_dup: newfd = r_dup(fd);
+			case __NR_dup: newfd = dup(fd);
 										 break;
 			case __NR_dup2: newfd = sd->syscall_args[1];
-											newfd = r_dup2(fd, newfd);
+											newfd = dup2(fd, newfd);
 											break;
 			case __NR_dup3: newfd = sd->syscall_args[1];
 											flags = sd->syscall_args[2];
-											newfd = r_dup3(fd, newfd, flags);
+											newfd = dup3(fd, newfd, flags);
 		}
+		sd->action = SKIPIT;
 		if (newfd < 0)
 			sd->ret_value = -errno;
 		else {
@@ -419,6 +420,61 @@ void wo_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = newfd;
 }
 
+void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	int fd = sd->syscall_args[0];
+	int cmd = sd->syscall_args[1];
+	if (nested) {
+		switch(cmd) {
+			case F_DUPFD:
+			case F_DUPFD_CLOEXEC: 
+				{
+					int newfd;
+					int arg = sd->syscall_args[2];
+					int flags = (cmd == F_DUPFD_CLOEXEC) ? O_CLOEXEC : 0;
+					newfd = fcntl(fd, cmd, arg);
+					sd->action = SKIPIT;
+					if (newfd < 0)
+						sd->ret_value = -errno;
+					else {
+						if (newfd != fd)
+							vu_fd_dup(newfd, VU_NESTED, fd, flags);
+						sd->ret_value = newfd;
+					}
+				}
+				return;
+		}
+	} else { 
+		switch(cmd) {
+      case F_DUPFD:
+      case F_DUPFD_CLOEXEC:
+				sd->action = DOIT_CB_AFTER;
+				return;
+		}
+	}
+}
+
+void wd_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+}
+
+void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int fd = sd->syscall_args[0];
+	int cmd = sd->syscall_args[1];
+	switch(cmd) {
+		case F_DUPFD:
+		case F_DUPFD_CLOEXEC:
+			{
+				int newfd = sd->orig_ret_value;
+				int flags = (cmd == F_DUPFD_CLOEXEC) ? O_CLOEXEC : 0;
+				if (newfd >= 0 && fd != newfd)  
+					vu_fd_dup(newfd, VU_NOT_NESTED, fd, flags);
+				sd->ret_value = newfd;
+			}
+			return;
+	}
+	sd->ret_value = sd->orig_ret_value;
+}
+
 /* umask */
 /* umask always succeeds. just copy the value */
 void wi_umask(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -438,7 +494,7 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* args */
 		int fd = sd->syscall_args[0];
 		void *private = NULL;
-    int sfd = vu_fd_get_sfd(fd, &private, nested);
+		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		off_t offset = sd->syscall_args[1];
 		int whence = sd->syscall_args[2];
 		/* call */
@@ -457,14 +513,14 @@ void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 __attribute__((constructor))
-  static void init(void) {
-    vu_fnode_set_close_upcall(S_IFREG, file_close_upcall);
-    vu_fnode_set_close_upcall(S_IFDIR, file_close_upcall);
-    vu_fnode_set_close_upcall(S_IFCHR, file_close_upcall);
-    vu_fnode_set_close_upcall(S_IFBLK, file_close_upcall);
-    vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
+	static void init(void) {
+		vu_fnode_set_close_upcall(S_IFREG, file_close_upcall);
+		vu_fnode_set_close_upcall(S_IFDIR, file_close_upcall);
+		vu_fnode_set_close_upcall(S_IFCHR, file_close_upcall);
+		vu_fnode_set_close_upcall(S_IFBLK, file_close_upcall);
+		vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
 		set_wi_read(S_IFREG, file_wi_read);
 		set_wi_read(S_IFBLK, file_wi_read);
 		set_wi_write(S_IFREG, file_wi_write);
 		set_wi_write(S_IFBLK, file_wi_write);
-  }
+	}
