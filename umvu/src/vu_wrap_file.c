@@ -425,20 +425,57 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[0];
 	int cmd = sd->syscall_args[1];
 	int ret_value;
-	switch (cmd) { /* common mgmt */
-		case F_GETFD:
-			ret_value = vu_fd_get_fdflags(fd, nested);
-			sd->ret_value = (ret_value < 0) ? -EBADF : ret_value;
-			sd->action = SKIPIT;
-			return;
-		case F_SETFD:
-			{
-				int flags = sd->syscall_args[2];
-				vu_fd_set_fdflags(fd, nested, flags);
-				sd->ret_value = 0;
-				/* DO IT */
-			}
-      return;
+	if (ht) {
+		void *private = NULL;
+    int sfd = vu_fd_get_sfd(fd, &private, nested);
+		switch (cmd) { /* common mgmt virtual fd*/
+			case F_GETFD:
+				ret_value = vu_fd_get_fdflags(fd, nested);
+				sd->ret_value = (ret_value < 0) ? -EBADF : ret_value;
+				sd->action = SKIPIT;
+				return;
+			case F_SETFD:
+				{
+					int flags = sd->syscall_args[2];
+					vu_fd_set_fdflags(fd, nested, flags);
+					sd->ret_value = 0;
+					/* DO IT */
+				}
+				return;
+			case F_GETFL:
+				 ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_GETFL, 0, private);
+				 if (ret_value < 0) {
+					 sd->ret_value = -errno;
+					 if (errno == ENOSYS) 
+						 sd->ret_value = vu_fd_get_flflags(fd, nested);
+				 }
+				 else
+					 sd->ret_value = ret_value;
+				 sd->action = SKIPIT;
+				 return;
+			case F_SETFL:
+				 {
+					 int flags = sd->syscall_args[2];
+					 ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_SETFL, flags, private);
+					 if (ret_value < 0) {
+						 sd->ret_value = -errno;
+					 } else {
+						 sd->ret_value = ret_value;
+						 vu_fd_set_flflags(fd, nested, flags);
+					 }
+				 }
+				 return;
+		}
+	} else {
+		switch (cmd) { /* common mgmt real fd*/
+			case F_GETFD:
+      case F_GETFL:
+				return; /* DOIT */
+      case F_SETFD:
+      case F_SETFL:
+				sd->action = DOIT_CB_AFTER;
+				return;
+		}
 	}
 	if (nested) {
 		switch(cmd) {
@@ -474,21 +511,36 @@ void wd_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
 	int fd = sd->syscall_args[0];
 	int cmd = sd->syscall_args[1];
+	int ret_value = sd->orig_ret_value;
 	switch(cmd) {
 		case F_DUPFD:
 		case F_DUPFD_CLOEXEC:
 			{
-				int newfd = sd->orig_ret_value;
+				int newfd = ret_value;
 				int flags = (cmd == F_DUPFD_CLOEXEC) ? FD_CLOEXEC : 0;
 				if (newfd >= 0 && fd != newfd)  
 					vu_fd_dup(newfd, VU_NOT_NESTED, fd, flags);
-				sd->ret_value = newfd;
 			}
-			return;
+			break;
+		case F_SETFD:
+			{
+				int flags = sd->syscall_args[2];
+				if (ret_value >= 0)
+					vu_fd_set_fdflags(fd, nested, flags);
+			}
+			break;
+		case F_SETFL:
+			{
+				int flags = sd->syscall_args[2];
+        if (ret_value >= 0)
+          vu_fd_set_flflags(fd, nested, flags);
+      }
+			break;
 	}
-	sd->ret_value = sd->orig_ret_value;
+	sd->ret_value = ret_value;
 }
 
 /* umask */

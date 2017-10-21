@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <string.h>
 #include <pthread.h>
 #include <sys/stat.h>
@@ -29,6 +30,8 @@
 #include <xstat.h>
 #include <vu_vnode.h>
 #include <vu_file_table.h>
+
+#define UPDATABLE_FLAGS (O_APPEND | O_ASYNC | O_DIRECT | O_NOATIME | O_NONBLOCK)
 
 struct vu_fnode_t {
 	pthread_rwlock_t lock;
@@ -154,7 +157,7 @@ int vu_fnode_get_flags(struct vu_fnode_t *v) {
 
 void vu_fnode_set_flags(struct vu_fnode_t *v, int flags) {
 	pthread_rwlock_wrlock(&v->lock);
-	v->flags = flags;
+	v->flags = (v->flags & ~UPDATABLE_FLAGS) | (flags & UPDATABLE_FLAGS);
 	pthread_rwlock_unlock(&v->lock);
 }
 
