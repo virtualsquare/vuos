@@ -517,7 +517,6 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int nested = sd->extra->nested;
 		int ret_value;
 		char *target;
-		printk("Link newpath %s\n", sd->extra->path);
 		if (nested) 
 			target = (char *) sd->syscall_args[0];
 		else
