@@ -79,6 +79,10 @@ int vu_unreal_rmdir(const char *pathname) {
 	return rmdir(unwrap(pathname));
 }
 
+int vu_unreal_mknod(const char *pathname, mode_t mode, dev_t dev) {
+  return mknod(unwrap(pathname), mode, dev);
+}
+
 int vu_unreal_chmod(const char *pathname, mode_t mode, int fd, void *private) {
 	return chmod(unwrap(pathname), mode);
 }

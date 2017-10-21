@@ -34,6 +34,7 @@
 #include <hashtable.h>
 #include <arch_table.h>
 #include <vu_fd_table.h>
+#include <vu_fs.h>
 #include <syscall_defs.h>
 #include <vu_execute.h>
 #include <service.h>
@@ -245,6 +246,7 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				mode = sd->syscall_args[2];
 				break;
 		}
+		mode = mode & ~vu_fs_get_umask();
 		/* call */
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_mkdir)(sd->extra->path, mode);
@@ -255,6 +257,40 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* store results */
 		sd->ret_value = ret_value;
 	}
+}
+
+/* mknod */
+void wi_mknod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+  if (ht) {
+    /* standard args */
+    int syscall_number = sd->syscall_number;
+    int ret_value;
+    /* args */
+    int mode;
+    dev_t dev;
+    /* local bufs */
+    /* fetch args */
+    switch (syscall_number) {
+      case __NR_mknod:
+        mode = sd->syscall_args[1];
+        dev = sd->syscall_args[2];
+        break;
+      case __NR_mknodat:
+        mode = sd->syscall_args[2];
+        dev = sd->syscall_args[3];
+        break;
+    }
+		mode = mode & ~vu_fs_get_umask();
+    /* call */
+    sd->action = SKIPIT;
+    ret_value = service_syscall(ht, __VU_mknod)(sd->extra->path, mode, dev);
+    if (ret_value < 0) {
+      sd->ret_value = -errno;
+      return;
+    }
+    /* store results */
+    sd->ret_value = ret_value;
+  }
 }
 
 /* rmdir */

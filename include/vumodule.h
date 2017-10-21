@@ -42,6 +42,7 @@ off_t VU_SYSNAME(name, lseek) (int fd, off_t offset, int whence, void *fdprivate
 int VU_SYSNAME(name, unlink) (const char *pathname); \
 int VU_SYSNAME(name, truncate) (const char *path, off_t length, int fd, void *fdprivate); \
 int VU_SYSNAME(name, mkdir) (const char *pathname, mode_t mode); \
+int VU_SYSNAME(name, mknod) (const char *pathname, mode_t mode, dev_t dev); \
 int VU_SYSNAME(name, rmdir) (const char *pathname); \
 int VU_SYSNAME(name, chmod) (const char *pathname, mode_t mode, int fd, void *fdprivate); \
 int VU_SYSNAME(name, lchown) (const char *pathname, uid_t owner, gid_t group, int fd, void *fdprivate); \

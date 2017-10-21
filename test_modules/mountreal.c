@@ -94,6 +94,11 @@ int vu_mountreal_rmdir(const char *pathname) {
 	return rmdir(unwrap(pathname, pathbuf, PATH_MAX));
 }
 
+int vu_mountreal_mknod(const char *pathname, mode_t mode, dev_t dev) {
+	char pathbuf[PATH_MAX];
+	return mknod(unwrap(pathname, pathbuf, PATH_MAX), mode, dev);
+}
+
 int vu_mountreal_chmod(const char *pathname, mode_t mode, int fd, void *private) {
 	char pathbuf[PATH_MAX];
 	return chmod(unwrap(pathname, pathbuf, PATH_MAX), mode);
