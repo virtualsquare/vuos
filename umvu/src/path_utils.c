@@ -250,8 +250,12 @@ static int vu_getcwd(char *pathname, size_t size, void *private) {
 }
 
 static int vu_getroot(char *pathname, size_t size, void *private) {
-	/* XXX this should not be applied again on nested calls.. isn't it? */
-	vu_fs_get_rootdir(pathname, size);
+	struct realpath_arg_t *arg = private;
+	if (arg->nested) {
+		pathname[0] = '/';
+		pathname[1] = '\0';
+	} else
+		vu_fs_get_rootdir(pathname, size);
 	return 0;
 }
 
