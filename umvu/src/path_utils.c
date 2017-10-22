@@ -72,10 +72,11 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
 	switch (syscall_number) {
 		case __NR_openat:
+			return (args[2] & O_NOFOLLOW) ? 3 : 2;
 		case __NR_open:
-			return (args[2] & O_NOFOLLOW) ? 0 : 1;
+			return (args[1] & O_NOFOLLOW) ? 1 : 0;
 		case __NR_umount2:
-			return (args[1] & UMOUNT_NOFOLLOW) ? 0 : 1;
+			return (args[1] & UMOUNT_NOFOLLOW) ? 1 : 0;
 		case __NR_unlinkat:
 			return 3;
 		default:
