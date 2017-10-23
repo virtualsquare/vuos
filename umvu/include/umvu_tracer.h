@@ -14,7 +14,7 @@ typedef void (*syscall_handler_t)(syscall_state_t, struct syscall_descriptor_t *
 typedef void *(*inheritance_upcall_t)(inheritance_state_t, void *);
 
 int umvu_tracer_fork(void);
-int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg);
+int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int main);
 void umvu_inheritance_upcall_register(inheritance_upcall_t upcall);
 
 #endif

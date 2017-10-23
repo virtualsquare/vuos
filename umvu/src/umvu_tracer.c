@@ -35,6 +35,10 @@
 #include <vu_log.h>
 #include <umvu_peekpoke.h>
 
+static int nproc;
+static pthread_mutex_t nproc_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t nproc_termination_cond = PTHREAD_COND_INITIALIZER;
+
 static int umvu_trace(pid_t tracee_tid);
 static void default_syscall_handler(syscall_state_t state, struct syscall_descriptor_t *sd);
 static syscall_handler_t syscall_handler = default_syscall_handler;
@@ -46,6 +50,21 @@ static void default_syscall_handler(syscall_state_t state, struct syscall_descri
 	if (state == OUT_SYSCALL) 
 		sd->ret_value = sd->orig_ret_value;
 #endif
+}
+
+static void nproc_update(int i) {
+	pthread_mutex_lock(&nproc_mutex);
+  nproc += i;
+	if (nproc == 0)
+		pthread_cond_broadcast(&nproc_termination_cond);
+  pthread_mutex_unlock(&nproc_mutex);
+}
+
+static void wait4termination(void) {
+	pthread_mutex_lock(&nproc_mutex);
+	while (nproc > 0)
+		pthread_cond_wait(&nproc_termination_cond, &nproc_mutex);
+	pthread_mutex_unlock(&nproc_mutex);
 }
 
 struct inheritance_elem_t {
@@ -99,6 +118,7 @@ static void *spawn_tracer(void *arg)
 	tracer_args *t_arg = (tracer_args *)arg;
 	pid_t tracee_tid = t_arg->tracee_tid;
 	umvu_settid(tracee_tid);
+	nproc_update(1);
 	umvu_inheritance_call(INH_START, t_arg->inherited_args, NULL);
 
 	P_SEIZE_NODIE(tracee_tid, PTRACE_STD_OPTS);
@@ -160,6 +180,7 @@ static int umvu_trace(pid_t tracee_tid)
 		if (sig_tid == -1) {
 			perror("r_wait4 -1");
 			umvu_inheritance_call(INH_TERMINATE, NULL, NULL);
+			nproc_update(-1);
 			return -1;
 		} else if (WIFSTOPPED(wstatus)) {
 			if (WSTOPSIG(wstatus) == SIGTRAP) {
@@ -169,6 +190,7 @@ static int umvu_trace(pid_t tracee_tid)
 					P_GETEVENTMSG(sig_tid, &exit_status);
 					P_DETACH(sig_tid, 0L);
 					umvu_inheritance_call(INH_TERMINATE, NULL, NULL);
+					nproc_update(-1);
 					return exit_status;
 				} else if (wstatus >> 8 ==
 						(SIGTRAP | (PTRACE_EVENT_EXEC << 8))) {
@@ -254,14 +276,17 @@ static int umvu_trace(pid_t tracee_tid)
 	}
 }
 
-int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg) {
+int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int main) {
 	int wstatus;
+	nproc_update(1);
 	P_SEIZE(childpid, PTRACE_STD_OPTS);
 	P_SYSCALL(childpid, 0L);
 	if (syscall_handler_arg != NULL)
 		syscall_handler = syscall_handler_arg;
 	umvu_settid(childpid);
 	wstatus = umvu_trace(childpid);
+	if (main)
+		wait4termination();
 	return wstatus;
 }
 
@@ -279,28 +304,3 @@ int umvu_tracer_fork(void) {
 		return childpid;
 	}
 }
-
-#if 0
-/* an empty handler is needed to get EINTR */
-
-static void handler(int signum, siginfo_t *info, void *useless) {
-#if 0
-	int tid = syscall(__NR_gettid);
-	printf("HANDLER signum %d %d (%d)\n",signum,tid,info->si_pid);
-#endif
-}
-
-__attribute__((constructor))
-	static void init (void) {
-		struct sigaction sa;
-		sigset_t chld_set;
-		sa.sa_flags = SA_RESTART | SA_SIGINFO;
-		sa.sa_sigaction = handler;
-		sigfillset(&sa.sa_mask);
-		sa.sa_restorer = NULL;
-		sigaction(SIGCHLD, &sa, NULL);
-		sigemptyset(&chld_set);
-		sigaddset(&chld_set, SIGCHLD);
-		//pthread_sigmask(SIG_BLOCK, &chld_set, NULL);
-	}
-#endif

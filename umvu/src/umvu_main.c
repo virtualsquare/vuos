@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 		/* parent = tracer */
 		int wstatus;
 		vu_init();
-		wstatus = umvu_tracepid(childpid, vu_syscall_execute);
+		wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
 		vu_fini();
 		r_exit(WEXITSTATUS(wstatus));
 	} else {
