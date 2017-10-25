@@ -91,8 +91,8 @@ void wo_mremap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	uintptr_t newaddr = sd->orig_ret_value;
 	if (newaddr != (uintptr_t) -1) {
 		uintptr_t oldaddr = sd->syscall_args[0];
-    size_t oldlength = sd->syscall_args[1];
-		size_t newlength = sd->syscall_args[1];
+		size_t oldlength = sd->syscall_args[1];
+		size_t newlength = sd->syscall_args[2];
 		vu_mmap_mremap(oldaddr, oldlength, newaddr, newlength);
 	}
 	sd->ret_value = sd->orig_ret_value;

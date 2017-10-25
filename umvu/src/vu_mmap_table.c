@@ -124,12 +124,12 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 void vu_mmap_mremap(uintptr_t addr, size_t length, uintptr_t newaddr, size_t newlength) {
 	struct vu_mmap_area_t **scan;
 	struct vu_mmap_area_t *this;
-  fatal(vu_mmap);
+	fatal(vu_mmap);
 	for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < addr;
 			scan = &((*scan)->next))
-    ;
+		;
 	this = *scan;
-	if (this->addr == addr && this->length == length) {
+	if (this && this->addr == addr && this->length == length) {
 		this->addr = newaddr;
 		this->length = newlength;
 		for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < newaddr;
