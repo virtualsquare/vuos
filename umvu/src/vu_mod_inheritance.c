@@ -45,7 +45,7 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall) {
 			scan = &((*scan) -> next)) {
 		struct mod_inheritance_elem_t *this = *scan;
 		if (this->upcall == upcall) {
-			(*scan)->next = this->next;
+			*scan = this->next;
 			mod_inheritance_upcall_list_count--;
 			xfree(this);
 			break;
