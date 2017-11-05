@@ -135,17 +135,6 @@ typedef void *(*mod_inheritance_upcall_t)(mod_inheritance_state_t, void *);
 void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
 void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 
-#if 0
-void vu_setresuid(uid_t ruid, uid_t euid, uid_t suid);
-void vu_setresgid(gid_t rgid, gid_t egid, gid_t sgid);
-void vu_setfsuid(uid_t fsuid);
-void vu_setfsgid(gid_t fsgid);
-void vu_getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
-void vu_getresgid(gid_t *rgid, gid_t *egid, gid_t *sgid);
-uid_t vu_getfsuid(void);
-gid_t vu_getfsgid(void);
-#endif
-
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64
 #define vu_stat stat64
