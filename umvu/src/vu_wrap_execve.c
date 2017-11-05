@@ -46,6 +46,7 @@
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
+#include <vu_mod_inheritance.h>
 #include <vu_fnode_copy.h>
 
 #define BINFMTBUFLEN 128
@@ -231,6 +232,13 @@ static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, c
 		return 0;
 }
 
+static void exec_setuid_setgid(struct vu_stat *statbuf) {
+	if (statbuf->st_mode & S_ISUID)
+		vu_exec_setuid(statbuf->st_uid);
+	if (statbuf->st_mode & S_ISGID)
+		vu_exec_setgid(statbuf->st_gid);
+}
+
 #define EXECVE_MAX_DEPTH 4
 
 static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descriptor_t *sd, struct argv_list *argv_list, int depth) {
@@ -305,6 +313,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 	if (need_interpreter(&new_req)) {
 		recursive_interpreter(&new_req, sd, argv_list, depth + 1);
 	} else {
+		exec_setuid_setgid(&statbuf);
 		rewrite_execve_argv(sd, argv_list);
 		if (interpreter_ht) {
 			rewrite_execve_filename(interpreter_ht, sd, extra_argv[0], &statbuf);
@@ -353,6 +362,7 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 			recursive_interpreter(&binfmt_req, sd, &argv_list, 1);
 		} else {
+			exec_setuid_setgid(&sd->extra->statbuf);
 			if (ht) {
 				rewrite_execve_filename(ht, sd, sd->extra->path, &sd->extra->statbuf);
 				sd->action = DOIT_CB_AFTER;
