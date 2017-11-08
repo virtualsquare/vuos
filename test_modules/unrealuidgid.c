@@ -27,6 +27,7 @@
 #include <sys/syscall.h>
 #include <vumodule.h>
 #include <errno.h>
+#include <string.h>
 #include <pthread.h>
 #include <sys/fsuid.h>
 
@@ -41,6 +42,8 @@ struct vu_uid_gid_t {
   pthread_rwlock_t lock;
   uid_t ruid, euid, suid, fsuid;
   gid_t rgid, egid, sgid, fsgid;
+	int ngroups;
+	gid_t *groups;
   size_t count;
 };
 
@@ -55,14 +58,46 @@ static void vu_uid_gid_create(void) {
   new->fsuid = setfsuid(-1);
   new->fsgid = setfsgid(-1);
   new->count = 1;
+	new->ngroups = getgroups(0, NULL);
+	new->groups = malloc(new->ngroups * sizeof(gid_t));
+	getgroups(new->ngroups, new->groups);
   pthread_rwlock_init(&new->lock, NULL);
   vu_uid_gid = new;
+}
+
+static void vu_uid_gid_modify_lock(void) {
+	pthread_rwlock_wrlock(&vu_uid_gid->lock);
+	if (vu_uid_gid->count > 1) {
+		struct vu_uid_gid_t *new;
+		new = malloc(sizeof(struct vu_uid_gid_t));
+		new->ruid = vu_uid_gid->ruid;
+		new->euid = vu_uid_gid->euid;
+		new->suid = vu_uid_gid->suid;
+		new->fsuid = vu_uid_gid->fsuid;
+		new->rgid = vu_uid_gid->rgid;
+		new->egid = vu_uid_gid->egid;
+		new->sgid = vu_uid_gid->sgid;
+		new->fsgid = vu_uid_gid->fsgid;
+		new->ngroups = vu_uid_gid->ngroups;
+		if (new->ngroups <= 0) 
+			new->groups = NULL;
+		else {
+			new->groups = malloc(new->ngroups * sizeof(gid_t));
+			memcpy(new->groups, vu_uid_gid->groups, new->ngroups * sizeof(gid_t));
+		}
+		pthread_rwlock_init(&new->lock, NULL);
+		new->count = 1;
+		vu_uid_gid->count -= 1;
+		pthread_rwlock_unlock(&vu_uid_gid->lock);
+		vu_uid_gid = new;
+		pthread_rwlock_wrlock(&vu_uid_gid->lock);
+	}
 }
 
 int vu_unrealuidgid_setresfuid(uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, void *private) {
 	if (vu_uid_gid == NULL)
 		vu_uid_gid_create();
-	pthread_rwlock_wrlock(&vu_uid_gid->lock);
+	vu_uid_gid_modify_lock();
 	if (ruid != (uid_t) -1) vu_uid_gid->ruid = ruid;
 	if (euid != (uid_t) -1) vu_uid_gid->euid = euid;
 	if (suid != (uid_t) -1) vu_uid_gid->suid = suid;
@@ -91,7 +126,7 @@ int vu_unrealuidgid_getresfuid(uid_t *ruid, uid_t *euid, uid_t *suid,
 int vu_unrealuidgid_setresfgid(gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgid, void *private) {
   if (vu_uid_gid == NULL)
     vu_uid_gid_create();
-  pthread_rwlock_wrlock(&vu_uid_gid->lock);
+	vu_uid_gid_modify_lock();
   if (rgid != (gid_t) -1) vu_uid_gid->rgid = rgid;
   if (egid != (gid_t) -1) vu_uid_gid->egid = egid;
   if (sgid != (gid_t) -1) vu_uid_gid->sgid = sgid;
@@ -115,6 +150,36 @@ int vu_unrealuidgid_getresfgid(gid_t *rgid, gid_t *egid, gid_t *sgid,
     getresgid(rgid, egid, sgid);
   }
   return 0;
+}
+
+int vu_unrealuidgid_getgroups(int size, gid_t list[], void *private) {
+	int ret_value;
+	if (vu_uid_gid != NULL) {
+    pthread_rwlock_rdlock(&vu_uid_gid->lock);
+		ret_value = vu_uid_gid->ngroups;
+		if (size < vu_uid_gid->ngroups) {
+			ret_value = -1;
+			errno = EINVAL;
+		} else
+			memcpy(list, vu_uid_gid->groups, vu_uid_gid->ngroups * sizeof(gid_t));
+		pthread_rwlock_unlock(&vu_uid_gid->lock);
+		return ret_value;
+	} else 
+		return getgroups(size, list);
+}
+
+int vu_unrealuidgid_setgroups(int size, const gid_t list[], void *private) {
+	if (size < 0) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (vu_uid_gid == NULL)
+		vu_uid_gid_create();
+  vu_uid_gid_modify_lock();
+	vu_uid_gid->ngroups = size;
+	vu_uid_gid->groups = realloc(vu_uid_gid->groups, vu_uid_gid->ngroups * sizeof(gid_t));
+	memcpy(vu_uid_gid->groups, list, vu_uid_gid->ngroups * sizeof(gid_t));
+	return 0;
 }
 
 static void *vu_uid_gid_clone(void *arg) {
@@ -177,7 +242,9 @@ static void *vu_uid_gid_tracer_upcall(mod_inheritance_state_t state, void *arg) 
 
 static short vusc[]={
   __NR_getresuid, __NR_getresgid,
-  __NR_setresuid, __NR_setresgid
+  __NR_setresuid, __NR_setresgid,
+  __NR_setgroups,
+  __NR_getgroups
 };
 #define VUSCLEN (sizeof(vusc) / sizeof(*vusc))
 static struct vuht_entry_t *ht[VUSCLEN];

@@ -231,7 +231,6 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 		sd->ret_value = -ENOSYS;
 		sd->action = SKIPIT;
 	}
-
 }
 
 static void wi_setfsuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -286,5 +285,49 @@ void wi_setresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		wi_setfsgid(ht, sd);
 	else
 		wi_setresgid(ht, sd);
+}
+
+void wi_setgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	if (ht) {
+		int ret_value;
+		int size = sd->syscall_args[0];
+		uintptr_t listaddr =  sd->syscall_args[1];
+		gid_t *list;
+		vu_alloc_peek_arg(listaddr, list, size * sizeof(gid_t), nested);
+		ret_value = service_syscall(ht, __VU_setgroups)(size, list, vuht_get_private_data(ht));
+		vu_free_arg(list, nested);
+		if (ret_value < 0)
+			sd->ret_value = -errno;
+		else
+			sd->ret_value = ret_value;
+	} else if (nested) {
+		sd->ret_value = -ENOSYS;
+    sd->action = SKIPIT;
+	}
+}
+
+void wi_getgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int ret_value;
+	int nested = sd->extra->nested;
+	int size = sd->syscall_args[0];
+	uintptr_t listaddr =  sd->syscall_args[1];
+	gid_t *list;
+	vu_alloc_arg(listaddr, list, size * sizeof(gid_t), nested);
+	if (ht) {
+		ret_value = service_syscall(ht, __VU_getgroups)(size, list, vuht_get_private_data(ht));
+	} else {
+		ret_value = status_getgroups(umvu_gettid(), size, list);
+		if (ret_value < 0)
+			errno = EINVAL;
+	} 
+	if (ret_value > 0) 
+		vu_poke_arg(listaddr, list, ret_value * sizeof(gid_t), nested);
+	vu_free_arg(list, nested);
+	sd->action = SKIPIT;
+	if (ret_value < 0)
+		sd->ret_value = -errno;
+	else
+		sd->ret_value = ret_value;
 }
 
