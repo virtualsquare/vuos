@@ -260,11 +260,12 @@ void *vu_unrealuidgid_init(void) {
   return NULL;
 }
 
-void vu_unrealuidgid_fini(void *private) {
+int vu_unrealuidgid_fini(void *private) {
   unsigned int i;
   for (i = 0; i < VUSCLEN; i++) {
     if (ht[i] && vuht_del(ht[i], 0) == 0)
       ht[i] = NULL;
   }
 	mod_inheritance_upcall_deregister(vu_uid_gid_tracer_upcall);
+	return 0;
 }

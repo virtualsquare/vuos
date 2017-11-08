@@ -98,7 +98,13 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	fatal(service);
 
 	vu_mod_setht(sht);
-	module_run_fini(service);
+	ret_value = module_run_fini(service);
+	if (ret_value < 0) {
+		sd->ret_value = -errno;
+		printk(KERN_ERR "module %s: fini err %s\n", name, strerror(errno));
+		vuht_drop(sht);
+		return;
+	}
 	if ((ret_value = vuht_del(sht, 1)) != 0) {
 		sd->ret_value = ret_value;
 		printk(KERN_ERR "module %s: %s\n", name, strerror(-ret_value));

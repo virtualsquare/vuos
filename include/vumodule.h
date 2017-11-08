@@ -31,6 +31,8 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define VU_SYSNAME(name, syscall) vu_ ## name ## _ ## syscall
 #define VU_PROTOTYPES(name) \
 	\
+void * VU_SYSNAME(name, init) (void); \
+int VU_SYSNAME(name, fini) (void *); \
 int VU_SYSNAME(name, lstat) (char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate); \
 int VU_SYSNAME(name, access) (char *path, int mode, int flags); \
 ssize_t VU_SYSNAME(name, readlink) (char *path, char *buf, size_t bufsiz); \

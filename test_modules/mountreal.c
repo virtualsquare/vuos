@@ -203,5 +203,6 @@ void *vu_mountreal_init(void) {
 	return NULL;
 }
 
-void vu_mountreal_fini(void *private) {
+int vu_mountreal_fini(void *private) {
+	return 0;
 }
