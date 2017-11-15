@@ -27,6 +27,7 @@
 #include <string.h>
 #include <utime.h>
 #include <sys/syscall.h>
+#include <sys/vfs.h>
 
 #include <vu_log.h>
 #include <xcommon.h>
@@ -629,4 +630,37 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-
+void wi_statfs(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht) {
+		/* standard args */
+		int nested = sd->extra->nested;
+    int syscall_number = sd->syscall_number;
+    int ret_value;
+		/* args */
+    syscall_arg_t bufaddr = sd->syscall_args[1];
+		/* local bufs */
+		struct statfs *buf;
+		int sfd = -1;
+    void *private = NULL;
+		/* fetch args */
+    switch (syscall_number) {
+			case __NR_statfs:
+				break;
+			case __NR_fstatfs:
+				sfd = sd->syscall_args[0];
+				sfd = (vu_fd_get_sfd(sfd, &private, nested));
+        break;
+		}
+		vu_alloc_local_arg(bufaddr, buf, sizeof(*buf), nested);
+		    /* call */
+    sd->action = SKIPIT;
+    ret_value = service_syscall(ht, __VU_statfs)(sd->extra->path, buf, sfd, private);
+    if (ret_value < 0) {
+			sd->ret_value = -errno;
+      return;
+    }
+    /* store results */
+    vu_poke_arg(bufaddr, buf, sizeof(*buf), nested);
+    sd->ret_value = ret_value;
+  }
+}

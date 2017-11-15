@@ -132,30 +132,35 @@ int vu_mountreal_rename(const char *target, const char *linkpath, int flags) {
 	return rename(unwrap(target, pathbuf, PATH_MAX), unwrap(linkpath, pathbuf2, PATH_MAX));
 }
 
-int vu_unreal_truncate(const char *path, off_t length, int fd, void *fdprivate) {
+int vu_mountreal_truncate(const char *path, off_t length, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
 	return truncate(unwrap(path, pathbuf, PATH_MAX), length);
 }
 
-ssize_t vu_unreal_lgetxattr(const char *path, const char *name,
+int vu_mountreal_statfs(const char *path, struct statfs *buf, int fd, void *fdprivate) {
+	char pathbuf[PATH_MAX];
+  return statfs(unwrap(path, pathbuf, PATH_MAX), buf);
+}
+
+ssize_t vu_mountreal_lgetxattr(const char *path, const char *name,
 		void *value, size_t size, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
 	return lgetxattr(unwrap(path, pathbuf, PATH_MAX), name, value, size);
 }
 
-int vu_unreal_lsetxattr(const char *path, const char *name,
+int vu_mountreal_lsetxattr(const char *path, const char *name,
 		const void *value, size_t size, int flags, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
 	return lsetxattr(unwrap(path, pathbuf, PATH_MAX), name, value, size, flags);
 }
 
-ssize_t vu_unreal_llistxattr(const char *path,
+ssize_t vu_mountreal_llistxattr(const char *path,
 		char *list, size_t size, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
 	return llistxattr(unwrap(path, pathbuf, PATH_MAX), list, size);
 }
 
-int vu_unreal_lremovexattr(const char *path, const char *name, int fd, void *fdprivate) {
+int vu_mountreal_lremovexattr(const char *path, const char *name, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
 	return lremovexattr(unwrap(path, pathbuf, PATH_MAX), name);
 }

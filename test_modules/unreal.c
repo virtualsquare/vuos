@@ -112,6 +112,10 @@ int vu_unreal_truncate(const char *path, off_t length, int fd, void *fdprivate) 
 	return truncate(unwrap(path), length);
 }
 
+int vu_unreal_statfs(const char *path, struct statfs *buf, int fd, void *fdprivate) {
+  return statfs(unwrap(path), buf);
+}
+
 ssize_t vu_unreal_lgetxattr(const char *path, const char *name,
 		void *value, size_t size, int fd, void *fdprivate) {
 	return lgetxattr(unwrap(path), name, value, size);

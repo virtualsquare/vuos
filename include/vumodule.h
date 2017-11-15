@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/vfs.h>
 #include <sys/epoll.h>
 
 
@@ -54,6 +55,7 @@ int VU_SYSNAME(name, utimensat) (int dirfd, const char *pathname, \
 int VU_SYSNAME(name, symlink) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, link) (const char *target, const char *linkpath); \
 int VU_SYSNAME(name, rename) (const char *target, const char *linkpath, int flags); \
+int VU_SYSNAME(name, statfs) (const char *pathname, struct statfs *buf, int fd, void *fdprivate); \
 int VU_SYSNAME(name, mount) (const char *source, const char *target, \
 		const char *filesystemtype, unsigned long mountflags, \
 		const void *data); \
