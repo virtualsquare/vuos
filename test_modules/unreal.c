@@ -150,9 +150,10 @@ void *vu_unreal_init(void) {
 	return NULL;
 }
 
-void vu_unreal_fini(void *private) {
+int vu_unreal_fini(void *private) {
 	if (ht2 && vuht_del(ht2, 0) == 0)
 		ht2 = NULL;
 	if (ht1 && vuht_del(ht1, 0) == 0)
 		ht1 = NULL;
+	return 0;
 }

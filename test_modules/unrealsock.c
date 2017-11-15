@@ -73,10 +73,11 @@ void *vu_unrealsock_init(void) {
 	return NULL;
 }
 
-void vu_unrealsock_fini(void *private) {
+int vu_unrealsock_fini(void *private) {
 	int i;
 	for (i = 0; i < 3; i++) {
 		if (ht[i] && vuht_del(ht[i], 0) == 0)
 			ht[i] = NULL;
 	}
+	return 0;
 }

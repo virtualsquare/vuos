@@ -204,6 +204,14 @@ struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+struct vuht_entry_t *choice_sc(struct syscall_descriptor_t *sd) {
+	int vu_syscall_number = vu_arch_table[sd->syscall_number];
+	struct vuht_entry_t *ht = vuht_pick(CHECKSC, &vu_syscall_number, NULL, SET_EPOCH);
+	printkdebug(c, "sc: call:%d vcall:%d ht %p", sd->syscall_number, vu_syscall_number, ht);
+	return ht;
+}
+
+
 __attribute__((constructor))
 	static void init(void) {
 		debug_set_name(c, "CHOICE");

@@ -17,6 +17,7 @@ struct vu_module_t {
 };
 
 typedef long (*syscall_t)();
+extern uint16_t vu_arch_table[];
 
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define vu_syscall_handler(s, n) (*(vu_syscall_handler_pointer(s, #n)))
@@ -30,6 +31,8 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define VU_SYSNAME(name, syscall) vu_ ## name ## _ ## syscall
 #define VU_PROTOTYPES(name) \
 	\
+void * VU_SYSNAME(name, init) (void); \
+int VU_SYSNAME(name, fini) (void *); \
 int VU_SYSNAME(name, lstat) (char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate); \
 int VU_SYSNAME(name, access) (char *path, int mode, int flags); \
 ssize_t VU_SYSNAME(name, readlink) (char *path, char *buf, size_t bufsiz); \
@@ -63,6 +66,10 @@ ssize_t VU_SYSNAME(name, llistxattr) (const char *path, \
 		char *list, size_t size, int fd, void *fdprivate); \
 int VU_SYSNAME(name, lremovexattr) (const char *path, const char *name, int fd, void *fdprivate); \
 int VU_SYSNAME(name, epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event, void *fdprivate); \
+int VU_SYSNAME(name, getresfuid) (uid_t *ruid, uid_t *euid, uid_t *suid, uid_t *fsuid, void *private); \
+int VU_SYSNAME(name, getresfgid) (gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *fsgid, void *private); \
+int VU_SYSNAME(name, setresfuid) (uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, void *private); \
+int VU_SYSNAME(name, setresfgid) (gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgid, void *private); \
 
 
 #define CHECKMODULE 0        // Module name
@@ -113,6 +120,22 @@ __attribute__((always_inline))
 
 void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte, int delayed);
+
+typedef enum mod_inheritance_state_t {
+  MOD_INH_CLONE,
+  MOD_INH_START,
+  MOD_INH_EXEC,
+  MOD_INH_TERMINATE
+} mod_inheritance_state_t;
+
+struct mod_inheritance_exec_arg {
+	uid_t exec_uid;
+	gid_t exec_gid;
+};
+
+typedef void *(*mod_inheritance_upcall_t)(mod_inheritance_state_t, void *);
+void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
+void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64

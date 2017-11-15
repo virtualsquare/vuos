@@ -174,16 +174,17 @@ void module_run_init(struct vu_service_t *service) {
 	}
 }
 
-void module_run_fini(struct vu_service_t *service) {
+int module_run_fini(struct vu_service_t *service) {
 	  int fininamelen = strlen(service->mod->name) + 4 + 5;
   char fininame[fininamelen];
-  void (*fini)(void *);
+  int (*fini)(void *);
   snprintf(fininame, fininamelen, "vu_%s_fini",service->mod->name);
   fini = dlsym(service->dlhandle, fininame);
   if (fini) {
 		printkdebug(m, "%s running fini %s", service->mod->name, fininame);
-		fini(service->private);
-	}
+		return fini(service->private);
+	} else
+		return 0;
 }
 
 __attribute__((constructor))
