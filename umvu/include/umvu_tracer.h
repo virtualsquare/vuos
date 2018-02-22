@@ -15,6 +15,9 @@ typedef void *(*inheritance_upcall_t)(inheritance_state_t, void *);
 
 int umvu_tracer_fork(void);
 int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int main);
+
+/**Some files constructor like use this function to register their specific inheritance_upcall_t function.
+	Each file in their registered function performs a specific action according to the inheritance_state_t.*/
 void umvu_inheritance_upcall_register(inheritance_upcall_t upcall);
 
 #endif

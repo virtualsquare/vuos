@@ -31,6 +31,10 @@
 #include <service.h>
 #include <r_table.h>
 
+/**Simple copy of files. The file at 'path' is managed using the syscall implementation given by modules because in some cases 
+  this path can't be real so it's necessary the service call to handle it.
+  The file at 'tmp_path' is real because it's in the /tmp/.vu_... directory and it's use as temporary real copy of the virtual one.*/
+
 static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
   int fdin, fdout, n;
   char *buf[BUFSIZ];

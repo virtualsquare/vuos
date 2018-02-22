@@ -23,11 +23,12 @@
 #include <stdint.h>
 #include <epoch.h>
 
-/* per thread time keeping */
+/** per thread time keeping. */
 __thread epoch_t virtual_epoch;
-/* epoch now is a (uint64_t) counter, it is used to timestamp all the state
- * changes in the system */
-static epoch_t epoch_now = 2;
+/** epoch now is a (uint64_t) counter, it is used to timestamp all the state changes in the system. 
+	Each change, module insertion for example, can be seen as a layer overlapping the previous one;
+	the latest change is that seen by the process. */
+static epoch_t epoch_now = 2;	// a comment is required
 
 /* one tick of the global timestap clock epoch_now */
 epoch_t update_epoch()
@@ -57,8 +58,8 @@ epoch_t get_vepoch()
 	return virtual_epoch;
 }
 
-/* it is > 0 if the operation time is consistent with the service time.
- * in such a case it returns the epoch of the matching */
+/** it is > 0 if the operation time is consistent with the service time.
+ * in such a case it returns the epoch of the matching. */
 epoch_t matching_epoch(epoch_t service_epoch)
 {
 	if (service_epoch < virtual_epoch)

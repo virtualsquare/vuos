@@ -28,6 +28,7 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <sys/syscall.h>
+
 #include <umvu_tracer.h>
 #include <r_table.h>
 #include <ptrace_defs.h>
@@ -60,6 +61,7 @@ static void nproc_update(int i) {
   pthread_mutex_unlock(&nproc_mutex);
 }
 
+/**Since umvu is multi-threaded, before exiting it waits for the termination of the other processes. */
 static void wait4termination(void) {
 	pthread_mutex_lock(&nproc_mutex);
 	while (nproc > 0)
@@ -75,6 +77,7 @@ struct inheritance_elem_t {
 static struct inheritance_elem_t *inheritance_upcall_list_h = NULL;
 static int inheritance_upcall_list_count;
 
+
 void umvu_inheritance_upcall_register(inheritance_upcall_t upcall) {
 	struct inheritance_elem_t **scan;
  for (scan = &inheritance_upcall_list_h; *scan != NULL;
@@ -87,6 +90,9 @@ void umvu_inheritance_upcall_register(inheritance_upcall_t upcall) {
  inheritance_upcall_list_count++;
 }
 
+/**Calling the pre-registered inheritance_upcall_t functions, performing a file specific action according to
+	the inheritance_state_t. This function is called in situations like: at the start of a tracer,
+	at the termination, during a clone or during an exec.*/
 static void umvu_inheritance_call(inheritance_state_t state, void **destination, void *source) {
 	struct inheritance_elem_t *scan;
 	for (scan = inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
@@ -98,7 +104,7 @@ static void umvu_inheritance_call(inheritance_state_t state, void **destination,
 	}
 }
 
-/* struct definitions */
+/**This struct is used to provide all the necessary information to the new tracer thread (in a clone situation).*/
 typedef struct tracer_args {
 	pid_t tracee_tid;
 	struct user_regs_struct regs;
@@ -125,7 +131,7 @@ static void *spawn_tracer(void *arg)
 	unblock_tracee(tracee_tid, &(t_arg->regs));
 	free(t_arg);
 	umvu_trace(tracee_tid);
-	pthread_exit(NULL);
+	pthread_exit(NULL); //wait4termination
 	return NULL;
 }
 
@@ -135,13 +141,14 @@ static void block_tracee(pid_t tid, struct user_regs_struct *regs)
 	P_GETREGS_NODIE(tid, regs);
 	umvu_peek_syscall(regs, &sys_orig, IN_SYSCALL);
 	sys_modified = sys_orig;
-	/* change syscall to poll(NULL, 0, -1); */
+	/** The tracee is blocked changing the syscall to poll(NULL, 0, -1); */
 	sys_modified.syscall_number = __NR_poll;
 	sys_modified.syscall_args[0] = 0;
 	sys_modified.syscall_args[1] = 0;
 	sys_modified.syscall_args[2] = -1;
 	umvu_poke_syscall(regs, &sys_modified, IN_SYSCALL);
 	P_SETREGS_NODIE(tid, regs);
+	/**Setting the pc to re-execute the 'not modified' syscall.*/
 	sys_orig.prog_counter -= SYSCALL_INSTRUCTION_LEN;
 	umvu_poke_syscall(regs, &sys_orig, IN_SYSCALL);
 }
@@ -160,12 +167,17 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	/*init args for new thread*/
 	t_args->tracee_tid = newtid;
 	umvu_inheritance_call(INH_CLONE, t_args->inherited_args, &clone_flags);
+	/**This tracer thread won't follow (ptrace) the newtid, but delegate this task to a new tracer thread.*/
 	P_DETACH_NODIE(newtid, 0L);
 	pthread_attr_init(&thread_attr);
 	pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
 	pthread_create(&newthread, &thread_attr, &spawn_tracer, t_args);
 	pthread_attr_destroy(&thread_attr);
 }
+
+#define POKE_N_SET(regs, sys_modified, syscall_state, sig_tid, set_anyway) \
+	if (umvu_poke_syscall(&regs, &sys_modified, syscall_state) || set_anyway){ \
+		P_SETREGS(sig_tid, &regs);} \
 
 static int umvu_trace(pid_t tracee_tid)
 {
@@ -185,7 +197,7 @@ static int umvu_trace(pid_t tracee_tid)
 		} else if (WIFSTOPPED(wstatus)) {
 			if (WSTOPSIG(wstatus) == SIGTRAP) {
 				if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_EXIT << 8))) {
-					/* tracee is about to exit */
+					/** tracee is about to exit. */
 					unsigned long exit_status;
 					P_GETEVENTMSG(sig_tid, &exit_status);
 					P_DETACH(sig_tid, 0L);
@@ -194,8 +206,8 @@ static int umvu_trace(pid_t tracee_tid)
 					return exit_status;
 				} else if (wstatus >> 8 ==
 						(SIGTRAP | (PTRACE_EVENT_EXEC << 8))) {
-					/* the tracee is doing execve() */
-					/* if a thread which is not the thread group leader performs
+					/** the tracee is doing execve(). */
+					/** if a thread which is not the thread group leader performs
 					 * an execve() his tid become equal to the thread group leader,
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
@@ -206,37 +218,43 @@ static int umvu_trace(pid_t tracee_tid)
 				else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_FORK << 8))) {
-					/* the tracee is doing a clone */
-					clone_flags = syscall_desc.syscall_args[0];
+					/** All the system calls to create processes (like fork,vfork,clone) get converted into clone.*/
+					clone_flags = syscall_desc.syscall_args[0]; 
 				}
 				P_SYSCALL(sig_tid, 0L);
 			} else if (sig_tid != tracee_tid) {
-				/*new tracee*/
-				if (wstatus >> 16 == PTRACE_EVENT_STOP) {
-					P_SYSCALL_NODIE(sig_tid, 0L);
+				/*new tracee.*/
+				/**The new process will start with a PTRACE_EVENT_STOP because a P_SEIZE was used. */
+				if (wstatus >> 16 == PTRACE_EVENT_STOP) { 
+					P_SYSCALL_NODIE(sig_tid, 0L);		
 				} else {
+				/**Only at the first syscall of the new processes, a new tracer thread is created to manage it.*/
 					transfer_tracee(sig_tid, clone_flags);
 				}
 			} else if (WSTOPSIG(wstatus) == (SIGTRAP | 0x80)) {
 				/*SYSCALL*/
 				if (syscall_state == IN_SYSCALL) {
 					syscall_desc.action = DOIT;
-					syscall_desc.waiting_pid = 0;
+					/**A value of 0 means waiting the hypervisor.*/
+					syscall_desc.waiting_pid = 0; 
 					P_GETREGS(sig_tid, &regs);
 					umvu_peek_syscall(&regs, &syscall_desc, syscall_state);
 					syscall_handler(syscall_state, &syscall_desc);
+					/**syscall_handler may have changed syscall_desc.action field.*/ 
 					if (syscall_desc.action & UMVU_BLOCKIT) {
+						/**blocking syscall case like select/poll/socket syscalls...*/
 						struct syscall_descriptor_t sys_modified = syscall_desc;
 						umvu_block(&sys_modified);
-						umvu_poke_syscall(&regs, &sys_modified, syscall_state);
-						P_SETREGS(sig_tid, &regs);
+						POKE_N_SET(regs, sys_modified, syscall_state, sig_tid, 1)
 					} else {
 						if (syscall_desc.action & UMVU_SKIP)
+							/**The system call has been managed and virtualized, so the kernel won't do it again.
+								The kernel will perform a useless getpid.*/
 							syscall_desc.syscall_number = __NR_getpid;
-						if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
-							P_SETREGS(sig_tid, &regs);
+						POKE_N_SET(regs, syscall_desc, syscall_state, sig_tid, 1)
 					}
 					P_SYSCALL(sig_tid, 0L);
+					/**The tracee is doing its syscall.*/
 					if (syscall_desc.action & UMVU_CB_AFTER) {
 						syscall_state = DURING_SYSCALL;
 						syscall_handler(syscall_state, &syscall_desc);
@@ -244,6 +262,8 @@ static int umvu_trace(pid_t tracee_tid)
 					syscall_state = OUT_SYSCALL;
 				} else { /* OUT_SYSCALL */
 					if (syscall_desc.action != DOIT) {
+						/**If the tracee blocking syscall ends (timeout expiration or some real fd ready),
+							but the child waiting process(see above) is still running,	we kill it becasue its work isn't usefull anymore. */
 						if (syscall_desc.waiting_pid != 0)
 							r_kill(syscall_desc.waiting_pid, SIGKILL);
 						P_GETREGS(sig_tid, &regs);
@@ -252,22 +272,24 @@ static int umvu_trace(pid_t tracee_tid)
 							syscall_handler(syscall_state, &syscall_desc);
 						if (syscall_desc.action & UMVU_DO_IT_AGAIN) {
 							  syscall_desc.prog_counter -= SYSCALL_INSTRUCTION_LEN;
-								umvu_poke_syscall(&regs, &syscall_desc, IN_SYSCALL);
-								P_SETREGS(sig_tid, &regs);
-						}
-						else if (umvu_poke_syscall(&regs, &syscall_desc, syscall_state))
-							P_SETREGS(sig_tid, &regs);
+								POKE_N_SET(regs, syscall_desc, syscall_state, sig_tid, 1)
+						
+						} else POKE_N_SET(regs, syscall_desc, syscall_state, sig_tid, 0)
 					}
 					syscall_state = IN_SYSCALL;
-					syscall_desc.waiting_pid = 0;
+					syscall_desc.waiting_pid = 0; 
 					P_SYSCALL(sig_tid, 0L);
 				}
 			} else {
-				/*group-stop or signal injection*/
+				/**group-stop or signal injection.*/
 				P_SYSCALL(sig_tid, WSTOPSIG(wstatus));
 			}
 		} else {
 			//printk("waiting_pid? %d %d\n", sig_tid, syscall_desc.waiting_pid);
+			/**During blocking syscall management, like socket syscall  for example, the hypervisor can't be blocked, so
+				a child process is runned instead to wait on the file descriptor and the tracee performs that syscall or,
+				if UMVU_BLOCKIT was setted, a poll(NULL,0,-1). 
+				When this child exit because the fd is ready, the hypervisor unblock the tracee process. */
 			if (sig_tid == syscall_desc.waiting_pid) {
 				umvu_unblock();
 				syscall_desc.waiting_pid = 0;
@@ -285,20 +307,21 @@ int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int mai
 		syscall_handler = syscall_handler_arg;
 	umvu_settid(childpid);
 	wstatus = umvu_trace(childpid);
-	if (main)
+	if (main)		
 		wait4termination();
 	return wstatus;
 }
 
 int umvu_tracer_fork(void) {
 	pid_t childpid;
-
 	if (!(childpid = r_fork())) {
 		/*child*/
 		raise(SIGSTOP);
+		
 		return 0;
 	} else {
 		/*parent*/
+		// XXX umvu -x stops here
 		r_wait4(-1, NULL, WUNTRACED, NULL);
 
 		return childpid;

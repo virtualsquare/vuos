@@ -42,6 +42,7 @@ struct slowcall {
 	//char *stack[2048 - sizeof(int) - sizeof(pid_t)];
 };
 
+
 struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
 	void *private = NULL;
 	int sfd = vu_fd_get_sfd(fd, &private, nested);
@@ -89,7 +90,7 @@ pid_t vu_slowcall_during(struct slowcall *sc) {
 
 void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
 	void *private = NULL;
-  int sfd = vu_fd_get_sfd(fd, &private, nested);
+  	int sfd = vu_fd_get_sfd(fd, &private, nested);
 	//int rv = r_kill(sc->pid, SIGTERM);
 	struct epoll_event event = {.events = events, .data.fd = fd};
 	//printk("vu_slowcall_wakeup...\n");

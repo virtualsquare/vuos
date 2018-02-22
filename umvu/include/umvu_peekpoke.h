@@ -56,8 +56,10 @@ struct syscall_descriptor_t {
 	void *inout;
 };
 
+
 void umvu_settid(int tid);
 unsigned int umvu_gettid();
+/**Changing the system call to poll(NULL,0,-1)*/
 void umvu_block(struct syscall_descriptor_t *sd);
 void umvu_unblock(void);
 

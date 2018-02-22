@@ -58,7 +58,7 @@ void wi_lgetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* fetch args */
 		switch (syscall_number) {
 			case __NR_fgetxattr: 
-				sfd = vu_fd_get_sfd(sfd, &private, nested);
+				sfd = vu_fd_get_sfd(sfd, &private, nested); 
 				break;
 		}
 		vu_alloc_peek_local_strarg(nameaddr, name, PATH_MAX, nested);

@@ -4,7 +4,7 @@
 #include <xcommon.h>
 #include <sys/uio.h>
 
-/* macro for wrappers.
+/** macro for wrappers.
  * stucture for read wrappers/large buffers:
  *    vu_alloc_arg(addr, var, size, nested)
  *    vu_poke_arg(addr, var, size, nested)
@@ -27,6 +27,9 @@
  *    vu_free_iov_arg(iov, buf, nested)
  * warning: local_arg macros define a local var.
  */
+
+/**Nested calls don't need to retrieve arguments from the register, from the private memory of the process and
+	to alloc memory areas on the heap because this work has been done before the nested call. */
 
 #define vu_alloc_arg(addr, var, size, nested) \
 	do { \

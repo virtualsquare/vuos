@@ -41,6 +41,10 @@
 #include <path_utils.h>
 #include <vu_wrapper_utils.h>
 
+/**Some wrappers aren't used only for one function(check wi_lstat for example).
+	The fetching part of the wrapper  takes the correct arguments according to the specific syscall number,
+	allowing to manage similar functions in one wrapper.*/
+
 /* lstat stat fstat fstatat/newfstatat */
 void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
@@ -183,6 +187,8 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIPIT;
+		/**If the AT_REMOVEDIR flag is specified, the unlink syscall act as a rmdir.
+			So it's directly called the rmdir function.*/
 		if (flags & AT_REMOVEDIR)
 			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
 		else
@@ -395,7 +401,7 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 static void utime2utimen(struct utimbuf *in_times, struct timespec *out_times) {
   out_times[0].tv_sec = in_times->actime;
   out_times[1].tv_sec = in_times->modtime;
-  out_times[0].tv_nsec = out_times[1].tv_nsec = 0;
+  out_times[0].tv_nsec = out_times[1].tv_nsec = 0;  //another overwriting
 }
 
 static void utimes2utimen(struct timeval *in_times, struct timespec *out_times) {
@@ -427,58 +433,61 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				inarg = 2;
 				break;
 			case __NR_utimensat: {
-														 uintptr_t pathaddr = sd->syscall_args[1];
-														 if (pathaddr == (uintptr_t) NULL) {
-															 vu_fd_get_sfd(sfd, &private, nested);
-															 sfd = vu_fd_get_sfd(sfd, &private, nested);
-														 }
-														 inarg = 2;
-														 flags = sd->syscall_args[3];
-													 }
-													 break;
+					uintptr_t pathaddr = sd->syscall_args[1];
+					if (pathaddr == (uintptr_t) NULL) {
+						vu_fd_get_sfd(sfd, &private, nested);
+						sfd = vu_fd_get_sfd(sfd, &private, nested);
+						}
+					inarg = 2;
+					flags = sd->syscall_args[3];
+					}
+					break;
 		}
+
 		if (sd->syscall_args[inarg] == (uintptr_t) NULL) {
 			clock_gettime(CLOCK_REALTIME, &times[0]);
 			times[1] = times[0];
-    } else {
+    	} else {
+    		/**timespec struct is used, as the utimensat interfare is preferred.*/
 			if (nested) {
+				/**Don't need to peek the data, because it has been done before the nested call.*/
 				switch (syscall_number) {
 					case __NR_utime: {
-														 struct utimbuf *in_times = (struct utimbuf *) sd->syscall_args[inarg];
-														 utime2utimen(in_times, times);
-													 }
-													 break;
+							struct utimbuf *in_times = (struct utimbuf *) sd->syscall_args[inarg];
+							utime2utimen(in_times, times);
+							}
+							break;
 					case __NR_utimes:
 					case __NR_futimesat: {
-																 struct timeval *in_times = (struct timeval *) sd->syscall_args[inarg];
-																 utimes2utimen(in_times, times);
-															 }
-															 break;
+							struct timeval *in_times = (struct timeval *) sd->syscall_args[inarg];
+							utimes2utimen(in_times, times);
+							}
+							break;
 					case __NR_utimensat: {
-																 struct timespec *in_times = (struct timespec *) sd->syscall_args[inarg];
-																 times[0] = in_times[0];
-																 times[1] = in_times[1];
-															 }
-															 break;
+							struct timespec *in_times = (struct timespec *) sd->syscall_args[inarg];
+							times[0] = in_times[0];
+							times[1] = in_times[1];
+							}
+							break;
 				}
 			} else {
 				uintptr_t addr = sd->syscall_args[inarg];
 				switch (syscall_number) {
 					case __NR_utime: {
-														 struct utimbuf in_times;
-														 umvu_peek_data(addr, &in_times, sizeof(in_times));
-														 utime2utimen(&in_times, times);
-													 }
-													 break;
+							struct utimbuf in_times;
+							umvu_peek_data(addr, &in_times, sizeof(in_times));
+							utime2utimen(&in_times, times);
+							}
+							break;
 					case __NR_utimes:
 					case __NR_futimesat: {
-																 struct timeval in_times[2];
-																 umvu_peek_data(addr, in_times, sizeof(in_times));
-																 utimes2utimen(in_times, times);
-															 }
-															 break;
+							struct timeval in_times[2];
+							umvu_peek_data(addr, in_times, sizeof(in_times));
+							utimes2utimen(in_times, times);
+							}
+							break;
 					case __NR_utimensat: umvu_peek_data(addr, times, sizeof(times));
-															 break;
+							break;
 
 				}
 			}
@@ -508,17 +517,18 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		epoch_t e;
 		switch (syscall_number) {
 			case __NR_link: dirfd = AT_FDCWD;
-											oldaddr = sd->syscall_args[0];
-											break;
-			case __NR_linkat: dirfd = sd->syscall_args[0];
-												oldaddr = sd->syscall_args[1];
-												break;
+							oldaddr = sd->syscall_args[0];
+							break;
+			case __NR_linkat: 	dirfd = sd->syscall_args[0];
+								oldaddr = sd->syscall_args[1];
+								break;
 		}
 		sd->action = SKIPIT;
 		if (sd->extra->statbuf.st_mode != 0) {
 			sd->ret_value = -EEXIST;
-      return;
-    }
+      		return;
+   		 }
+   		 /**Getting the canonical path to uniform the linkat call to link.*/
 		if (nested) 
 			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0);
 		else
@@ -529,9 +539,11 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			return;
 		}
 		e = set_vepoch(sd->extra->epoch);
-		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
+		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);			
 		set_vepoch(e);
 		if (ht != htold) {
+			/**oldpath and newpath are not on the same mounted filesystem,
+			 because the service hash table element used to manage them is not the same.*/
 			xfree(oldpath);
 			sd->ret_value = -EXDEV;
 			return;
@@ -584,18 +596,19 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int flags = 0;
 		epoch_t e;
 		switch (syscall_number) {
-			case __NR_rename: dirfd = AT_FDCWD;
-											oldaddr = sd->syscall_args[0];
-											break;
+			case __NR_rename: 	dirfd = AT_FDCWD;
+								oldaddr = sd->syscall_args[0];
+								break;
 			case __NR_renameat: dirfd = sd->syscall_args[0];
-												oldaddr = sd->syscall_args[1];
-												break;
-			case __NR_renameat2: dirfd = sd->syscall_args[0];
-													 oldaddr = sd->syscall_args[1];
-													 flags = sd->syscall_args[4];
-													 break;
+								oldaddr = sd->syscall_args[1];
+								break;
+			case __NR_renameat2: 	dirfd = sd->syscall_args[0];
+									oldaddr = sd->syscall_args[1];
+									flags = sd->syscall_args[4];
+									break;
 		}
 		sd->action = SKIPIT;
+		/**Getting the canonical path to uniform the renameat call to rename.*/
 		if (nested)
 			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0);
 		else
@@ -608,13 +621,15 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		set_vepoch(e);
 		if (ht != htold) {
+			/**oldpath and newpath are not on the same mounted filesystem,
+			 because the service hash table element used to manage them is not the same.*/
 			xfree(oldpath);
 			sd->ret_value = -EXDEV;
 			return;
 		}
 		ret_value = service_syscall(ht, __VU_rename)(oldpath, sd->extra->path, flags);
 		if (ret_value < 0 && errno == ENOSYS) {
-			/* workaround if rename is not available */
+			/* workaround if rename is not available. */
 			ret_value = service_syscall(ht, __VU_link)(oldpath, sd->extra->path);
 			if (ret_value == 0)
 				ret_value = service_syscall(ht, __VU_unlink)(oldpath);

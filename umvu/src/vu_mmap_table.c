@@ -76,19 +76,19 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 		struct vu_mmap_area_t *this = *scan;
 		next = &((*scan)->next);
 		if (addr + length <= this->addr)
-			continue;
-		if (this->addr + this->length <= addr)
-			break;
+			continue;	// break
+		if (this->addr + this->length <= addr)	// incorrect? addr mapping area can intersect with this' next mapping areas.								
+			break;	//continue
 		if (addr <= this->addr) {
 			if (addr + length >= this->addr + this->length) {
-				/* entirely in the interval */
+				/** 'this' mapping area is entirely in the interval. */
 				/* unload this->addr,this->length */
 				*scan = this->next;
 				vu_fnode_close(this->fnode);
 				free(this);
 				next = scan;
 			} else {
-				/* partial unmapping (heading) */
+				/** this' mapping area is partially unmapped (heading part). */
 				/* unload this->addr, addr + length - this->addr */
 				this->length = this->addr + this->length - (addr + length);
 				this->offset += addr + length - this->addr;
@@ -97,11 +97,11 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 			}
 		} else {
 			if (addr + length >= this->addr + this->length) {
-				/* partial unmapping (trailing)*/
+				/** this' mapping area is partially unmapped (trailing part). */
 				/* unload  addr, this->addr + this->length - addr */
 				this->length = addr + length - this->addr;
 			} else {
-				/* partial **nested** interval */
+				/* addr' mapping area is partially **nested** in this' interval area; this' area is splitted. */
 				/* unload addr, length */
 				struct vu_mmap_area_t *new = malloc(sizeof(*new));
 				fatal(new);

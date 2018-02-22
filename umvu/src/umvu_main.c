@@ -55,7 +55,7 @@ static void usage_n_exit(void) {
 			"Usage:\n"
 			"\t%s OPTIONS cmd args\n\n"
 			"\t\t-h --help      print this short usage message\n"
-			"\t\t-x --nonesting disable nested virtualization support\n"
+			"\t\t-x --nonesting disable nested virtualization support\n"  // umvu +x works, umvu -x doesn't work
 			"\t\t-f file\n"
 			"\t\t   --rc file   initialization file\n"
 			/* XXX to be completed */
@@ -63,6 +63,7 @@ static void usage_n_exit(void) {
 	exit(1);
 }
 
+/**Early arguments are pre-managed.*/
 static void early_args(int argc, char *argv[]) {
 	int c;
 	int nesting __attribute__((unused)) = 1;
@@ -81,8 +82,10 @@ static void early_args(int argc, char *argv[]) {
 								break;
 		}
 	}
+	/**Enabling nested virtualization via purelibc, eventually re-executing umvu.*/
 	if (nesting)
 		vu_nesting_init(argc, argv);
+
 }
 
 int main(int argc, char *argv[])
@@ -94,13 +97,15 @@ int main(int argc, char *argv[])
 	int childpid;
 	progname = basename(argv[0]);
 	early_args(argc, argv);
-
+	
+    
 	/* rewind args */
 	optind = 1;
 	while (1) {
 		int option_index = 0;
 		c = getopt_long(argc, argv, short_options,
 				long_options, &option_index);
+		
 		if (c == -1)
 			break;
 
@@ -133,7 +138,6 @@ int main(int argc, char *argv[])
 	if (output_file) {
 		/* XXX divert output, debug output only or everything? */
 	}
-
 	if ((childpid = umvu_tracer_fork()) != 0) {
 		/* parent = tracer */
 		int wstatus;
@@ -143,14 +147,14 @@ int main(int argc, char *argv[])
 		r_exit(WEXITSTATUS(wstatus));
 	} else {
 		/* child: this is the root of all the traced processes */
-
-		/* disable purelibc */
+		/** disable purelibc. */
 		unsetenv("LD_PRELOAD");
-
 		/* XXX run rc file files: .vurc in home dir and /etc/vurc */
 		if (rcfile) {
 		}
 
+	 
+		
 		execvp(argv[0], argv);
 		return 1;
 	}

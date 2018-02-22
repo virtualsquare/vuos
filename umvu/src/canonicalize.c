@@ -31,7 +31,8 @@
 #define DOTDOT 1
 #define ROOT 2
 
-/* canonstruct: this struct contains the values that must be shared during the
+/** canonstruct.
+	 this struct contains the values that must be shared during the
 	 whole recursive scan:
 	 .ebuf: source for the relative to absolute path translation.
 	 it is allocated on the stack.
@@ -191,7 +192,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				cdata->end = memcpy(cdata->ebuf,buf,n);
 				/* if the symlink is absolute the scan must return
 					 back to the current root otherwise from the
-					 same dir of the symlink */
+					 same dir of the symlink. */
 				if (*buf == '/') {
 					cdata->start=cdata->ebuf;
 					return ROOT;
@@ -201,7 +202,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				}
 			}
 		}
-		/* consistency checks on dirs:
+		/* consistency checks on dirs.
 			 all the components of the path but the last one must be
 			 directories and must have 'x' permission */
 		if (*cdata->end == '/') {
@@ -235,7 +236,8 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 }
 
 
-/* absolute path: copy prefix in cdata->ebuf
+/* absolute path.
+copy prefix in cdata->ebuf
 return the length of the prefix
 (not including trailing '/' as the path has a leading '/' already) */
 static ssize_t abs_prefix(struct canonstruct *cdata) {
@@ -250,7 +252,8 @@ static ssize_t abs_prefix(struct canonstruct *cdata) {
 	return prefixlen;
 }
 
-/* relative path: copy cwd in cdata->ebuf as a prefix
+/* relative path.
+copy cwd in cdata->ebuf as a prefix
 return the length of the prefix
 (including a trailing '/' to catenate the path as it is)*/
 static ssize_t rel_prefix(struct canonstruct *cdata) {
@@ -274,7 +277,7 @@ static ssize_t rel_prefix(struct canonstruct *cdata) {
 	return cwdlen;
 }
 
-/* realpath:
+/* realpath.
 path: path to be canonicalized,
 resolved_path: a buffer of PATH_MAX chars for the result
 return resolved or NULL on failures.

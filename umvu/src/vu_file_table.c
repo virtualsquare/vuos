@@ -42,7 +42,7 @@ struct vu_fnode_t {
 	int flags;
 	int count;
 	/* module/service fields */
-	int sfd;
+	int sfd;	/**(service) file descriptor returned by a open service syscall.*/
 	void *private;
 };
 
@@ -85,6 +85,7 @@ static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	return 0;
 }
 
+
 int vu_fnode_close(struct vu_fnode_t *fnode) {
 	int ret_value; 
 	pthread_rwlock_wrlock(&fnode->lock);
@@ -97,7 +98,8 @@ int vu_fnode_close(struct vu_fnode_t *fnode) {
 		xfree(fnode->path);
 		pthread_rwlock_unlock(&fnode->lock);
 		/* it should never fail. */
-		ret_value = vu_fnode_close_upcall[S_MODE2TYPE(fnode->mode)](fnode->ht, fnode->sfd, fnode->private);
+		/**Closing can be different depending on the file type (socket or other kinds of files) .*/
+		ret_value = vu_fnode_close_upcall[S_MODE2TYPE(fnode->mode)](fnode->ht, fnode->sfd, fnode->private); 
 		pthread_rwlock_destroy(&fnode->lock);
 		xfree(oldfnode);
 	} else {

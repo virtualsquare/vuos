@@ -143,13 +143,14 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 				new_euid = sd->syscall_args[0];
 				new_suid = -1;
 				if (new_euid != (uid_t) -1 && euid == 0)
+					/**If the caller is root,ruid and suid are also set. */
 					new_ruid = new_suid = new_euid;
 				break;
 			case __NR_setreuid:
 				new_ruid = sd->syscall_args[0];
 				new_euid = sd->syscall_args[1];
 				new_suid = -1;
-				/* If the real user ID is set (i.e., ruid is not -1) or the effective user ID is set to a value
+				/** If the real user ID is set (i.e., ruid is not -1) or the effective user ID is set to a value
 					 not  equal to the previous real user ID, the saved set-user-ID will be set to the new effec-
 					 tive user ID. */
 				if (new_ruid != (uid_t) -1 || (new_euid != (uid_t) -1 && new_euid != ruid))
@@ -169,12 +170,14 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 			suid = new_suid;
 		if (syscall_number == __NR_setresuid)
 			fsuid = euid;
+
 		ret_value = service_syscall(ht, __VU_setresfuid)(ruid, euid, suid, fsuid, vuht_get_private_data(ht));
 		if (ret_value < 0) 
 			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;
 		sd->action = SKIPIT;
+
 	} else if (nested) {
 		sd->ret_value = -ENOSYS;
 		sd->action = SKIPIT;
@@ -201,7 +204,7 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 				new_rgid = sd->syscall_args[0];
 				new_egid = sd->syscall_args[1];
 				new_sgid = -1;
-				/* If the real user ID is set (i.e., rgid is not -1) or the effective user ID is set to a value
+				/** If the real user ID is set (i.e., rgid is not -1) or the effective user ID is set to a value
 					 not  equal to the previous real user ID, the saved set-user-ID will be set to the new effec-
 					 tive user ID. */
 				if (new_rgid != (gid_t) -1 || (new_egid != (gid_t) -1 && new_egid != rgid))

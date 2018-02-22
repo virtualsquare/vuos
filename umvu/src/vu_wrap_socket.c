@@ -61,8 +61,9 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int protocol = sd->syscall_args[2];
 		int flags = 0;
 		void *private = NULL;
+		/* fetch */
 		switch (syscall_number) {
-			case __NR_socket:
+			case __NR_socket:	//this case can be omitted, assignement done before
 				domain = sd->syscall_args[0];
 				type = sd->syscall_args[1];
 				protocol = sd->syscall_args[2];
@@ -86,10 +87,12 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
+			/**New socket just created by the service syscall.*/
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
 			vuht_pick_again(ht);
+			/**The process will open the fake file in /tmp/.vu_... */
 			if (nested) {
-				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
+				/** Do not use DOIT_CB_AFTER: open must be real, not further virtualized */
 				int fd;
 				sd->ret_value = fd = r_open(vu_fnode_get_vpath(fnode), O_CREAT | O_RDWR, 0600);
 				if (fd >= 0)
@@ -111,6 +114,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wo_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	/*Storing the results.*/
 	int fd = sd->orig_ret_value;
 	if (ht) {
 		struct fnode_t *fnode = sd->inout;
@@ -133,15 +137,6 @@ void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		sd->ret_value = -EINVAL;
 }
 
-static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
-	if (ht) {
-		int ret_value;
-		ret_value = service_syscall(ht, __VU_close)(sfd, private);
-		vuht_drop(ht);
-		return ret_value;
-	} else
-		return 0;
-}
 
 void wi_bind(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
@@ -222,12 +217,16 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		socklen_t *addrlen;
 		int flags = 0;
 		int fflags = 0;
+
+		/**accept can be a blocking syscall, but the hypervisor can't be blocked with the tracee process.
+			We must check if access will be blcoking or not.*/
 		if (!nested) {
 			int fd = sd->syscall_args[0];
 			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
-      if (sc != NULL) {
+     	 if (sc != NULL) {
 				sd->inout = sc;
 				if (vu_slowcall_test(sc) <= 0) {
+					/**BLOCKIT implies also UMVU_CB_AFTER, the syscalll will be managed in the during phase.*/
 					sd->action = BLOCKIT;
 					return;
 				} else 
@@ -238,12 +237,15 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (*addrlen > MAX_SOCKADDR_LEN)
 			*addrlen = MAX_SOCKADDR_LEN;
 		vu_alloc_local_arg(addraddr, addr, *addrlen, nested);
+		/*fetch*/
 		if (syscall_number == __NR_accept4)
 			flags = sd->syscall_args[3];
+
 		if (flags & SOCK_CLOEXEC)
 			fflags |= O_CLOEXEC;
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_accept4)(sfd, addr, addrlen, flags, private, &connprivate);
+
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
@@ -252,10 +254,12 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
+			/**New socket just created by the service syscall.*/
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, connprivate);
 			vuht_pick_again(ht);
+			/**The process will open the fake file in /tmp/.vu_... */
 			if (nested) {
-				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
+				/** Do not use DOIT_CB_AFTER: open must be real, not further virtualized */
 				int fd;
 				sd->ret_value = fd = r_open(vu_fnode_get_vpath(fnode), O_CREAT | O_RDWR, 0600);
 				if (fd >= 0)
@@ -300,8 +304,10 @@ void wo_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
+		/**Now the fd is ready: doing the syscall again won't block the process.*/
 		sd->action = DO_IT_AGAIN;
 	} else {
+		/*Storing the results.*/
 		int fd = sd->orig_ret_value;
 		if (ht) {
 			struct fnode_t *fnode = sd->inout;
@@ -372,6 +378,9 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* sendto, send, sendmsg, sendmmsg */
+/**The call is done only in the out phase when we are sure that it won't block.
+	wrap in and wrap during functions are used to wait until the socket is ready.
+	If the socket is immediatly ready the call is performed.*/
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -497,6 +506,9 @@ void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* recvfrom, recv, recvmsg, recvmmsg */
+/**The call is done only in the out phase when we are sure that it won't block.
+	wrap in and wrap during functions are used to wait until the socket is ready.
+	If the socket is immediatly ready the call is performed.*/
 void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -697,6 +709,16 @@ void wi_getsockopt(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		vu_free_arg(optval, nested);
 	}
+}
+
+static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
+	if (ht) {
+		int ret_value;
+		ret_value = service_syscall(ht, __VU_close)(sfd, private);
+		vuht_drop(ht);
+		return ret_value;
+	} else
+		return 0;
 }
 
 __attribute__((constructor))

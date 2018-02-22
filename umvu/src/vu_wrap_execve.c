@@ -31,7 +31,7 @@
 #include <linux_32_64.h>
 #include <canonicalize.h>
 #include <vu_log.h>
-#include <vu_tmpdir.h>
+//#include <vu_tmpdir.h>
 #include <vu_pushpop.h>
 #include <r_table.h>
 #include <umvu_peekpoke.h>
@@ -52,6 +52,8 @@
 #define BINFMTBUFLEN 128
 static __thread struct vu_fnode_t *tmp_fnode;
 
+/**A real file is needed to be executed.
+	A temporary copy of the executable is created and then execv instead of the virtual file.*/
 static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path, struct vu_stat *statbuf) {
 	char *tmp_path;
 	tmp_fnode = vu_fnode_create(ht, path, statbuf, 0, -1, NULL);
@@ -81,6 +83,7 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 	return ret_value;
 }
 
+//a comment is required
 static void check_binfmt_misc(struct binfmt_req_t *req) {
 	struct vuht_entry_t *binfmt_ht;
 	if ((binfmt_ht = vuht_pick(CHECKBINFMT, &req, NULL, 0)) != NULL)
@@ -88,7 +91,7 @@ static void check_binfmt_misc(struct binfmt_req_t *req) {
 }
 
 static int need_interpreter(struct binfmt_req_t *req) {
-	/* this heuristics should catch ELF, COFF and a.out */
+	/** this heuristics should catch ELF, COFF and a.out */
 	if (req->fileheadlen <= 2 || req->filehead[0] < '\n' || req->filehead[0] == '\177')
 		return 0;
 	if (req->filehead[0] == '#' && req->filehead[1] == '!')
@@ -112,15 +115,14 @@ int interpreter_fill_args(struct binfmt_req_t *req, char *argv[2]) {
   interpreter += strspn(interpreter, " \t");
   scan = interpreter;
   scan += strcspn(scan, " \t\n");
-  term = scan;
+  term = scan;		
   scan += strspn(scan, " \t");
   extra_arg = scan;
-  scan += strcspn(scan, "\n");
-  *scan = 0;
-  *term = 0;
+  scan += strcspn(scan, "\n"); 
+  *scan = 0;	
+  *term = 0;	
 	argv[0] = interpreter;
 	argv[1] = extra_arg;
-	
 	return *extra_arg == '\0' ? 1 : 2;
 }
 
@@ -134,6 +136,8 @@ struct argv_list {
 	int argc;
 	struct argv_item *argv_head;
 };
+
+
 
 static struct argv_list load_argv(struct syscall_descriptor_t *sd) {
 	struct argv_list ret_value = {
@@ -182,6 +186,7 @@ static void argv_addhead(struct argv_list *list, uintptr_t arg, char *larg) {
 }
 
 static void copy_argv(uintptr_t *newargv, struct argv_list *argv) {
+	
 	struct argv_item *scan, *next;
 	for (scan = argv->argv_head; scan != NULL; scan = next, newargv++) {
 		*newargv = scan->arg;
@@ -207,6 +212,8 @@ static void rewrite_execve_argv(struct syscall_descriptor_t *sd, struct argv_lis
 	push_argv(sd, argv_list);
 	copy_argv(newargv, argv_list);
 	sd->syscall_args[1] = vu_push(sd, newargv, sizeof(uintptr_t) * (argv_list->argc + 1));
+	
+
 }
 
 static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
@@ -256,11 +263,12 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 	struct vuht_entry_t *interpreter_ht;
 	int ret_value;
 
+	/*limit the recursion.*/
 	if (depth > EXECVE_MAX_DEPTH) {
 		sd->ret_value = -ELOOP;
     sd->action = SKIPIT;
     return;
-  }
+  	}
 
 	epoch_t e = set_vepoch(sd->extra->epoch);
 	if ((extra_argc = interpreter_fill_args(req, extra_argv)) < 0) {
@@ -268,6 +276,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		sd->action = SKIPIT;
 		return;
 	}
+	/*getting interpreter canonicalized path*/
 	extra_argv[0] = get_nested_path(AT_FDCWD, extra_argv[0], &statbuf, FOLLOWLINK);
 	if (extra_argv[0] == NULL) {
 		sd->ret_value = -errno;
@@ -284,6 +293,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		return;
 	}
 
+	// a comment is required  
 	if (!(req->flags & BINFMT_KEEP_ARG0))
 		argv_behead(argv_list);
 
@@ -294,8 +304,8 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 
 	if (extra_argc > 1)
 		argv_addhead(argv_list, 0, extra_argv[1]);
-
-	argv_addhead(argv_list, 0, extra_argv[0]);
+	
+		argv_addhead(argv_list, 0, extra_argv[0]);
 
 	new_req.path = extra_argv[0];
 	ret_value = read_exec_header(interpreter_ht, &new_req);
@@ -341,14 +351,15 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			.flags = 0
 		};
 		int ret_value;
-		//printk("execve %s %x ht=%p\n", sd->extra->path, sd->extra->statbuf.st_mode, ht);
+		printk("execve %s %x ht=%p\n", sd->extra->path, sd->extra->statbuf.st_mode, ht);
 		if (existence_check(sd, &sd->extra->statbuf) < 0)
 			return;
-
+				
 		if (xok_check(ht, sd, sd->extra->path) < 0)
 			return;
-
+		
 		ret_value = read_exec_header(ht, &binfmt_req);
+		
 		if (ret_value < 0) {
 			sd->ret_value = ret_value;
 			sd->action = SKIPIT;
@@ -358,10 +369,11 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		check_binfmt_misc(&binfmt_req);
 
 		if (need_interpreter(&binfmt_req)) {
+			/*script starting with #!*/
 			struct argv_list argv_list = load_argv(sd);
-
 			recursive_interpreter(&binfmt_req, sd, &argv_list, 1);
 		} else {
+			/*binary executable*/
 			exec_setuid_setgid(&sd->extra->statbuf);
 			if (ht) {
 				rewrite_execve_filename(ht, sd, sd->extra->path, &sd->extra->statbuf);

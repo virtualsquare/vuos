@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <read_proc_status.h>
 
 #define STATUS_PATH_FORMAT "/proc/%d/status"
 #define STATUS_PATH_SIZE sizeof(STATUS_PATH_FORMAT) + sizeof(pid_t) * 3
