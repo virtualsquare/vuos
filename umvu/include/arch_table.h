@@ -11,7 +11,11 @@ extern uint8_t vvu_arch_args[];
 
 #define ARCH_TYPE_SYMLINK_NOFOLLOW 1
 #define ARCH_TYPE_IS_AT 2
-#define ARCH_TYPE_IS_EXCEPTION 3
+#define ARCH_TYPE_IS_EXCEPTION  (ARCH_TYPE_SYMLINK_NOFOLLOW | ARCH_TYPE_IS_AT)
+
+
+/**The syscall number allows to obtain infos about the syscall itself:
+	the number of arguments, the type (l-sycall,syscall-at ...) and the position of the path argument.*/
 
 static inline int vu_arch_table_nargs(int syscall_number) {
 	int argstag = vu_arch_args[syscall_number]; 

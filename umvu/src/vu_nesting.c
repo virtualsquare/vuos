@@ -67,6 +67,8 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	extra.epoch = get_vepoch();
 	printkdebug(n, "IN %s %s %d epoch %ld", syscallname(sd.syscall_number), extra.path, errno, e);
 	ht = tab_entry->choicef(&sd);
+	/**The nested management is similar to the not nested, but generally the call is not further virtualized
+	and it is straight executed. */
 	if (sd.action != SKIPIT)
 		tab_entry->wrapinf(ht, &sd);
 	if (sd.action != SKIPIT) {
@@ -100,9 +102,13 @@ void vu_nesting_init(int argc, char *argv) {
 		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
 		if (_pure_start_p) {
 			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
+			/**purelibc implementation of the calls will be used.
+			 r_syscall will be considered nested and managed by capture_nested_syscall.*/
 			native_syscall = _pure_start_p(capture_nested_syscall, 0);
 		}
+
 	} else {
+		/**Setting the env variable and re-executing umvu.*/
 		if (setenv("LD_PRELOAD", PURELIBC_LIB, 1) == 0) {
 			execv("/proc/self/exe", argv);
 		}

@@ -69,6 +69,7 @@ static struct vu_vnode_t **vnode_search(struct vuht_entry_t *ht, dev_t dev, ino_
 	return scan;
 }
 
+
 struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode) {
 	struct vu_vnode_t **vnode_ptr;
 
@@ -122,11 +123,12 @@ char *vu_vnode_getvpath(struct vu_vnode_t *vnode) {
 	return vnode->vpath; 
 }
 
+
 int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
 	int ret_value;
 	pthread_mutex_lock(&vnode->mutex);
 	ret_value = cp(vnode->ht, path, vnode->vpath);
-  pthread_mutex_unlock(&vnode->mutex);
+ 	pthread_mutex_unlock(&vnode->mutex);
 	return ret_value;
 }
 

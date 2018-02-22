@@ -3,7 +3,11 @@
 #include<stdio.h>
 #include<sys/stat.h>
 
+
+
 struct vuht_entry_t;
+/**For each file opened, there is a fnode_t struct that keeps some information about it.
+	This struct is really important when the file is not real. */
 struct vu_fnode_t;
 
 typedef int (* close_upcall_t)(struct vuht_entry_t *ht, int sfd, void *private);
@@ -19,6 +23,7 @@ struct vu_fnode_t *vu_fnode_create(
 
 int vu_fnode_close(struct vu_fnode_t *fnode);
 
+/**Doesn't create another struct but just add one to the usage count.*/
 void vu_fnode_dup(struct vu_fnode_t *v);
 
 struct vuht_entry_t *vu_fnode_get_ht(struct vu_fnode_t *v);

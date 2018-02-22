@@ -39,20 +39,21 @@
 #define FD_TABLE_CHUNK 16
 #define FDFLAGS_MASK FD_CLOEXEC
 
+
 struct vu_fd_table_t {
 	pthread_rwlock_t lock;
 	size_t count;
 
 	int table_size;
-	struct fnode_t **fnode;
+	struct fnode_t **fnode; /* given a file descriptor fd, its corresponding fnode_t will be at fnode[fd]*/
 	uint8_t *flags; /* close_on_exec */
 };
 
-/* global fd table for nested virtualization */
+/** global fd table for nested virtualization. */
 static struct vu_fd_table_t *vu_n_fd = NULL;
 
-/* thread private fd table
-	 (shared by threads created by CLONE_FILES */
+/** thread private fd table
+	 (shared by threads created by CLONE_FILES).*/
 static __thread struct vu_fd_table_t *vu_fd = NULL;
 
 #define VU_FD_TABLE(nested) (nested ? vu_n_fd : vu_fd)
@@ -75,12 +76,16 @@ static void *vu_fd_clone(void *arg) {
 	struct vu_fd_table_t *newfd;
 
 	if (flags & CLONE_FILES) {
+		/**Sharing the same table.*/
 		pthread_rwlock_wrlock(&vu_fd->lock);
 		newfd = vu_fd;
 		newfd->count++;
 		pthread_rwlock_unlock(&vu_fd->lock);
 		return newfd;
 	} else {
+		/**A copy of the table is given to the new process.
+			While the table is physically copied the fnode in the table are not duplicated
+			but their usage count is incremented.*/
 		int i;
 		newfd = malloc(sizeof(struct vu_fd_table_t));
 		fatal(newfd);
@@ -172,7 +177,7 @@ int vu_fd_close(int fd, int nested) {
 		fd_table->fnode[fd] = NULL;
 		fd_table->flags[fd] = 0;
 		pthread_rwlock_unlock(&fd_table->lock);
-		/* fd table must be unlocked for recursion */
+		/** fd table must be unlocked for recursion */
 		if (oldfnode != NULL) 
 			ret_value = vu_fnode_close(oldfnode);
 		else {
@@ -194,6 +199,7 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
 	if (fd >= 0) {
 		vu_fd_table_resize(fd_table, fd);
 		if (fd_table->fnode[fd] != NULL)
+			/**acting as a dup2: if fd (newfd) is used it is closed. */
 			vu_fnode_close(fd_table->fnode[fd]);
 		if (oldfd >= 0 && oldfd < fd_table->table_size) {
 			vu_fnode_dup(fd_table->fnode[oldfd]);
@@ -207,7 +213,18 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
 	}
 }
 
-static struct vu_fnode_t *get_fnode_nolock(struct vu_fd_table_t *fd_table, int fd) {
+//using  macros instead
+#define GET_FNODE_NOLOCK(fd_table,fd,fnode) \
+		fatal(fd_table); \
+		if (fd >= 0 && fd < fd_table->table_size) fnode = fd_table->fnode[fd]; \
+		else fnode = NULL; \
+
+#define GET_FLAGS_ADDR_NOLOCK(fd_table,fd,flags_addr) \
+		fatal(fd_table); \
+		if (fd >= 0 && fd < fd_table->table_size) flags_addr = &fd_table->flags[fd]; \
+		else flags_addr = NULL; \
+/*
+static struct vu_fnode_t *get_fnode_nolock(struct vu_fd_table_t *fd_table, int fd) { // 
 	fatal(fd_table);
 	if (fd >= 0 && fd < fd_table->table_size)
 		return fd_table->fnode[fd];
@@ -222,12 +239,13 @@ static uint8_t *get_flags_addr_nolock(struct vu_fd_table_t *fd_table, int fd) {
 	else
 		return NULL;
 }
+*/
 
 struct fnode_t *vu_fd_get_fnode(int fd, int nested) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   struct vu_fnode_t *fnode;
 	pthread_rwlock_rdlock(&fd_table->lock);
-  fnode = get_fnode_nolock(fd_table, fd);
+  GET_FNODE_NOLOCK(fd_table,fd,fnode)
   pthread_rwlock_unlock(&fd_table->lock);
   return fnode;
 }
@@ -237,7 +255,7 @@ struct vuht_entry_t *vu_fd_get_ht(int fd, int nested) {
 	struct vu_fnode_t *fnode;
 	struct vuht_entry_t *ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	fnode = get_fnode_nolock(fd_table, fd);
+	GET_FNODE_NOLOCK(fd_table,fd,fnode)
 	ret_value = fnode ?  vu_fnode_get_ht(fnode) : NULL;
 	pthread_rwlock_unlock(&fd_table->lock);
 	return ret_value;
@@ -248,7 +266,7 @@ void vu_fd_get_path(int fd, int nested, char *dest,  size_t n) {
 	if (dest) {
 		struct vu_fnode_t *fnode; 
 		pthread_rwlock_rdlock(&fd_table->lock);
-		fnode = get_fnode_nolock(fd_table, fd);
+		GET_FNODE_NOLOCK(fd_table,fd,fnode)
 		if (fnode)
 			vu_fnode_get_path(fnode, dest, n);
 		else
@@ -262,7 +280,7 @@ mode_t vu_fd_get_mode(int fd, int nested) {
 	struct vu_fnode_t *fnode;
 	mode_t ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	fnode = get_fnode_nolock(fd_table, fd);
+	GET_FNODE_NOLOCK(fd_table,fd,fnode)
 	ret_value = fnode ? vu_fnode_get_mode(fnode) : 0;
 	pthread_rwlock_unlock(&fd_table->lock);
 	return ret_value;
@@ -273,7 +291,7 @@ int vu_fd_get_fdflags(int fd, int nested) {
 	uint8_t *flags_addr;
 	int ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	flags_addr = get_flags_addr_nolock(fd_table, fd);
+	GET_FLAGS_ADDR_NOLOCK(fd_table,fd,flags_addr)
 	ret_value = flags_addr ? *flags_addr : -1;
 	pthread_rwlock_unlock(&fd_table->lock);
 	return ret_value;
@@ -283,7 +301,7 @@ void vu_fd_set_fdflags(int fd, int nested, int flags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
 	uint8_t *flags_addr;
 	pthread_rwlock_wrlock(&fd_table->lock);
-	flags_addr = get_flags_addr_nolock(fd_table, fd);
+	GET_FLAGS_ADDR_NOLOCK(fd_table,fd,flags_addr)
 	if (flags_addr) 
 		*flags_addr = flags & FDFLAGS_MASK;
 	pthread_rwlock_unlock(&fd_table->lock);
@@ -294,7 +312,7 @@ int vu_fd_get_flflags(int fd, int nested) {
 	struct vu_fnode_t *fnode;
 	int ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	fnode = get_fnode_nolock(fd_table, fd);
+	GET_FNODE_NOLOCK(fd_table,fd,fnode)
 	ret_value = fnode ? vu_fnode_get_flags(fnode) : -1;
 	pthread_rwlock_unlock(&fd_table->lock);
 	return ret_value;
@@ -304,7 +322,7 @@ void vu_fd_set_flflags(int fd, int nested, int flags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
 	struct vu_fnode_t *fnode;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	fnode = get_fnode_nolock(fd_table, fd);
+	GET_FNODE_NOLOCK(fd_table,fd,fnode)
 	if (fnode)
 		vu_fnode_set_flags(fnode, flags);
 	pthread_rwlock_unlock(&fd_table->lock);
@@ -315,7 +333,7 @@ int vu_fd_get_sfd(int fd, void **pprivate, int nested) {
 	struct vu_fnode_t *fnode;
 	int ret_value;
 	pthread_rwlock_rdlock(&fd_table->lock);
-	fnode = get_fnode_nolock(fd_table, fd);
+	GET_FNODE_NOLOCK(fd_table,fd,fnode)
 	ret_value = fnode ? vu_fnode_get_sfd(fnode, pprivate) : -1;
 	pthread_rwlock_unlock(&fd_table->lock);
 	return ret_value;

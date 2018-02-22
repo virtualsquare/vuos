@@ -68,7 +68,7 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vuht_drop(sht);
 		return;
 	}
-
+	/**Inserting this hashtable element allows the hypervisor to choose it and use it to manage a syscall.*/
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
 			NULL, NULL, permanent);
 

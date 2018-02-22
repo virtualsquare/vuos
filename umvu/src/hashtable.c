@@ -38,8 +38,8 @@
 #include <service.h>
 #include <carrot.h>
 
-/*Hashtable object definition*/
-/* vuht_entry_t:
+/**Hashtable object definition.
+   vuht_entry_t:
 	 @obj: hash key
 	 @mtabline: mount tab line
 	 @type: type
@@ -73,19 +73,19 @@ struct vuht_entry_t {
 
 #define VUHT_DELETED(ht) ((ht)->next == NULL)
 
-/* it must be a power of two (masks are used instead of modulo) */
+/* it must be a power of two (masks are used instead of modulo). */
 #define VU_HASHTABLE_SIZE 512
 #define VU_HASHTABLE_MASK (VU_HASHTABLE_SIZE-1)
 
-/* ReadWrite lock to access the Hashtable */
+/* ReadWrite lock to access the Hashtable. */
 static pthread_rwlock_t vuht_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 /* this is THE hash */
 static struct vuht_entry_t *vuht_hash[VU_HASHTABLE_SIZE];
 
-/* null tags have separate a separate list */
+/* null tags have separate a separate list.*/
 static struct vuht_entry_t *vuht_hash0[NCHECKS];
 
-/* heads of the list of hash entries of the same type */
+/* heads of the list of hash entries of the same type.*/
 static struct vuht_entry_t *vuht_head[NCHECKS];
 
 static inline struct vuht_entry_t *vuht_alloc() {
@@ -103,9 +103,9 @@ static void vuht_free(struct vuht_entry_t *ht) {
 }
 
 /* hash function */
-/* hash sum and mod are separate functions:
+/** hash sum and mod are separate functions:
 	 hash sums are used to quickly eliminate false positives,
-	 intermediate results can be completed during the scan */
+	 intermediate results can be completed during the scan. */
 static inline int hashmod(long hashsum)
 {
 	return hashsum & VU_HASHTABLE_MASK;
@@ -128,12 +128,12 @@ static inline long hashsum(uint8_t type, const char *c, int len)
 }
 
 /* true if there are only trailing numbers (and there is at least one) */
-/* View-OS permits "mount" of things like /dev/hda[0-9]* */
+/** View-OS permits "mount" of things like /dev/hda[0-9]* .*/
 static inline int trailnum(char *s)
 {
-	/* "at least one" the first element needs a special case.
+	/** "at least one" the first element needs a special case.
      performance:  >'9' is the most frequent case, <'0' are quite rare
-     in pathnames, the end of string is more common */
+     in pathnames, the end of string is more common. */
 	int nonzero = 0;
 
 	if (*s > '9' || *s == 0 || *s < '0')
@@ -147,7 +147,9 @@ static inline int trailnum(char *s)
 	return nonzero;
 }
 
-/* during the scan: search in the hash table if this returns 1 */
+/** During the vuht_internal_search: access the hash table only if this function returns 1.
+	The scan is perfomed step by step, checking the objc (for pathnames) or
+	len (for integers or sequence of integers).*/
 static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 {
 	switch (type) {
@@ -156,7 +158,7 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 					*objc == 0 /* this is the end of a string */
 					||
 					(!exact           /* or when subtring match are allowed */
-					 && (*objc == '/' /* test the match if the current char is '/' */
+					 && (*objc == '/' 
 						 /* or if there are trailing numbers e.g. /dev/hda1, hda2 etc */
 						 || trailnum(objc))));
 		case CHECKBINFMT:
@@ -164,7 +166,7 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 					||
 					(!exact /* or when subtring match are allowed */
 					 &&
-					 *objc == '/')); /* test the match if the current char is '/' */
+					 *objc == '/')); 
 		case CHECKSOCKET:
 		case CHECKCHRDEVICE:
 		case CHECKBLKDEVICE:
@@ -184,7 +186,7 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 																																			    }
 }
 
-/* terminate the scan */
+/** Terminate the scan: the vuht_internal_search has scanned the obj or has reached is objlen.*/
 static inline int vuht_scan_terminate(uint8_t type, char *objc, int len,
 		int objlen)
 {
@@ -227,6 +229,8 @@ static int has_exception(struct vuht_entry_t *ht) {
 	return ht->confirmfun != NULL;
 }
 
+/**A list of possible ht elements (carrot) is generated,then the right element is  choosen in this list
+	by its confirmation function.*/
 static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		int objlen, void *checkobj,
 		int exact) {
@@ -244,8 +248,11 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 	while (1) {
 		if (vuht_scan_stop(type, objc, len, exact)) {
 			hash = hashmod(sum);
-			ht = vuht_hash[hash];
-			ht=(len) ? vuht_hash[hash] : vuht_hash0[type];
+			ht = vuht_hash[hash];			//will it be overwrited??
+			/**Modules can register NULL obj with len == 0.
+				These obj of the same type have the same hash sum and key so their collision list is
+				stored in vuht_hash0[].*/								
+			ht=(len) ? vuht_hash[hash] : vuht_hash0[type];					
 			while (ht != NULL) {
 				if (type == ht->type && sum == ht->hashsum &&
 						memcmp(obj, ht->obj, len) == 0 &&
@@ -253,7 +260,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 						(tst > ht->timestamp) &&
 						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
-					if (ht->confirmfun == NEGATIVE_MOUNT)
+					if (ht->confirmfun == NEGATIVE_MOUNT)  				//a comment is required
 						carh = carrot_delete(carh, ht->private_data);
 					else
 						carh = carrot_insert(carh, ht, e, has_exception);
@@ -263,6 +270,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 			if (vuht_scan_terminate(type, objc, len, objlen))
 				break;
 		}
+		/**The search is done incrementally, iterating on obj and incrementing len until the correct hash table collision list is founded.*/
 		sum = hashadd(sum, *objc);
 		objc++;
 		len++;
@@ -347,6 +355,7 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->pprevhash=hashhead;
 	*hashhead=new;
 	pthread_rwlock_unlock(&vuht_rwlock);
+
 	return new;
 }
 
@@ -367,6 +376,7 @@ static int permanent_mount(const char *opts)
 		(match[9] == '\0' || match[9] == ',');
 }
 
+
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
@@ -379,6 +389,7 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 	if (source) {
 		char opts[PATH_MAX];
 		opts[0] = 0;
+		/**mount tab line generation.*/
 		if (mountflags & MS_REMOUNT)
 			strncat(opts, "remount,", PATH_MAX);
 		if (mountflags & MS_RDONLY)
@@ -399,6 +410,7 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 			opts[strlen(opts) - 1] = 0;
 		else
 			strncat(opts, "rw", PATH_MAX);
+
 		asprintf(&mtabline, "%s%s %s %s %s 0 %" PRIu64,
 				(confirmfun == NEGATIVE_MOUNT) ? "-" : "", source, path,
 				fstype, opts, get_epoch());
@@ -519,7 +531,7 @@ void vuht_drop(struct vuht_entry_t *hte) {
 		vuht_free(hte);
 }
 
-/* reverse scan of hash table elements, useful to close all files  */
+/** reverse scan of hash table elements, useful to close all files.  */
 static void forall_vuht_terminate(uint8_t type)
 {
 	pthread_rwlock_rdlock(&vuht_rwlock);

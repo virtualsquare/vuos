@@ -42,6 +42,7 @@
 
 #define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | IGNORE_TRAILING_SLASH)
 
+/*Used by vu_acces, vu_mode, vu_readlink ....*/
 struct realpath_arg_t {
 	int dirfd;
 	int nested;
@@ -72,15 +73,15 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
 	switch (syscall_number) {
 		case __NR_openat:
-			return (args[2] & O_NOFOLLOW) ? 3 : 2;
+			return (args[2] & O_NOFOLLOW) ? ARCH_TYPE_IS_EXCEPTION : ARCH_TYPE_IS_AT;
 		case __NR_open:
-			return (args[1] & O_NOFOLLOW) ? 1 : 0;
+			return (args[1] & O_NOFOLLOW) ? ARCH_TYPE_SYMLINK_NOFOLLOW : 0;
 		case __NR_umount2:
-			return (args[1] & UMOUNT_NOFOLLOW) ? 1 : 0;
+			return (args[1] & UMOUNT_NOFOLLOW) ? ARCH_TYPE_SYMLINK_NOFOLLOW : 0;
 		case __NR_unlinkat:
-			return 3;
+			return ARCH_TYPE_IS_EXCEPTION;
 		default:
-			return (args[nargs-1] & AT_SYMLINK_NOFOLLOW) ? 3 : 2;
+			return (args[nargs-1] & AT_SYMLINK_NOFOLLOW) ? ARCH_TYPE_IS_EXCEPTION : ARCH_TYPE_IS_AT;
 	}
 }
 
@@ -94,8 +95,9 @@ char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
 		return NULL;
 	} else {
 		int flags = FOLLOWLINK;
+		/**Unifying the management of system calls: l-syscall or syscall-at for example.*/
 		int type = vu_arch_table_type(syscall_number);
-		if (type == 3)
+		if (type == ARCH_TYPE_IS_EXCEPTION) 
 			type = path_check_exceptions(syscall_number, sd->syscall_args);
 		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
 			flags &= ~FOLLOWLINK;
@@ -113,7 +115,7 @@ void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
 
   if (patharg >= 0) {
     int type = vu_arch_table_type(syscall_number);
-		if (type == 3)
+		if (type == ARCH_TYPE_IS_EXCEPTION)
 			type = path_check_exceptions(syscall_number, sd->syscall_args);
     if (type & ARCH_TYPE_IS_AT)
       patharg++;
@@ -157,7 +159,7 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 	} else {
 		int flags = FOLLOWLINK;
 		int type = vu_arch_table_type(syscall_number);
-		if (type == 3)
+		if (type == ARCH_TYPE_IS_EXCEPTION)
 			type = path_check_exceptions(syscall_number, args);
 		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
 			flags &= ~FOLLOWLINK;

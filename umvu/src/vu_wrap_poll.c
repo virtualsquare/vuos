@@ -141,7 +141,7 @@ void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		sd->action = DOIT_CB_AFTER;
 }
 
-/* private field of fnode entry should be used to store the list of tracked fds (close) */
+
 struct epoll_el {
 	int fd;
 	struct epoll_el *next;
@@ -149,16 +149,20 @@ struct epoll_el {
 
 void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
+	/**The process has just done the epoll_create returning fd, this epoll file descriptor will be used
+	by the process in the next epoll calls. The hypervisor uses it to refer to the fnode and 
+	it's internal epoll fd. */
 	int fd = sd->orig_ret_value;
 	if (fd >= 0) {
 		/* standard args */
-    int syscall_number = sd->syscall_number;
+   		int syscall_number = sd->syscall_number;
 		 /* args */
-    int flags;
+    	int flags;
 		int epfd;
 		struct fnode_t *fnode;
 		struct epoll_tab *tab = epoll_tab_create(nested);
-    switch (syscall_number) {
+		/*fetch*/
+    	switch (syscall_number) {
 			case __NR_epoll_create:
 				flags = 0;
 				break;
@@ -170,6 +174,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
 		sd->extra->statbuf.st_dev = 0;
 		sd->extra->statbuf.st_ino = epfd;
+		/** private field of fnode entry should be used to store the list of tracked fds (close). */
 		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, tab);
 		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
 	} 
@@ -179,6 +184,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
+		/*the call is virtualized.*/
 		 /* args */
 		int pepfd = sd->syscall_args[0];
 		int op = sd->syscall_args[1];
@@ -186,9 +192,11 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		uintptr_t eventaddr = sd->syscall_args[3];
 		struct epoll_event *event;
 		struct epoll_tab *tab;
+		/**pepefd it's the file descriptor used by the process and captured by the epoll_create wrap function.*/
 		int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
-    void *private = NULL;
-    int sfd = vu_fd_get_sfd(fd, &private, nested);
+    	void *private = NULL;
+    	/**The fd to monitor has a corresponding fnode and service fd, like the other file descriptors.*/
+    	int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int ret_value = 0;
 		epoll_data_t *data;
 
@@ -213,10 +221,13 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
 		 	mod_event.events = event->events;
 			mod_event.data.fd = fd;
+			/**The module never works with the fds given by the process, but always with the service file descriptors.
+				In this case thare are the sfd of the epoll istance and the sfd of the file to monitor.*/
 			ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, &mod_event, private);
 			//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
 			if (ret_value >= 0) {
 				sd->ret_value = ret_value;
+				/**The process won't do the call, because the monitoring of fd is virtualized.*/
 				sd->action = SKIPIT;
 				switch (op) {
 					case EPOLL_CTL_ADD:
@@ -234,6 +245,7 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		epoll_tab_unlock(tab);
 	}
+	/**else the call is not virtualized and the real file fd is add/del/mod in the real epoll interface pepfd.*/
 }
 
 struct epoll_inout {
@@ -245,6 +257,7 @@ void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	int pepfd = sd->syscall_args[0];
 	struct epoll_tab *tab;
+	/**Getting the infos(the epoll_tab) saved during the epoll_ctl.*/
 	int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
 	if (epoll_tab_head(tab) != NULL) {
 		struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
@@ -263,7 +276,8 @@ static void epoll_thread(int epfd) {
   //printk("epoll_thread %d %d\n", ret_value, errno);
 }
 
-
+/**Blocking syscall: the process is waiting on an epoll file descriptor waiting for the real file descriptors.
+	The hypervisor can't be blocked,so a new process will perform the poll task on the epoll file descriptor which monitors the virtualized fds.*/
 void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct epoll_inout *epollio = sd->inout;
 	if ((sd->waiting_pid = r_fork()) == 0) {
@@ -273,6 +287,7 @@ void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	
 	int nested = sd->extra->nested;
 	struct epoll_inout *epollio = sd->inout;
 	int orig_ret_value = sd->orig_ret_value;
@@ -292,9 +307,12 @@ void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			//printk("available_events %d\n", available_events);
 			vu_alloc_peek_arg(eventaddr, events, maxevents * sizeof(struct epoll_event), nested);
 			//printk("VU alloc okay\n");
+			/**Non blocking wait on the "internal" epfd.
+				Here we get the infos about that fds which monitoring was virtualized in the epoll_ctl wrap function.*/
 			epoll_ret_value = r_epoll_wait(epollio->epfd, events + ret_value, available_events, 0);
 			//printk("epoll_ret_value %d\n", epoll_ret_value);
 			epoll_tab_lock(epollio->tab);
+			/*storing the results*/
 			for (i = ret_value; i < ret_value + epoll_ret_value; i++) {
 				 epoll_data_t *data;
 				 int fd = events[i].data.fd;
@@ -302,9 +320,11 @@ void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				 if (data != NULL)
 					 events[i].data = *data;
 			}
+
 			epoll_tab_unlock(epollio->tab);
 			if (epoll_ret_value > 0) {
 				ret_value += epoll_ret_value;
+				/*giving the results to the process.*/
 				vu_poke_arg(eventaddr, events, ret_value * sizeof(struct epoll_event), nested);
 				sd->ret_value = ret_value;
 			} else
@@ -352,13 +372,14 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int i;
 		vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), nested);
 		int virtfd[nfds];
+		/*counting and storing the virtual files*/
 		for (i = nvirt = 0; i < nfds; i++) {
 			int fd = fds[i].fd;
 			struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
 			if (ht) {
 				int j;
 				for (j = 0; j < nvirt; j++) {
-					if (fd == virtfd[j])
+					if (fd == virtfd[j]) //is virtfd[j] initialized? 
 						break;
 				}
 				if (j == nvirt)
@@ -367,12 +388,15 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (nvirt == 0) {
 			vu_free_arg(fds, nested);
+			/**the poll is performed by the process on real files.*/
 		} else {
+			/**Monitoring the virtual fd.*/
 			struct poll_inout *pollio = malloc(sizeof(struct poll_inout) + nvirt *sizeof(int));
 			struct pollfd *fds_real = malloc(nfds * sizeof(struct pollfd));
 			pollio->nfds = nfds;
 			pollio->nvirt = nvirt;
 			pollio->fds = fds;
+			/*epoll interface is created and initialized*/
 			pollio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
 			for (i = 0; i < nvirt; i++) {
 				int fd = virtfd[i];
@@ -391,24 +415,30 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				else
 					pollio->fd[i] = virtfd[i];
 			}
+			/*managing the real files*/
 			for (i = 0; i < nfds; i++) {
 				int fd = fds[i].fd;
 				int j;
+				/*checking if fd is in the vitual fd array.*/
 				for (j = 0; j < nvirt; j++) {
 					if (fd == virtfd[j])
 						break;
 				}
 				if (fd < 0 || j == nvirt) {
+					/*fd is real*/
 					fds_real[i].fd = fds[i].fd;
 					fds_real[i].events = fds[i].events;
 					fds_real[i].revents = fds[i].revents;
 				} else {
+					/*fd is not real or is negative.*/
 					fds_real[i].fd = -1;
 					fds_real[i].events = fds_real[i].revents = 0;
 				}
 			}
+			/**The informations about the virtualized monitoring will be collected in the out phase. */
 			sd->action = DOIT_CB_AFTER;
-      sd->inout = pollio;
+      		sd->inout = pollio;
+      		/**The process will perfom a poll only on the real files.*/
 			vu_poke_arg(fdsaddr, fds_real, nfds * sizeof(struct pollfd), nested);
 		}
 	}
@@ -421,7 +451,8 @@ static void poll_thread(int epfd) {
   r_poll(&pfd, 1, -1);
   //printk("poll_thread %d %d\n", ret_value, errno);
 }
-
+/**Blocking syscall: the process is executing a poll on some real file descriptors.
+	The hypervisor can't be blocked,so a new process will perform the poll task on the epoll file descriptor which monitors the virtualized fd.*/
 void wd_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   struct poll_inout *selectio = sd->inout;
   if ((sd->waiting_pid = r_fork()) == 0) {
@@ -442,16 +473,23 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
 	for (i = 0; i < nfds; i++) {
 		if (fds[i].fd < 0) {
+			/*fd is not real, getting the poll infos saved previously.*/
 			fds[i].fd = pollio->fds[i].fd;
 			fds[i].events = pollio->fds[i].events;
 			fds[i].revents = 0;
 		}
 	}
 	if (sd->waiting_pid != 0) {
+		/**The process woke up bacause some real file is ready or cause timeout expired.
+			In both cases it's useless to check for the virtualized part.*/
 		sd->ret_value = orig_ret_value;
 	} else {
+		/*virtualized monitoring*/
 		int ret_value = 0;
+		/**Non blocking wait on the "internal" epfd.
+			Here we get the infos about that fd which monitoring was virtualized in the wi_poll function.*/
 		nepoll = r_epoll_wait(pollio->epfd, eventv, pollio->nvirt, 0);
+		/*storing the results*/
 		for (i = 0; i < nepoll; i++) {
 			int fd = eventv[i].data.fd;
 			uint32_t events = eventv[i].events;
@@ -476,7 +514,9 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = ret_value;
 	}
 	//printk("orig_ret_value %d ret_value %d -> %d\n", orig_ret_value, ret_value, sd->ret_value );
+	/*giving the results to the process.*/
 	vu_poke_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
+	/*cleaning*/
 	for (i = 0; i < pollio->nvirt; i++) {
 		int fd = pollio->fd[i];
 		if (fd >= 0) {
@@ -488,8 +528,8 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 	}
 	r_close(pollio->epfd);
-  xfree(pollio->fds);
-  xfree(pollio);
+  	xfree(pollio->fds);
+  	xfree(pollio);
 }
 
 #define FD_SET_SIZE(nfds) ((__FD_ELT(nfds) + 1) * sizeof(__fd_mask))
@@ -510,7 +550,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		uintptr_t writefdsaddr = sd->syscall_args[2];
 		uintptr_t exceptfdsaddr = sd->syscall_args[3];
 		fd_set readfds, writefds, exceptfds;
-		/* get the fd sets from the user-space */
+		/* get the fd sets from the user-space.*/
 		if (readfdsaddr != 0) {
 			vu_peek_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), nested);
 		} else
@@ -523,16 +563,17 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			vu_peek_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), nested);
 		} else
 			FD_ZERO(&exceptfds);
-		/* count how many virtual fds belong to the fdsets */
+		/* count how many virtual fds belong to the fdsets. */
 		for (fd = nvirt = 0; fd < nfds; fd++) {
 			if ((FD_ISSET(fd, &readfds) || FD_ISSET(fd, &writefds) || FD_ISSET(fd, &exceptfds))
 					&& vu_fd_get_ht(fd, nested) != NULL)
 				nvirt++;
 		}
-		/* if there is at least one (otherwise let the process run the real system call) */
+		/** if there is at least one (otherwise let the process run the real system call). */
 		if (nvirt != 0) {
 			struct select_inout *selectio = malloc(sizeof(struct select_inout) + nvirt*sizeof(int));
 			fatal(selectio);
+			/*epoll interface is created and initialized*/
 			selectio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
 			for (fd = selectio->nfds = 0; fd < nfds && selectio->nfds < nvirt; fd++) {
 				struct vuht_entry_t *fd_ht;
@@ -545,6 +586,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					struct epoll_event event = {.events = events, .data.fd = fd};
 					//printk("EPOLL ADD %d %d\n", fd, events);
 					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event) >= 0) {
+						/** fd monitoring is virtualized so its bit is cleared from the sets*/
 						FD_CLR(fd, &readfds);
 						FD_CLR(fd, &writefds);
 						FD_CLR(fd, &exceptfds);
@@ -555,6 +597,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 			sd->action = DOIT_CB_AFTER;
 			sd->inout = selectio;
+			/**The process will run the select on the real fds because the vitualized ones have their bit cleared.*/
 			if (readfdsaddr)
 				vu_poke_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), nested);
 			if (writefdsaddr)
@@ -573,7 +616,8 @@ static void select_thread(int epfd) {
 	//printk("select_thread %d %d\n", ret_value, errno);
 }
 
-
+/**Blocking syscall: the process is executing a select on some real file descriptors.
+	The hypervisor can't be blocked,so a new process will perform the poll task on the epoll file descriptor which monitors the virtualized fd.*/
 void wd_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct select_inout *selectio = sd->inout;
 	if ((sd->waiting_pid = r_fork()) == 0) {
@@ -599,9 +643,11 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EINTR;
 			sd->action = DO_IT_AGAIN;
 		} else */
+		/**The process woke up bacause some real file is ready or cause timeout expired.
+			In both cases it's useless to check for the virtualized part.*/
 			sd->ret_value = orig_ret_value;
-	} else
-	{
+	} else {
+		/* virtualized monitoring*/
 		struct epoll_event eventv[selectio->nfds];
 		int nepoll;
 		ret_value = 0;
@@ -622,7 +668,10 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			FD_ZERO(&writefds);
 			FD_ZERO(&exceptfds);
 		}
+		/**Non blocking wait on the "internal" epfd.
+			Here we get the infos about that fd which monitoring was virtualized in the wi_select function.*/
 		nepoll = r_epoll_wait(selectio->epfd, eventv, selectio->nfds, 0);
+		/*storing the results*/
 		for (i = 0; i < nepoll; i++) {
 			int fd = eventv[i].data.fd;
 			uint32_t events = eventv[i].events;
@@ -648,6 +697,7 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = orig_ret_value;
 		else
 			sd->ret_value = orig_ret_value + ret_value;
+		/*giving the results to the process*/
 		if (readfdsaddr)
 			vu_poke_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
 		if (writefdsaddr)
@@ -655,6 +705,7 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (exceptfdsaddr)
 			vu_poke_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
 	}
+	/*cleaning*/
 	for (i = 0; i < selectio->nfds; i++) {
 		int fd = selectio->fd[i];
 		if (fd >= 0) {

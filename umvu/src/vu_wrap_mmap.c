@@ -45,8 +45,10 @@
 void wi_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[4];
 	int nested = sd->extra->nested;
-	if (ht && fd >= 0) { // nothing to do if the file is real or is not on a file
+	/** nothing to do if the file is real or is not on a file.*/
+	if (ht && fd >= 0) { 
 		struct fnode_t *fnode = vu_fd_get_fnode(fd, nested);
+		/**The file mmapped have a fake/temporary rapresentation in /tmp/.vu_...*/
 		vu_fnode_copyin(fnode);
 		sd->action = DOIT_CB_AFTER;
 	} else
@@ -54,18 +56,19 @@ void wi_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	struct fnode_t *fnode = sd->inout;
+	struct vu_fnode_t *fnode = sd->inout;
 	if (fnode != NULL) {
 		uintptr_t addr = sd->orig_ret_value;
-		if (addr != (uintptr_t) -1) {
+		if (addr != (uintptr_t) -1) { /*mmap has not failed*/
 			size_t length = sd->syscall_args[1];
-			int prot = sd->syscall_args[2];
-			int flags = sd->syscall_args[3];
+			//int prot = sd->syscall_args[2];
+			//int flags = sd->syscall_args[3];
 			off_t offset = sd->syscall_args[5];
 #ifdef __NR_mmap2
 			if (sd->syscall_number == __NR_mmap2)
 				offset = offset * umvu_get_pagesize();
-#endif
+#endif		
+			/**A specific structure is used to record the mapped areas.*/
 			vu_mmap_mmap(addr, length, fnode, offset);
 			//printk("mmap %x %d %d %p\n", addr, length, offset, fnode);
 		} else

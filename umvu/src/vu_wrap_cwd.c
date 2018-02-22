@@ -34,7 +34,7 @@
 #include <syscall_defs.h>
 #include <vu_execute.h>
 #include <service.h>
-#include <vu_tmpdir.h>
+//#include <vu_tmpdir.h>
 #include <vu_fs.h>
 #include <path_utils.h>
 #include <vu_file_table.h>
@@ -46,11 +46,13 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (!nested) {
 		int mode = sd->extra->statbuf.st_mode;
 		if (S_ISDIR(mode)) {
-			/* change the call to "chdir(fakedir)" */
+			/** change the call to "chdir(fakedir)" */
 			sd->syscall_number = __NR_chdir;
 			if (ht)
-				rewrite_syspath(sd, "/"); /* this directory should always exist */
+				/**If it's virtualized the chdir is perfomed on a dir that should always exist "/".*/
+				rewrite_syspath(sd, "/"); 
 			else
+				/**Not virtualized chdir on the right directory.*/
 				rewrite_syspath(sd, sd->extra->path); 
 			sd->action = DOIT_CB_AFTER;
 		} else {
@@ -67,6 +69,7 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wo_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value = sd->orig_ret_value;
+	/** The path of the new cwd is saved after the call because here it's visible if the chdir has succeded or has failed.*/
 	if (ret_value >= 0)
 		vu_fs_set_cwd(sd->extra->path);
 	sd->ret_value = sd->orig_ret_value;
@@ -77,7 +80,7 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
 		syscall_arg_t bufaddr = sd->syscall_args[0];
-		syscall_arg_t bufsize = sd->syscall_args[0];
+		syscall_arg_t bufsize = sd->syscall_args[1]; 
 		char plaincwd[PATH_MAX];
 		char root[PATH_MAX];
 		char *cwd = plaincwd;
@@ -85,7 +88,8 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		size_t cwdlen;
 		vu_fs_get_cwd(plaincwd, PATH_MAX);
 		vu_fs_get_rootdir(root, PATH_MAX);
-		if (root[1] == 0) 
+		// a comment of the code above is required 
+		if (root[1] == 0) // root is /
 			root[0] = 0;
 		rootlen = strlen(root);
 		if (strncmp(plaincwd, root, rootlen) == 0) {
@@ -94,6 +98,7 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			else
 				cwd += rootlen;
 		}
+		
 		cwdlen = strlen(cwd)+1;
 		if (cwdlen < bufsize)
 			bufsize = cwdlen;

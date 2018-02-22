@@ -26,9 +26,13 @@ struct vu_service_t {
 	syscall_t module_syscall[];
 };
 
+/**A static thread variable is each time initialized with the module hash table element choosen by the hypervisor,
+ so that the module can access this hte too.
+ At the module load it is initialized with the first hte inserted (CHECKMODULE,modname,strlen(modname), service,...) */
 void vu_mod_setht(struct vuht_entry_t *);
 struct vuht_entry_t *vu_mod_getht(void);
 
+/**Uniform way to call the module system call implementation.*/
 __attribute__((always_inline))
 	static inline syscall_t service_syscall(struct vuht_entry_t *ht, int vu_syscall_number) {
 		struct vu_service_t *service = vuht_get_service(ht);

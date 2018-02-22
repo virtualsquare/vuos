@@ -31,8 +31,8 @@
 #include <syscall_defs.h>
 #include <syscall_table.h>
 
-/* this is convenient since casting the return value of dlsym() to
- * a function pointer erroneously procudes a warning */
+/** this is convenient since casting the return value of dlsym() to
+ * a function pointer erroneously procudes a warning. */
 #pragma GCC diagnostic ignored "-Wpedantic"
 
 /* XXX temporary */
@@ -59,7 +59,7 @@ static inline char *gethomedir(void) {
 	return homedir;
 }
 
-/*
+/**
  * Try to dlopen a module (o submodule) trying different names and locations:
  *
  * 1) dlopen(modname)
@@ -112,7 +112,8 @@ struct vu_service_t *module_load(const char *modname)
 		return NULL;
 	}
 
-	/* populate umview_service_t structure */
+	/** Populate umview_service_t structure. 
+		In this way the hypervisor can acces and call the function implemented by the module. */
 	if ((module = dlsym(handle, "vu_module"))) {
 		struct vu_service_t *service = malloc(sizeof(struct vu_service_t) +
 				VU_NR_SYSCALLS * sizeof(syscall_t));
@@ -147,8 +148,9 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name) 
 	int i;
 	static syscall_t useless;
 	for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {
-		if (strcmp(name, vu_syscall_names[i]) == 0) 
-			return &service->module_syscall[i];
+		if (strcmp(name, vu_syscall_names[i]) == 0){
+			return &service->module_syscall[i];			
+		}
 	}
   useless	= NULL;
 	return &useless;

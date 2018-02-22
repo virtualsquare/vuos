@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <r_table.h>
 
+/**Default value used when nested virtualization support is disabled (umvu -x).
+	If purelibc is loaded it's used purelibc implementation of the calls.*/
 long (*native_syscall)() = syscall;
 
 

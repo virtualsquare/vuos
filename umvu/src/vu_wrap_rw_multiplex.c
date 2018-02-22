@@ -42,6 +42,8 @@ static void wi_einval(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 	}
 }
 
+/**Read and write can be different depending on the file type (socket or other kinds of files).*/
+
 void set_wi_read(mode_t mode, wrapf_t *handler) {
 	x_wi_read[S_MODE2TYPE(mode)] = handler;
 }

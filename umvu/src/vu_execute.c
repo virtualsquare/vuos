@@ -56,10 +56,13 @@ void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
+
 static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
 		char *(*getpath)(struct syscall_descriptor_t *sd, struct vu_stat *buf)) {
 	static __thread struct syscall_extra_t extra;
 	extra.statbuf.st_mode = 0;
+	/**The syscall may refer to a path. This path is canonicalized and saved so that it can be used 
+		during che management of the call. It can be NULL.*/
 	extra.path = getpath(sd, &extra.statbuf);
 	extra.path_errno = errno;
 	extra.nested = VU_NOT_NESTED;
@@ -79,20 +82,27 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 	update_vepoch();
 	if (sd->syscall_number >= 0) {
 		int sysno = vu_arch_table[sd->orig_syscall_number];
+		/**Depending on the sysno, it takes a structure where are stored some functions:
+		choiche, wrap in, wrap during, wrap out. These functions act as wrappers to the system call allowing the virtualization.*/
 		struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 		switch (state) {
 			case IN_SYSCALL:
 				sd->extra = set_extra(sd, get_syspath);
-				printkdebug(s, "IN %d (%d) %s %s", umvu_gettid(), native_syscall(__NR_gettid), 
-						syscallname(sd->syscall_number), sd->extra->path);
+
+				printkdebug(s, "IN %d (%d) %d %s %s ", umvu_gettid(), native_syscall(__NR_gettid), sd->syscall_number,
+						syscallname(sd->syscall_number),
+						(sd->extra->path != NULL) ? sd->extra->path : "");
+				
+				/**Choosing the hash table element (the service module that will manage the syscall). It can be NULL.*/
 				ht = tab_entry->choicef(sd);
 				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);
 				else {
 					if (vu_fs_is_chroot())
-						rewrite_syspath(sd, sd->extra->path);
+						rewrite_syspath(sd, sd->extra->path); 
 					tab_entry->wrapinf(ht, sd);
 					if ((sd->action & UMVU_CB_AFTER) == 0)
+						/**no more managed in DURING_SYSCALL or OUT_SYSCALL phase.*/ 
 						execute_cleanup(ht,sd);
 				}
 				break;
@@ -111,6 +121,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				break;
 		}
 	} else {
+		/**umvu commands are managed like system calls, but with a negative sysno.
+			The command is executed then the captured 'system call' is skipped.*/
 		int vsysno = - sd->syscall_number;
 		sd->ret_value = -ENOSYS;
 		if (vsysno < VVU_NR_SYSCALLS) {

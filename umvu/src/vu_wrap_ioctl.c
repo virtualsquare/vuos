@@ -67,11 +67,11 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			return;
 		}
 		sfd = vu_fd_get_sfd(fd, &private, nested);
-		/* module's ioctl returns the encoding of size and direction of the parameter i
-		 if fd ==  -1 */
-		/* modern ioctls have already size and direction encoded in their request argument,
-			 so if the modules' call fails, reqargs gets the value of request */
+		/** module's ioctl returns the encoding of size and direction of the parameter if fd ==  -1 .*/
+		/** modern ioctls have already size and direction encoded in their request argument,
+			 so if the modules' call fails, reqargs gets the value of request. */
 		reqargs = service_syscall(ht, __VU_ioctl)(-1, request, NULL, addr, NULL);
+
 		if (reqargs == (unsigned long) -1)
 			reqargs = request;
 		len = _IOC_SIZE(reqargs);
@@ -79,6 +79,7 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			vu_alloc_arg(addr, buf, len, nested);
 		if (reqargs & IOC_IN) 
 			vu_peek_arg(addr, buf, len, nested);
+
 		ret_value = service_syscall(ht, __VU_ioctl)(sfd, request, buf, addr, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
@@ -89,7 +90,8 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (buf)
 			vu_free_arg(buf, nested);
-		sd->ret_value = -ENOSYS;
+		sd->ret_value = -ENOSYS;			//overwriting sd->ret_value
+		
 	}
 }
 
