@@ -11,6 +11,7 @@
 struct vu_service_t;
 struct vuht_entry_t;
 
+/**vu_lsmod prints this infos.*/
 struct vu_module_t {
   char *name;
   char *description;
@@ -20,6 +21,9 @@ typedef long (*syscall_t)();
 extern uint16_t vu_arch_table[];
 
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
+/**If the implementation of some syscall (read for example) is not changed by the module, it should be decleared with this macro:
+		vu_syscall_handler(s,read) = read; //this is an example
+	This informs the hypervisor to use the normal implementation of the call istead of that given by the module.*/
 #define vu_syscall_handler(s, n) (*(vu_syscall_handler_pointer(s, #n)))
 
 #if __WORDSIZE == 32
@@ -28,6 +32,12 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define vu_stat stat
 #endif
 
+/**There isn't a definition for each syscalll: umvu unifies the management of some system calls because
+	the pathnames given by the hypervisor are always absolute (canonicalized).
+	For example lstat function is used for lstat stat fstat fstatat.
+
+	This definitions allow to change the behavior and implementation fo the system call achieving the virtualization.
+	There are also init and fini module functions called at the module's load or unload respectively.*/
 #define VU_SYSNAME(name, syscall) vu_ ## name ## _ ## syscall
 #define VU_PROTOTYPES(name) \
 	\
@@ -84,13 +94,22 @@ int VU_SYSNAME(name, setresfgid) (gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgi
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
+//a comment i required
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht);
 
+/**Each module must register its working domain, i.e. subtree of the file system, the system calls,
+	address families it defines.
+	vuht_add and vuht_pathadd allow to add hast table elements (generic objects or pathnames respectively)
+	that will be used by the hypervisor to referfer to that module.
+	Choosing the kind of syscall management is no more then a search of the right hash table element
+	inserted by the right module.*/
+/**ht_private_data can be used to store information useful for the module.*/
 struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *ht_private_data, int permanent);
 
+/**More specific for mount syscall because it generates mount tab.*/
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
@@ -98,13 +117,21 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		unsigned char trailingnumbers,
 		confirmfun_t confirmfun, void *ht_private_data);
 
+/**The module can access to the hash table element choosen by the hypervisor.
+	Consider that vu_insmod add a hash table element with this parameter:
+
+	vuht_add(CHECKMODULE, modname, strlen(modname), service,NULL, NULL, permanent);
+
+	so it can be choosen too by the tracer. */
 struct vuht_entry_t *vu_mod_getht(void);
+
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
-  static inline syscall_t vu_mod_getservice(void) {
-		return vuht_get_service(vu_mod_getht());
+  static inline syscall_t vu_mod_getservice(void) {  // shouldn't return a struct vu_service_t *?
+		return vuht_get_service(vu_mod_getht());  
   }
 
+/**Private information of the module, can be used to store any kind of variable that the module will need later. */
 void *vuht_get_private_data(struct vuht_entry_t *hte);
 void vuht_set_private_data(struct vuht_entry_t *hte, void *ht_private_data);
 
@@ -122,10 +149,10 @@ void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte, int delayed);
 
 typedef enum mod_inheritance_state_t {
-  MOD_INH_CLONE,
-  MOD_INH_START,
-  MOD_INH_EXEC,
-  MOD_INH_TERMINATE
+  MOD_INH_CLONE,	// a process is doing a clone
+  MOD_INH_START,	// a tracer has started
+  MOD_INH_EXEC,		// a process is doing an execve
+  MOD_INH_TERMINATE	// a process has ended
 } mod_inheritance_state_t;
 
 struct mod_inheritance_exec_arg {
@@ -133,6 +160,9 @@ struct mod_inheritance_exec_arg {
 	gid_t exec_gid;
 };
 
+/**Allows to register functions with a specific behavior depending on (switch case) the mod_inheritance_state_t.
+	The module can,in this way, perform actions during  a process clone,start,exec,terminate.
+	(The registered functions will be called in that sistuations.) */
 typedef void *(*mod_inheritance_upcall_t)(mod_inheritance_state_t, void *);
 void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
 void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
