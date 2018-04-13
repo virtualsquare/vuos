@@ -35,7 +35,7 @@ VU_PROTOTYPES(unrealuidgid)
 
 	struct vu_module_t vu_module = {
 		.name = "unrealuidgid",
-		.description = "unrealuidgid: virtualize uid gid"
+		.description = "virtualize uid gid"
 	};
 
 struct vu_uid_gid_t {

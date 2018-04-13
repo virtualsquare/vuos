@@ -69,7 +69,6 @@ void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   int nested = sd->extra->nested;
-		printk("umount %s %p\n", sd->extra->path, ht);
   if (ht && !nested) {
 		/* standard args */
 		int syscall_number = sd->syscall_number;

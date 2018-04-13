@@ -48,10 +48,10 @@ static const char *unwrap(const char *path, char *buf, size_t size)
 {
 	struct mountreal_entry *entry = vu_get_ht_private_data();
 	const char *tail = path + entry->targetlen;
-	if (*tail)
-		snprintf(buf, size, "%s%s", entry->source, path + entry->targetlen);
-	else
-		snprintf(buf, size, "%s/", entry->source);
+	snprintf(buf, size, "%s%s", entry->source, tail);
+	if (buf[0] == 0)
+		snprintf(buf, size, "/");
+	// printk("unwrap *%s* -> *%s*\n", path, buf);
 	return (buf);
 }
 
@@ -168,11 +168,11 @@ int vu_mountreal_lremovexattr(const char *path, const char *name, int fd, void *
 int vu_mountreal_mount(const char *source, const char *target,
 		const char *filesystemtype, unsigned long mountflags,
 		const void *data) {
-	//struct vu_service_t *s = vu_module.service;
 	struct vu_service_t *s = vu_mod_getservice();
 	struct mountreal_entry *entry = malloc(sizeof(struct mountreal_entry));
 	const char *source_no_root = strcmp(source, "/") == 0 ? "" : source;
 	const char *target_no_root = strcmp(target, "/") == 0 ? "" : target;
+	//printk("MOUNT %s %s\n", source, target);
 	entry->source = strdup(source_no_root);
 	entry->targetlen = strlen(target_no_root);
 	vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, entry);
