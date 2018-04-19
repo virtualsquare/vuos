@@ -149,8 +149,10 @@ struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
 				sd->action = SKIPIT;
 			}
 			ht = NULL;
-		} else
-			ht = vuht_pick(CHECKPATHEXACT, extra->path, &extra->statbuf, SET_EPOCH);
+		} else {
+			char *no_root_path = (extra->path[1] == 0) ? "" : extra->path;
+			ht = vuht_pick(CHECKPATHEXACT, no_root_path, &extra->statbuf, SET_EPOCH);
+		}
 		printkdebug(c, "umount2 %s: - ht %p err = %d %s", extra->path, ht,
       (sd->action == SKIPIT) ? -sd->ret_value : 0,
       (sd->action == SKIPIT) ? "SKIPIT" : "");
