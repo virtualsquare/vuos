@@ -58,8 +58,8 @@ void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		uintptr_t addr = sd->orig_ret_value;
 		if (addr != (uintptr_t) -1) {
 			size_t length = sd->syscall_args[1];
-			int prot = sd->syscall_args[2];
-			int flags = sd->syscall_args[3];
+			__attribute__((unused)) int prot = sd->syscall_args[2];
+			__attribute__((unused)) int flags = sd->syscall_args[3];
 			off_t offset = sd->syscall_args[5];
 #ifdef __NR_mmap2
 			if (sd->syscall_number == __NR_mmap2)
