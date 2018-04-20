@@ -11,7 +11,7 @@
 struct canon_ops {
 	int (*access) (const char *pathname, int mode, void *private);
 	mode_t (*lmode) (const char *pathname, void *private);
-	ssize_t (*readlink) (const char *pathname, char *buf, size_t bufsiz);
+	ssize_t (*readlink) (const char *pathname, char *buf, size_t bufsiz, void *private);
 	int (*getcwd) (char *pathname, size_t size, void *private);
 	int (*getroot) (char *pathname, size_t size, void *private);
 };

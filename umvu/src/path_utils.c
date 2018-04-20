@@ -217,7 +217,7 @@ static mode_t vu_lmode(char *pathname, void *private) {
 	return retval;
 }
 
-static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz) {
+static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz, void *private) {
 	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
 	ssize_t retval;

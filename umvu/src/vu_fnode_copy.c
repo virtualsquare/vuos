@@ -31,7 +31,8 @@
 #include <r_table.h>
 
 static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
-  int fdin, fdout, n;
+  int fdin, fdout;
+	ssize_t n;
   char *buf[BUFSIZ];
   void *private;
   fdout = r_open(tmp_path, O_WRONLY | O_CREAT, 0700);

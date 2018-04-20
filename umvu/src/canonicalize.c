@@ -62,7 +62,7 @@ struct canonstruct {
 
 static int default_access(const char *pathname, int mode, void *private);
 static mode_t default_lmode(const char *pathname, void *private);
-static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz);
+static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz, void *private);
 static int default_getcwd(char *pathname, size_t size, void *private);
 static int default_getroot(char *pathname, size_t size, void *private);
 
@@ -86,7 +86,7 @@ static mode_t default_lmode(const char *pathname, void *private) {
 		return 0;
 }
 
-static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz) {
+static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz, void *private) {
 	return readlink(pathname, buf, bufsiz);
 }
 
@@ -173,7 +173,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 					return -1;
 				}
 				/* read the link */
-				n = operations.readlink(cdata->resolved, buf, PATH_MAX-1);
+				n = operations.readlink(cdata->resolved, buf, PATH_MAX-1, cdata->private);
 				if (n < 0)  {
 					return -1;
 				}
