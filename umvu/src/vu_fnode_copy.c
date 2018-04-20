@@ -34,7 +34,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
   int fdin, fdout, n;
   char *buf[BUFSIZ];
   void *private;
-  fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_TRUNC, 0700);
+  fdout = r_open(tmp_path, O_WRONLY | O_CREAT, 0700);
   if (fdout < 0)
     return -1;
   fdin = service_syscall(ht, __VU_open)(path, O_RDONLY, 0, &private);
