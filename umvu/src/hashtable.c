@@ -70,7 +70,7 @@ struct vuht_entry_t {
 	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
 };
 
-#define VUHT_DELETED(ht) ((ht)->next == NULL)
+#define VUHT_DELETED(ht) ((ht)->pprevhash == NULL)
 
 /* it must be a power of two (masks are used instead of modulo) */
 #define VU_HASHTABLE_SIZE 512
@@ -540,7 +540,8 @@ void forall_vuht_do(uint8_t type,
 		struct vuht_entry_t *scanht = vuht_head[type];
 		do {
 			scanht = scanht->next;
-			if ((matching_epoch(scanht->timestamp)) > 0)
+			if (!VUHT_DELETED(scanht) && 
+					(matching_epoch(scanht->timestamp)) > 0)
 				fun(scanht, arg);
 		} while (vuht_head[type] != NULL && scanht != vuht_head[type]);
 	}
