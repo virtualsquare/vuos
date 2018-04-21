@@ -36,6 +36,7 @@
 #include <hashtable.h>
 #include <service.h>
 #include <carrot.h>
+#include <vu_initfini.h>
 
 /*Hashtable object definition*/
 /* vuht_entry_t:
@@ -415,31 +416,38 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 	return rv;
 }
 
+/* eliminate a deleted hash table element */
+static void vuht_cleanup(struct vuht_entry_t *ht) {
+	uint8_t type = ht->type;
+  if (ht == vuht_head[type]) {
+    if (ht->next == ht)
+      vuht_head[type] = NULL;
+    else
+      vuht_head[type] = ht->prev;
+  }
+  ht->prev->next = ht->next;
+  ht->next->prev = ht->prev;
+	if (ht->service_hte && ht->service_hte != ht)
+		vuht_drop(ht->service_hte);
+  ht->next = ht->prev = NULL;
+	// call service termination (ht)
+	if (ht->count == 0)
+		vuht_free(ht);
+}
+
 /* unlink an element from the hash table */
 static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
-	uint8_t type = ht->type;
 	if (ht->count > delayed)
 		return -EBUSY;
 	if (VUHT_DELETED(ht))
 		return -EINVAL;
-	if (ht == vuht_head[type]) {
-		if (ht->next == ht)
-			vuht_head[type] = NULL;
-		else
-			vuht_head[type] = ht->prev;
-	}
-	ht->prev->next = ht->next;
-	ht->next->prev = ht->prev;
 	*(ht->pprevhash) = ht->nexthash;
 	if (ht->nexthash)
 		ht->nexthash->pprevhash = ht->pprevhash;
-	if (ht->service_hte && ht->service_hte != ht)
-		vuht_drop(ht->service_hte);
-	ht->service_hte = NULL;
-	ht->next = ht->prev = ht->nexthash = NULL;
+	ht->nexthash = NULL;
 	ht->pprevhash = NULL;
 	if (ht->count == 0)
-		vuht_free(ht);
+		vuht_cleanup(ht);
 	return 0;
 }
 
@@ -512,22 +520,24 @@ void vuht_pick_again(struct vuht_entry_t *hte) {
 }
 
 void vuht_drop(struct vuht_entry_t *hte) {
-	if (hte)
-		hte->count--;
-	if (hte->count == 0 && VUHT_DELETED(hte))
-		vuht_free(hte);
+	if (hte) {
+		if (--hte->count == 0 && VUHT_DELETED(hte))
+			vuht_cleanup(hte);
+	}
 }
 
 /* reverse scan of hash table elements, useful to close all files  */
 static void forall_vuht_terminate(uint8_t type)
 {
-	pthread_rwlock_rdlock(&vuht_rwlock);
-	if (vuht_head[type]) {
+	pthread_rwlock_wrlock(&vuht_rwlock);
+	while (vuht_head[type]) {
 		struct vuht_entry_t *scanht = vuht_head[type];
-		struct vuht_entry_t *next = scanht;
-		do {
-			scanht = next;
-		} while (vuht_head[type] != NULL && next != vuht_head[type]);
+		vuht_pick_again(scanht);
+		pthread_rwlock_unlock(&vuht_rwlock);
+		//printk("%*.*s\n", scanht->objlen, scanht->objlen, scanht->obj);
+		pthread_rwlock_wrlock(&vuht_rwlock);
+		scanht->count--;
+		vuht_cleanup(scanht);
 	}
 	pthread_rwlock_unlock(&vuht_rwlock);
 }
@@ -624,6 +634,11 @@ int vuht_get_count(struct vuht_entry_t *hte) {
 	return hte->count;
 }
 
-void vuht_terminate() {
+void vuht_terminate(void) {
 	forall_vuht_terminate(CHECKPATH);
 }
+
+__attribute__((constructor))
+  static void init (void) {
+    vu_destructor_register(vuht_terminate);
+  }
