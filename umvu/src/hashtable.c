@@ -275,6 +275,8 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		};
 		rv = carrot_check(carh, call_confirmfun, &args);
 	}
+	if (rv)
+		rv->count++;
 	pthread_rwlock_unlock(&vuht_rwlock);
 	return rv;
 }
@@ -506,11 +508,8 @@ struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int 
 		default:
 			hte = NULL;
 	}
-	if (hte) {
-		hte->count++;
-		if (setepoch)
-			set_vepoch(hte->timestamp);
-	}
+	if (hte && setepoch)
+		set_vepoch(hte->timestamp);
 	return hte;
 }
 
