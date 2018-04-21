@@ -66,7 +66,7 @@ void vu_mmap_mmap(uintptr_t addr, size_t length, struct vu_fnode_t *fnode, off_t
 void vu_mmap_munmap(uintptr_t addr, size_t length) {
 	struct vu_mmap_area_t **scan;
 	struct vu_mmap_area_t **next;
-	/* it seems that the deallocation of ptrheads' stacks happens after
+	/* it seems that the deallocation of pthreads' stacks happens after
 		 vu_mmap_terminate */
 	if (vu_mmap == NULL)
 		return;
