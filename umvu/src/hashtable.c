@@ -462,8 +462,6 @@ static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
 		ht->nexthash->pprevhash = ht->pprevhash;
 	ht->nexthash = NULL;
 	ht->pprevhash = NULL;
-	if (ht->count == 0)
-		vuht_cleanup(ht);
 	return 0;
 }
 
@@ -473,6 +471,8 @@ int vuht_del(struct vuht_entry_t *ht, int delayed) {
 		pthread_rwlock_wrlock(&vuht_rwlock);
 		ret_value = vuht_del_locked(ht, delayed & 1);
 		pthread_rwlock_unlock(&vuht_rwlock);
+		if (ret_value == 0 && ht->count == 0)
+			vuht_cleanup(ht);
 		return ret_value;
 	} else
 		return -ENOENT;
