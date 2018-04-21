@@ -85,8 +85,11 @@ static struct vuht_entry_t *vuht_hash[VU_HASHTABLE_SIZE];
 /* null tags have separate a separate list */
 static struct vuht_entry_t *vuht_hash0[NCHECKS];
 
-/* heads of the list of hash entries of the same type */
-static struct vuht_entry_t *vuht_head[NCHECKS];
+/* heads of the list of hash entries */
+static struct vuht_entry_t *vuht_head;
+/* lock for the list of hash entries */
+static pthread_mutex_t vuht_head_lock = PTHREAD_MUTEX_INITIALIZER;
+
 
 static inline struct vuht_entry_t *vuht_alloc() {
 	struct vuht_entry_t *rv = malloc(sizeof (struct vuht_entry_t));
@@ -329,15 +332,6 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&vuht_rwlock);
-	/* add it to the list of hash entry of this type */
-	if (vuht_head[type]) {
-		new->next=vuht_head[type]->next;
-		new->prev=vuht_head[type];
-		new->next->prev=new;
-		new->prev->next=new;
-		vuht_head[type]=new;
-	} else
-		vuht_head[type]=new->next=new->prev=new;
 	/* add it to the right hash collision list */
 	if (objlen==0)
 		hashhead=&vuht_hash0[type];
@@ -349,6 +343,17 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->pprevhash=hashhead;
 	*hashhead=new;
 	pthread_rwlock_unlock(&vuht_rwlock);
+	/* add it to the list of hash entry of this type */
+	pthread_mutex_lock(&vuht_head_lock);
+	if (vuht_head) {
+		new->next=vuht_head->next;
+		new->prev=vuht_head;
+		new->next->prev=new;
+		new->prev->next=new;
+		vuht_head=new;
+	} else
+		vuht_head=new->next=new->prev=new;
+	pthread_mutex_unlock(&vuht_head_lock);
 	return new;
 }
 
@@ -419,17 +424,22 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 }
 
 /* eliminate a deleted hash table element */
-static void vuht_cleanup(struct vuht_entry_t *ht) {
-	uint8_t type = ht->type;
-  if (ht == vuht_head[type]) {
+static int vuht_cleanup(struct vuht_entry_t *ht) {
+	pthread_mutex_lock(&vuht_head_lock);
+	if (ht == NULL)
+		ht = vuht_head;
+	if (ht == NULL)
+		return -1;
+  if (ht == vuht_head) {
     if (ht->next == ht)
-      vuht_head[type] = NULL;
+      vuht_head = NULL;
     else
-      vuht_head[type] = ht->prev;
+      vuht_head = ht->prev;
   }
   ht->prev->next = ht->next;
   ht->next->prev = ht->prev;
   ht->next = ht->prev = NULL;
+	pthread_mutex_unlock(&vuht_head_lock);
 	if (ht->service_hte && ht->service_hte != ht) {
 		confirmfun_t service_cleanup = ht->service_hte->confirmfun;
 		if (service_cleanup)
@@ -438,6 +448,7 @@ static void vuht_cleanup(struct vuht_entry_t *ht) {
 	}
 	if (ht->count == 0)
 		vuht_free(ht);
+	return 0;
 }
 
 /* unlink an element from the hash table */
@@ -529,33 +540,24 @@ void vuht_drop(struct vuht_entry_t *hte) {
 }
 
 /* reverse scan of hash table elements, useful to close all files  */
-static void forall_vuht_terminate(uint8_t type)
+static void forall_vuht_terminate(void)
 {
-	pthread_rwlock_wrlock(&vuht_rwlock);
-	while (vuht_head[type]) {
-		struct vuht_entry_t *scanht = vuht_head[type];
-		vuht_pick_again(scanht);
-		pthread_rwlock_unlock(&vuht_rwlock);
-		//printk("%*.*s\n", scanht->objlen, scanht->objlen, scanht->obj);
-		pthread_rwlock_wrlock(&vuht_rwlock);
-		scanht->count--;
-		vuht_cleanup(scanht);
-	}
-	pthread_rwlock_unlock(&vuht_rwlock);
+	while (vuht_cleanup(NULL) >= 0)
+		;
 }
 
 void forall_vuht_do(uint8_t type,
 		void (*fun)(struct vuht_entry_t *ht, void *arg),
 		void *arg) {
 	pthread_rwlock_rdlock(&vuht_rwlock);
-	if (vuht_head[type]) {
-		struct vuht_entry_t *scanht = vuht_head[type];
+	if (vuht_head) {
+		struct vuht_entry_t *scanht = vuht_head;
 		do {
 			scanht = scanht->next;
-			if (!VUHT_DELETED(scanht) && 
+			if (scanht->type == type && !VUHT_DELETED(scanht) && 
 					(matching_epoch(scanht->timestamp)) > 0)
 				fun(scanht, arg);
-		} while (vuht_head[type] != NULL && scanht != vuht_head[type]);
+		} while (vuht_head != NULL && scanht != vuht_head);
 	}
 	pthread_rwlock_unlock(&vuht_rwlock);
 }
@@ -643,7 +645,7 @@ int vuht_get_count(struct vuht_entry_t *hte) {
 }
 
 void vuht_terminate(void) {
-	forall_vuht_terminate(CHECKPATH);
+	forall_vuht_terminate();
 }
 
 __attribute__((constructor))

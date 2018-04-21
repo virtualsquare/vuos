@@ -181,21 +181,22 @@ int vu_mountreal_mount(const char *source, const char *target,
 
 int vu_mountreal_umount2(const char *target, int flags) {
 	struct vuht_entry_t *ht = vu_mod_getht();
-	struct mountreal_entry *entry = vuht_get_private_data(ht);
 	int ret_value;
 	if ((ret_value = vuht_del(ht, 1)) < 0) {
 		errno = -ret_value;
 		return -1;
 	}
-	if (entry->source)
-		free(entry->source);
-	free(entry);
 	return 0;
 }
 
 void vu_mountreal_cleanup(uint8_t type, void *arg, int arglen,
     struct vuht_entry_t *ht) {
-//	printk("mountreal %d %*.*s\n", type, arglen, arglen, arg);
+	if (type == CHECKPATH) {
+		struct mountreal_entry *entry = vuht_get_private_data(ht);
+		if (entry->source)
+			free(entry->source);
+		free(entry);
+	}
 }
 
 void *vu_mountreal_init(void) {

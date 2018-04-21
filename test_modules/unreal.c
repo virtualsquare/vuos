@@ -136,6 +136,13 @@ int vu_unreal_lremovexattr(const char *path, const char *name, int fd, void *fdp
 
 static struct vuht_entry_t *ht1,*ht2;
 
+void vu_unreal_cleanup(uint8_t type, void *arg, int arglen,
+    struct vuht_entry_t *ht) {
+	if (type == CHECKPATH) {
+		//printk("%*.*s\n", arglen, arglen, arg);
+	}
+}
+
 void *vu_unreal_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 
