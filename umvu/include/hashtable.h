@@ -41,8 +41,6 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 
 /* del takes the element out from the data structure.... */
 int vuht_del(struct vuht_entry_t *hte, int delayed);
-///* free dealloc memory, vuht_free must follow a vuht_del */
-//int vuht_free(struct vuht_entry_t *hte);
 
 struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct stat *st, int setepoch);
 void vuht_pick_again(struct vuht_entry_t *hte);
@@ -56,11 +54,7 @@ void vuht_get_mtab(FILE *f);
 
 void *vuht_get_private_data(struct vuht_entry_t *hte);
 void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
-
-#if 0
-struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
-		struct vu_service_t *service);
-#endif
+void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_fun);
 
 void vuht_renew(struct vuht_entry_t *hte);
 //char *vuht_get_servicename(struct vuht_entry_t *hte);

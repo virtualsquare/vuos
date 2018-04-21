@@ -193,6 +193,11 @@ int vu_mountreal_umount2(const char *target, int flags) {
 	return 0;
 }
 
+void vu_mountreal_cleanup(uint8_t type, void *arg, int arglen,
+    struct vuht_entry_t *ht) {
+//	printk("mountreal %d %*.*s\n", type, arglen, arglen, arg);
+}
+
 void *vu_mountreal_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 

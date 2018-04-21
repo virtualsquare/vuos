@@ -72,6 +72,7 @@ int VU_SYSNAME(name, getresfuid) (uid_t *ruid, uid_t *euid, uid_t *suid, uid_t *
 int VU_SYSNAME(name, getresfgid) (gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *fsgid, void *private); \
 int VU_SYSNAME(name, setresfuid) (uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, void *private); \
 int VU_SYSNAME(name, setresfgid) (gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgid, void *private); \
+int VU_SYSNAME(name, msocket) (const char *path, int domain, int type, int protocol); \
 
 
 #define CHECKMODULE 0        // Module name
@@ -120,7 +121,6 @@ __attribute__((always_inline))
 		vuht_set_private_data(vu_mod_getht(), ht_private_data);
 	}
 
-void vuht_invalidate(struct vuht_entry_t *hte);
 int vuht_del(struct vuht_entry_t *hte, int delayed);
 
 typedef enum mod_inheritance_state_t {

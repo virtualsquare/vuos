@@ -45,6 +45,7 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	char name[PATH_MAX];
 	char *modname;
 	int permanent = (int)sd->syscall_args[1];
+	confirmfun_t cleanup;
 	if (umvu_peek_str(sd->syscall_args[0], name, PATH_MAX) < 0) {
 		sd->ret_value = -EINVAL;
 		return;
@@ -68,8 +69,9 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		return;
 	}
 
+	cleanup = module_getsym(service, "cleanup");
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
-			NULL, NULL, permanent);
+			cleanup, NULL, permanent);
 
 	service->service_ht = sht;
 

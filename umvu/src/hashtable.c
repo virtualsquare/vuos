@@ -213,7 +213,7 @@ struct confirm_arg {
 
 static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
 	confirmfun_t confirm = ht->confirmfun;
-	if (confirm) {
+	if (confirm && ht->type != CHECKMODULE) {
 		struct confirm_arg *args = opaque;
 		epoch_t epoch = set_vepoch(ht->timestamp);
 		int rv = confirm(args->type, args->checkobj, args->len, ht);
@@ -224,7 +224,7 @@ static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
 }
 
 static int has_exception(struct vuht_entry_t *ht) {
-	return ht->confirmfun != NULL;
+	return ht->confirmfun != NULL && ht->type != CHECKMODULE;
 }
 
 static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
@@ -429,10 +429,13 @@ static void vuht_cleanup(struct vuht_entry_t *ht) {
   }
   ht->prev->next = ht->next;
   ht->next->prev = ht->prev;
-	if (ht->service_hte && ht->service_hte != ht)
-		vuht_drop(ht->service_hte);
   ht->next = ht->prev = NULL;
-	// call service termination (ht)
+	if (ht->service_hte && ht->service_hte != ht) {
+		confirmfun_t service_cleanup = ht->service_hte->confirmfun;
+		if (service_cleanup)
+			service_cleanup(ht->type, ht->obj, ht->objlen, ht);
+		vuht_drop(ht->service_hte);
+	}
 	if (ht->count == 0)
 		vuht_free(ht);
 }
@@ -583,6 +586,12 @@ void *vuht_get_private_data(struct vuht_entry_t *hte) {
 void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
 	if (hte)
 		hte->private_data = private_data;
+}
+
+void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_fun) {
+	if (hte != NULL && hte->type == CHECKMODULE) {
+			hte->confirmfun = cleanup_fun;
+	}
 }
 
 #if 0

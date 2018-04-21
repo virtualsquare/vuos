@@ -30,8 +30,10 @@
 #include <syscall_defs.h>
 #include <syscall_table.h>
 
+typedef void (* voidfun)(void);
+
 /* this is convenient since casting the return value of dlsym() to
- * a function pointer erroneously procudes a warning */
+ * a function pointer erroneously produces a warning */
 #pragma GCC diagnostic ignored "-Wpedantic"
 
 /* XXX temporary */
@@ -161,26 +163,27 @@ void module_unload(struct vu_service_t *service)
 	dlclose(service->dlhandle);
 }
 
+voidfun *module_getsym(struct vu_service_t *service, char *symbol) {
+	char symnamelen = strlen(service->mod->name) + strlen(symbol) + 5;
+	char symname[symnamelen];
+	snprintf(symname, symnamelen, "vu_%s_%s",service->mod->name, symbol);
+	return dlsym(service->dlhandle, symname);
+}
+
 void module_run_init(struct vu_service_t *service) {
-	int initnamelen = strlen(service->mod->name) + 4 + 5;
-	char initname[initnamelen];
 	void * (*init)(void);
-	snprintf(initname, initnamelen, "vu_%s_init",service->mod->name);
-	init = dlsym(service->dlhandle, initname);
+	init = module_getsym(service, "init");
 	if (init) {
-		printkdebug(m, "%s running init %s", service->mod->name, initname);
+		printkdebug(m, "%s running vu_%s_init", service->mod->name, service->mod->name);
 		service->private = init();
 	}
 }
 
 int module_run_fini(struct vu_service_t *service) {
-	  int fininamelen = strlen(service->mod->name) + 4 + 5;
-  char fininame[fininamelen];
   int (*fini)(void *);
-  snprintf(fininame, fininamelen, "vu_%s_fini",service->mod->name);
-  fini = dlsym(service->dlhandle, fininame);
+  fini = module_getsym(service, "fini");
   if (fini) {
-		printkdebug(m, "%s running fini %s", service->mod->name, fininame);
+		printkdebug(m, "%s running vu_%s_fini", service->mod->name, service->mod->name);
 		return fini(service->private);
 	} else
 		return 0;
