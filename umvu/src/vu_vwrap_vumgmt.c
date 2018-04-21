@@ -106,7 +106,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vuht_drop(sht);
 		return;
 	}
-	if ((ret_value = vuht_del(sht, 1)) != 0) {
+	if ((ret_value = vuht_del(sht, 0)) != 0) {
 		sd->ret_value = ret_value;
 		printk(KERN_ERR "module %s: %s\n", name, strerror(-ret_value));
 		vuht_drop(sht);

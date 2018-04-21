@@ -182,7 +182,7 @@ int vu_mountreal_mount(const char *source, const char *target,
 int vu_mountreal_umount2(const char *target, int flags) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	int ret_value;
-	if ((ret_value = vuht_del(ht, 1)) < 0) {
+	if ((ret_value = vuht_del(ht, flags)) < 0) {
 		errno = -ret_value;
 		return -1;
 	}

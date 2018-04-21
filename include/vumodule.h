@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/epoll.h>
-
+#include <sys/mount.h>
 
 struct vu_service_t;
 struct vuht_entry_t;
@@ -121,7 +121,9 @@ __attribute__((always_inline))
 		vuht_set_private_data(vu_mod_getht(), ht_private_data);
 	}
 
-int vuht_del(struct vuht_entry_t *hte, int delayed);
+/* supported flags: MNT_FORCE MNT_DETACH (both provide
+ immediate detach and lazy delete) */
+int vuht_del(struct vuht_entry_t *hte, int umountflags);
 
 typedef enum mod_inheritance_state_t {
   MOD_INH_CLONE,

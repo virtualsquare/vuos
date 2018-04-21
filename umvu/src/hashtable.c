@@ -452,8 +452,9 @@ static int vuht_cleanup(struct vuht_entry_t *ht) {
 }
 
 /* unlink an element from the hash table */
-static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
-	if (ht->count > delayed)
+static int vuht_del_locked(struct vuht_entry_t *ht, int umountflags) {
+	int lazy = (umountflags & MNT_FORCE) || (umountflags & MNT_DETACH);
+	if (!lazy && ht->count > 1)
 		return -EBUSY;
 	if (VUHT_DELETED(ht))
 		return -EINVAL;
@@ -465,11 +466,11 @@ static int vuht_del_locked(struct vuht_entry_t *ht, int delayed) {
 	return 0;
 }
 
-int vuht_del(struct vuht_entry_t *ht, int delayed) {
+int vuht_del(struct vuht_entry_t *ht, int umountflags) {
 	if (ht) {
 		int ret_value;
 		pthread_rwlock_wrlock(&vuht_rwlock);
-		ret_value = vuht_del_locked(ht, delayed & 1);
+		ret_value = vuht_del_locked(ht, umountflags);
 		pthread_rwlock_unlock(&vuht_rwlock);
 		if (ret_value == 0 && ht->count == 0)
 			vuht_cleanup(ht);
