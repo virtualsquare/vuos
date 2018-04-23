@@ -496,13 +496,17 @@ struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int 
 	switch (type) {
 		case CHECKPATH:
 			hte = vuht_pathsearch(type, arg, 0);
-			if (hte != NULL && st != NULL) {
+			if (st != NULL) {
 				if (__builtin_expect(S_ISCHR(st->st_mode), 0)) {
-					hte = vuht_search(CHECKCHRDEVICE, &st->st_rdev,
+					struct vuht_entry_t *dhte = vuht_search(CHECKCHRDEVICE, &st->st_rdev,
 							sizeof(dev_t), 0);
+					if (dhte != NULL)
+						hte = dhte;
 				} else if (__builtin_expect(S_ISBLK(st->st_mode), 0)) {
-					hte = vuht_search(CHECKBLKDEVICE, &st->st_rdev,
-							sizeof(dev_t), 0);
+					struct vuht_entry_t *dhte = vuht_search(CHECKBLKDEVICE, &st->st_rdev,
+              sizeof(dev_t), 0);
+          if (dhte != NULL)
+            hte = dhte;
 				}
 			}
 			break;
