@@ -37,104 +37,8 @@ VU_PROTOTYPES(unreal)
 		.description = "/unreal Mapping to FS (server side)"
 	};
 
-static const char *unwrap(const char *path)
-{
-#if 0
-	const char *s;
-	s = &(path[7]);
-	if (*s == 0)
-		s = "/";
-	return (s);
-#endif
-	return path;
-}
-
-int vu_unreal_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *private) {
-	return lstat(unwrap(pathname), buf);
-}
-
-ssize_t vu_unreal_readlink(char *path, char *buf, size_t bufsiz) {
-	return readlink(unwrap(path), buf, bufsiz);
-}
-
-int vu_unreal_access(char *path, int mode, int flags) {
-	return access(unwrap(path), mode);
-}
-
-int vu_unreal_open(const char *pathname, int flags, mode_t mode, void **private) {
-	return open(unwrap(pathname), flags, mode);
-}
-
 int vu_unreal_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *private) {
 	return syscall(__NR_getdents64, fd, dirp, count);
-}
-
-int vu_unreal_unlink(const char *pathname) {
-	return unlink(unwrap(pathname));
-}
-
-int vu_unreal_mkdir(const char *pathname, mode_t mode) {
-	return mkdir(unwrap(pathname), mode);
-}
-
-int vu_unreal_rmdir(const char *pathname) {
-	return rmdir(unwrap(pathname));
-}
-
-int vu_unreal_mknod(const char *pathname, mode_t mode, dev_t dev) {
-  return mknod(unwrap(pathname), mode, dev);
-}
-
-int vu_unreal_chmod(const char *pathname, mode_t mode, int fd, void *private) {
-	return chmod(unwrap(pathname), mode);
-}
-
-int vu_unreal_lchown(const char *pathname, uid_t owner, gid_t group, int fd, void *private) {
-	return lchown(unwrap(pathname), owner, group);
-}
-
-int vu_unreal_utimensat(int dirfd, const char *pathname,
-		const struct timespec times[2], int flags, int fd, void *private) {
-	return utimensat(dirfd, unwrap(pathname), times, flags);
-}
-
-int vu_unreal_symlink(const char *target, const char *linkpath) {
-	return symlink(target, unwrap(linkpath));
-}
-
-int vu_unreal_link(const char *target, const char *linkpath) {
-	return link(unwrap(target), unwrap(linkpath));
-}
-
-int vu_unreal_rename(const char *target, const char *linkpath, int flags) {
-	return rename(unwrap(target), unwrap(linkpath));
-}
-
-int vu_unreal_truncate(const char *path, off_t length, int fd, void *fdprivate) {
-	return truncate(unwrap(path), length);
-}
-
-int vu_unreal_statfs(const char *path, struct statfs *buf, int fd, void *fdprivate) {
-  return statfs(unwrap(path), buf);
-}
-
-ssize_t vu_unreal_lgetxattr(const char *path, const char *name,
-		void *value, size_t size, int fd, void *fdprivate) {
-	return lgetxattr(unwrap(path), name, value, size);
-}
-
-int vu_unreal_lsetxattr(const char *path, const char *name, 
-		const void *value, size_t size, int flags, int fd, void *fdprivate) {
-	return lsetxattr(unwrap(path), name, value, size, flags);
-}
-
-ssize_t vu_unreal_llistxattr(const char *path,
-		char *list, size_t size, int fd, void *fdprivate) {
-	return llistxattr(unwrap(path), list, size);
-}
-
-int vu_unreal_lremovexattr(const char *path, const char *name, int fd, void *fdprivate) {
-	return lremovexattr(unwrap(path), name);
 }
 
 static struct vuht_entry_t *ht1,*ht2;
@@ -148,6 +52,26 @@ void vu_unreal_cleanup(uint8_t type, void *arg, int arglen,
 
 void *vu_unreal_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
+
+	vu_syscall_handler(s, lstat) = lstat;
+	vu_syscall_handler(s, readlink) = readlink;
+	vu_syscall_handler(s, access) = access;
+	vu_syscall_handler(s, open) = open;
+	vu_syscall_handler(s, unlink) = unlink;
+	vu_syscall_handler(s, mkdir) = mkdir;
+	vu_syscall_handler(s, rmdir) = rmdir;
+	vu_syscall_handler(s, mknod) = mknod;
+	vu_syscall_handler(s, chmod) = chmod;
+	vu_syscall_handler(s, lchown) = lchown;
+	vu_syscall_handler(s, utimensat) = utimensat;
+	vu_syscall_handler(s, symlink) = symlink;
+	vu_syscall_handler(s, link) = link;
+	vu_syscall_handler(s, rename) = rename;
+	vu_syscall_handler(s, truncate) = truncate;
+	vu_syscall_handler(s, statfs) = statfs;
+	vu_syscall_handler(s, lgetxattr) = lgetxattr;
+	vu_syscall_handler(s, lsetxattr) = lsetxattr;
+	vu_syscall_handler(s, llistxattr) = llistxattr;
 
 	vu_syscall_handler(s, close) = close;
 	vu_syscall_handler(s, read) = read;
