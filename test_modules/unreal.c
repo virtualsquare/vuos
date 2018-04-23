@@ -39,11 +39,14 @@ VU_PROTOTYPES(unreal)
 
 static const char *unwrap(const char *path)
 {
+#if 0
 	const char *s;
 	s = &(path[7]);
 	if (*s == 0)
 		s = "/";
 	return (s);
+#endif
+	return path;
 }
 
 int vu_unreal_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *private) {

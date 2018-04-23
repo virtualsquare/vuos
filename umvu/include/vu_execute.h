@@ -9,6 +9,7 @@
 
 struct syscall_extra_t {
 	char *path;
+	const char *mpath;
 	struct vu_stat statbuf;
 	int path_errno;
 	char nested;

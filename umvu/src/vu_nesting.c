@@ -61,6 +61,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	sd.ret_value = 0;
 	extra.statbuf.st_mode = 0;
 	extra.path = get_nested_syspath(syscall_number, sd.syscall_args, &extra.statbuf);
+	extra.mpath = extra.path;
 	extra.path_errno = errno;
 	extra.nested = VU_NESTED;
 	extra.epoch = get_vepoch();

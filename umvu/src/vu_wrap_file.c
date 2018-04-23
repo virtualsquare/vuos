@@ -75,14 +75,14 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_open)(sd->extra->path, flags, mode, &private);
+		ret_value = service_syscall(ht, __VU_open)(sd->extra->mpath, flags, mode, &private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
 		} else {
 			struct fnode_t *fnode;
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
-				service_syscall(ht, __VU_lstat)(sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
+				service_syscall(ht, __VU_lstat)(sd->extra->mpath, &sd->extra->statbuf, 0, ret_value, private);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private); 
 			vuht_pick_again(ht);
 			if (nested) {

@@ -78,7 +78,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_local_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lstat)(sd->extra->path, statbuf, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lstat)(sd->extra->mpath, statbuf, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -116,7 +116,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_local_arg(bufaddr, buf, PATH_MAX + 1, nested);
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_readlink)(sd->extra->path, buf, PATH_MAX + 1);
+		ret_value = service_syscall(ht, __VU_readlink)(sd->extra->mpath, buf, PATH_MAX + 1);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -153,7 +153,7 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_access)(sd->extra->path, mode, flags);
+		ret_value = service_syscall(ht, __VU_access)(sd->extra->mpath, mode, flags);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -184,9 +184,9 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* call */
 		sd->action = SKIPIT;
 		if (flags & AT_REMOVEDIR)
-			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
+			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->mpath);
 		else
-			ret_value = service_syscall(ht, __VU_unlink)(sd->extra->path);
+			ret_value = service_syscall(ht, __VU_unlink)(sd->extra->mpath);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -219,7 +219,7 @@ void wi_truncate(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_truncate)(sd->extra->path, length, sfd, private);
+		ret_value = service_syscall(ht, __VU_truncate)(sd->extra->mpath, length, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -249,7 +249,7 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_mkdir)(sd->extra->path, mode);
+		ret_value = service_syscall(ht, __VU_mkdir)(sd->extra->mpath, mode);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -283,7 +283,7 @@ void wi_mknod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		mode = mode & ~vu_fs_get_umask();
     /* call */
     sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_mknod)(sd->extra->path, mode, dev);
+    ret_value = service_syscall(ht, __VU_mknod)(sd->extra->mpath, mode, dev);
     if (ret_value < 0) {
       sd->ret_value = -errno;
       return;
@@ -300,7 +300,7 @@ void wi_rmdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int ret_value;
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->path);
+		ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->mpath);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -344,7 +344,7 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->path, owner, group, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->mpath, owner, group, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -382,7 +382,7 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 		}
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->path, mode, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->mpath, mode, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -484,7 +484,7 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 		}
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht,__VU_utimensat)(AT_FDCWD, sd->extra->path, times, flags, sfd, private);
+		ret_value = service_syscall(ht,__VU_utimensat)(AT_FDCWD, sd->extra->mpath, times, flags, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -536,7 +536,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EXDEV;
 			return;
 		}
-		ret_value = service_syscall(ht, __VU_link)(oldpath, sd->extra->path);
+		ret_value = service_syscall(ht, __VU_link)(vuht_path2mpath(ht, oldpath), sd->extra->mpath);
 		xfree(oldpath);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
@@ -558,7 +558,7 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		else
 			target = umvu_peekdup_path(sd->syscall_args[0]);
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_symlink)(target, sd->extra->path);
+		ret_value = service_syscall(ht, __VU_symlink)(target, sd->extra->mpath);
 		if (!nested)
 			xfree(target);
 		if (ret_value < 0) {
@@ -612,12 +612,12 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EXDEV;
 			return;
 		}
-		ret_value = service_syscall(ht, __VU_rename)(oldpath, sd->extra->path, flags);
+		ret_value = service_syscall(ht, __VU_rename)(vuht_path2mpath(ht, oldpath), sd->extra->mpath, flags);
 		if (ret_value < 0 && errno == ENOSYS) {
 			/* workaround if rename is not available */
-			ret_value = service_syscall(ht, __VU_link)(oldpath, sd->extra->path);
+			ret_value = service_syscall(ht, __VU_link)(vuht_path2mpath(ht, oldpath), sd->extra->mpath);
 			if (ret_value == 0)
-				ret_value = service_syscall(ht, __VU_unlink)(oldpath);
+				ret_value = service_syscall(ht, __VU_unlink)(vuht_path2mpath(ht, oldpath), oldpath);
 		}
 		xfree(oldpath);
 		if (ret_value < 0) {
@@ -653,7 +653,7 @@ void wi_statfs(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_local_arg(bufaddr, buf, sizeof(*buf), nested);
 		    /* call */
     sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_statfs)(sd->extra->path, buf, sfd, private);
+    ret_value = service_syscall(ht, __VU_statfs)(sd->extra->mpath, buf, sfd, private);
     if (ret_value < 0) {
 			sd->ret_value = -errno;
       return;

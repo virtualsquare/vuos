@@ -46,8 +46,9 @@ struct mountreal_entry {
 static const char *unwrap(const char *path, char *buf, size_t size)
 {
 	struct mountreal_entry *entry = vu_get_ht_private_data();
-	const char *tail = path + entry->targetlen;
-	snprintf(buf, size, "%s%s", entry->source, tail);
+	//const char *tail = path + entry->targetlen;
+	//snprintf(buf, size, "%s%s", entry->source, tail);
+	snprintf(buf, size, "%s%s", entry->source, path);
 	if (buf[0] == 0)
 		snprintf(buf, size, "/");
 	// printk("unwrap *%s* -> *%s*\n", path, buf);

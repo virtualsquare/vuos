@@ -44,6 +44,8 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 			nested ? 'N' : '-', ht,
 			(sd->action == SKIPIT) ? -sd->ret_value : 0,
 			(sd->action == SKIPIT) ? "SKIPIT" : "");
+	if (ht)
+		extra->mpath = vuht_path2mpath(ht, extra->path);
 	return ht;
 }
 
@@ -59,6 +61,7 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	printkdebug(c, "fd %d %s: %c ht %p", fd, extra->path, 
 			nested ? 'N' : '-', ht);
 	if (ht) {
+		extra->mpath = vuht_path2mpath(ht, extra->path);
 		set_vepoch(vuht_get_vepoch(ht));
 		vuht_pick_again(ht);
 	}
@@ -172,6 +175,7 @@ struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
   printkdebug(c, "mmap2 %d %s: %c ht %p", fd, extra->path,
       nested ? 'N' : '-', ht);
   if (ht) {
+		extra->mpath = vuht_path2mpath(ht, extra->path);
     set_vepoch(vuht_get_vepoch(ht));
     vuht_pick_again(ht);
   }
@@ -190,6 +194,7 @@ struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
   printkdebug(c, "fd2 %d %s: %c ht %p", fd, extra->path,
       nested ? 'N' : '-', ht);
   if (ht) {
+		extra->mpath = vuht_path2mpath(ht, extra->path);
     set_vepoch(vuht_get_vepoch(ht));
     vuht_pick_again(ht);
   }

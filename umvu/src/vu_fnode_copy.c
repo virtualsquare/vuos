@@ -49,7 +49,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	}
 	if (fdoutstat.st_size == 0) {
 		//printk("REALCOPY %s to %s\n",path,tmp_path);
-		fdin = service_syscall(ht, __VU_open)(path, O_RDONLY, 0, &private);
+		fdin = service_syscall(ht, __VU_open)(vuht_path2mpath(ht, path), O_RDONLY, 0, &private);
 		if (fdin < 0) {
 			r_close(fdout);
 			return -1;
@@ -73,7 +73,7 @@ static int copyfile_out(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	fdin = r_open(path, O_RDONLY);
 	if (fdin < 0)
 		return -1;
-	fdout = service_syscall(ht, __VU_open)(path, O_RDWR, 0, &private);
+	fdout = service_syscall(ht, __VU_open)(vuht_path2mpath(ht, path), O_RDWR, 0, &private);
 	if (fdout < 0) {
 		close(fdin);
 		return -1;

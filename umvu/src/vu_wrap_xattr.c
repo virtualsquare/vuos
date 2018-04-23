@@ -63,7 +63,7 @@ void wi_lgetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_peek_local_strarg(nameaddr, name, PATH_MAX, nested);
 		if (valueaddr > 0) vu_alloc_arg(valueaddr, value, size, nested);
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lgetxattr)(sd->extra->path, name, value, size, sfd, private);
+		ret_value = service_syscall(ht, __VU_lgetxattr)(sd->extra->mpath, name, value, size, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
 		else {
@@ -99,7 +99,7 @@ void wi_lsetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_peek_local_strarg(nameaddr, name, PATH_MAX, nested);
 		vu_alloc_peek_arg(valueaddr, value, size, nested);
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lsetxattr)(sd->extra->path, name, value, size, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lsetxattr)(sd->extra->mpath, name, value, size, flags, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
 		else 
@@ -128,7 +128,7 @@ void wi_llistxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (listaddr > 0) vu_alloc_arg(listaddr, list, size, nested);
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_llistxattr)(sd->extra->path, list, size, sfd, private);
+		ret_value = service_syscall(ht, __VU_llistxattr)(sd->extra->mpath, list, size, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
 		else {
@@ -159,7 +159,7 @@ void wi_lremovexattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		vu_alloc_peek_local_strarg(nameaddr, name, PATH_MAX, nested);
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lremovexattr)(sd->extra->path, name, sfd, private);
+		ret_value = service_syscall(ht, __VU_lremovexattr)(sd->extra->mpath, name, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
 		else 

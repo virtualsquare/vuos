@@ -60,6 +60,7 @@ static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
 	static __thread struct syscall_extra_t extra;
 	extra.statbuf.st_mode = 0;
 	extra.path = getpath(sd, &extra.statbuf);
+	extra.mpath = extra.path;
 	extra.path_errno = errno;
 	extra.nested = VU_NOT_NESTED;
 	extra.epoch = get_vepoch();

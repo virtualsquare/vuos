@@ -592,6 +592,17 @@ const void *vuht_get_obj(struct vuht_entry_t *hte) {
 	return hte->obj;
 }
 
+const char *vuht_path2mpath(struct vuht_entry_t *hte, const char *path) {
+	if (__builtin_expect(hte != NULL && (hte->type & ~PSEUDO_CHECK) == CHECKPATH, 1))
+	{
+		const char *retvalue = path + hte->objlen;
+		return *retvalue == 0 ? "/" : retvalue;
+	} else {
+		printk(KERN_ERR, "path2mpath error");
+		return path;
+	}
+}
+
 void *vuht_get_private_data(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->private_data;

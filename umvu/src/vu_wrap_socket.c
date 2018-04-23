@@ -75,7 +75,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_msocket)(sd->extra->path, domain, type, protocol, &private);
+		ret_value = service_syscall(ht, __VU_msocket)(sd->extra->mpath, domain, type, protocol, &private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
