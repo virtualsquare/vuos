@@ -173,7 +173,7 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 		case CHECKBLKDEVICE:
 		case CHECKSC: /* array of int, or null keys */
 			return ((len % sizeof(int)) == 0);
-		case CHECKIOCTL: 
+		case CHECKIOCTL:
 			return ((len % sizeof(unsigned long)) == 0);
 		case CHECKFSALIAS: /* end of string */
 			return (*objc == 0);
@@ -302,6 +302,14 @@ static inline struct vuht_entry_t *vuht_search(uint8_t type, void *obj,
 	return vuht_internal_search(type, obj, objlen, obj, exact);
 }
 
+static inline int stringobj(uint8_t type) {
+	type &= ~PSEUDO_CHECK;
+	return
+		type == CHECKPATH ||
+		type == CHECKMODULE ||
+		type == CHECKFSALIAS;
+}
+
 static struct vuht_entry_t *
 internal_vuht_add(uint8_t type, const void *obj, int objlen,
 		unsigned long mountflags, char *mtabline,
@@ -313,9 +321,11 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	struct vuht_entry_t *new = vuht_alloc();
 	/* create the entry and fill in the fields */
 	fatal(new);
-	new->obj = malloc(objlen);
+	new->obj = malloc(objlen + stringobj(type));
 	fatal(new->obj);
 	memcpy(new->obj, obj, objlen);
+	if (stringobj(type))
+		((char *)new->obj)[objlen] = 0;
 	new->objlen = objlen;
 	new->type = type;
 	new->mountflags = mountflags;
@@ -555,7 +565,7 @@ void forall_vuht_do(uint8_t type,
 		struct vuht_entry_t *scanht = vuht_head;
 		do {
 			scanht = scanht->next;
-			if (scanht->type == type && !VUHT_DELETED(scanht) && 
+			if (scanht->type == type && !VUHT_DELETED(scanht) &&
 					(matching_epoch(scanht->timestamp)) > 0)
 				fun(scanht, arg);
 		} while (vuht_head != NULL && scanht != vuht_head);
@@ -578,6 +588,9 @@ void vuht_get_mtab(FILE *f) {
 		forall_vuht_do(CHECKPATH, vuht_mtab_add, f);
 }
 
+const void *vuht_get_obj(struct vuht_entry_t *hte) {
+	return hte->obj;
+}
 
 void *vuht_get_private_data(struct vuht_entry_t *hte) {
 	if (hte)

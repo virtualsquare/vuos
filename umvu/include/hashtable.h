@@ -55,6 +55,7 @@ void forall_vuht_do(uint8_t type,
 
 void vuht_get_mtab(FILE *f);
 
+const void *vuht_get_obj(struct vuht_entry_t *hte);
 void *vuht_get_private_data(struct vuht_entry_t *hte);
 void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
 void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_fun);
