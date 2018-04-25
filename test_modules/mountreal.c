@@ -40,7 +40,6 @@ VU_PROTOTYPES(mountreal)
 
 struct mountreal_entry {
 	char *source;
-	int targetlen;
 };
 
 static const char *unwrap(const char *path, char *buf, size_t size)
@@ -169,10 +168,8 @@ int vu_mountreal_mount(const char *source, const char *target,
 	struct vu_service_t *s = vu_mod_getservice();
 	struct mountreal_entry *entry = malloc(sizeof(struct mountreal_entry));
 	const char *source_no_root = strcmp(source, "/") == 0 ? "" : source;
-	const char *target_no_root = strcmp(target, "/") == 0 ? "" : target;
 	//printk("MOUNT %s %s\n", source, target);
 	entry->source = strdup(source_no_root);
-	entry->targetlen = strlen(target_no_root);
 	vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, entry);
 	errno = 0;
 	return 0;
