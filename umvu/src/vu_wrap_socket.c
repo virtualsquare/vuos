@@ -48,16 +48,16 @@
 
 #define MAX_SOCKADDR_LEN sizeof(struct sockaddr_storage)
 
-void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
 		/* standard args */
 		int syscall_number = sd->syscall_number;
 		int ret_value;
 		/* args */
-		int domain = sd->syscall_args[0];
-		int type = sd->syscall_args[1];
-		int protocol = sd->syscall_args[2];
+		int domain;
+		int type;
+		int protocol;
 		int flags = 0;
 		void *private = NULL;
 		switch (syscall_number) {
@@ -75,7 +75,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_msocket)(sd->extra->mpath, domain, type, protocol, &private);
+		ret_value = service_syscall(ht, __VU_socket)(domain, type, protocol, &private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -109,7 +109,7 @@ void wi_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-void wo_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+void wo_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->orig_ret_value;
 	if (ht) {
 		struct fnode_t *fnode = sd->inout;
@@ -124,10 +124,9 @@ void wo_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
-
 void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht)
-		wi_msocket(ht, sd);
+		wi_socket(ht, sd);
 	else
 		sd->ret_value = -EINVAL;
 }

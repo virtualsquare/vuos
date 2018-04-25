@@ -72,7 +72,7 @@ int VU_SYSNAME(name, getresfuid) (uid_t *ruid, uid_t *euid, uid_t *suid, uid_t *
 int VU_SYSNAME(name, getresfgid) (gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *fsgid, void *private); \
 int VU_SYSNAME(name, setresfuid) (uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, void *private); \
 int VU_SYSNAME(name, setresfgid) (gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgid, void *private); \
-int VU_SYSNAME(name, msocket) (const char *path, int domain, int type, int protocol); \
+int VU_SYSNAME(name, socket) (int domain, int type, int protocol, void **fdprivate); \
 
 
 #define CHECKMODULE 0        // Module name

@@ -38,14 +38,6 @@ VU_PROTOTYPES(unrealsock)
 		.description = "unrealsock: tcp-ip stack server side"
 	};
 
-int vu_unrealsock_msocket(const char *path, int domain, int type, int protocol) {
-	if (path != NULL) {
-		errno = EINVAL;
-		return -1;
-	}
-	return socket(domain, type, protocol);
-}
-
 static struct vuht_entry_t *ht[3];
 static int afs[3] = {AF_INET, AF_INET6, AF_NETLINK};
 
@@ -53,6 +45,7 @@ void *vu_unrealsock_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 	int i;
 
+	vu_syscall_handler(s, socket) = socket;
 	vu_syscall_handler(s, bind) = bind;
 	vu_syscall_handler(s, connect) = connect;
 	vu_syscall_handler(s, listen) = listen;
