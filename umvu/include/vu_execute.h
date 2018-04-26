@@ -12,7 +12,8 @@ struct syscall_extra_t {
 	const char *mpath;
 	struct vu_stat statbuf;
 	int path_errno;
-	char nested;
+	uint8_t nested;
+	uint8_t path_rewrite;
 	epoch_t epoch;
 };
 

@@ -520,9 +520,9 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       return;
     }
 		if (nested) 
-			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0);
+			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0, NULL);
 		else
-			oldpath = get_path(dirfd, oldaddr, NULL, 0);
+			oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL);
 
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
@@ -597,9 +597,9 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		sd->action = SKIPIT;
 		if (nested)
-			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0);
+			oldpath = get_nested_path(dirfd, (char *) oldaddr, NULL, 0, NULL);
 		else
-			oldpath = get_path(dirfd, oldaddr, NULL, 0);
+			oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL);
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
 			return;

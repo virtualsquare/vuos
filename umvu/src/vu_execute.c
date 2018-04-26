@@ -56,10 +56,10 @@ void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
-		char *(*getpath)(struct syscall_descriptor_t *sd, struct vu_stat *buf)) {
+		char *(*getpath)(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite)) {
 	static __thread struct syscall_extra_t extra;
 	extra.statbuf.st_mode = 0;
-	extra.path = getpath(sd, &extra.statbuf);
+	extra.path = getpath(sd, &extra.statbuf, &extra.path_rewrite);
 	extra.mpath = extra.path;
 	extra.path_errno = errno;
 	extra.nested = VU_NOT_NESTED;
@@ -89,7 +89,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);
 				else {
-					if (vu_fs_is_chroot())
+					if (vu_fs_is_chroot() || sd->extra->path_rewrite)
 						rewrite_syspath(sd, sd->extra->path);
 					tab_entry->wrapinf(ht, sd);
 					if ((sd->action & UMVU_CB_AFTER) == 0)
