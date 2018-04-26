@@ -8,6 +8,6 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct stat *b
 
 void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath);
 
-char *get_vsyspath(struct syscall_descriptor_t *sd, struct stat *buf);
+char *get_vsyspath(struct syscall_descriptor_t *sd, struct stat *buf, uint8_t *need_rewrite);
 
 #endif

@@ -124,7 +124,7 @@ void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
   }
 }
 
-char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
+char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int syscall_number = -sd->syscall_number;
 	int patharg = vvu_arch_table_patharg(syscall_number);
 	int dirfd = AT_FDCWD;
@@ -136,7 +136,7 @@ char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf) {
 		int type = vvu_arch_table_type(syscall_number);
 		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
 			flags &= ~FOLLOWLINK;
-		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, NULL);
+		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
 	}
 }
 
