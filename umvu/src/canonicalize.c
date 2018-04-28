@@ -76,7 +76,12 @@ static struct canon_ops operations = {
 };
 
 static int default_dirxok(const char *pathname, void *private) {
-	return faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+	/* default_lmode returns EACCES if search permission is denied for one of the
+		 directories in the path prefix of pathname. There is no need to
+		 check X_OK twice. */
+	return 0;
+	/* other weaker lmode definitions may require a specific check like the following one:
+		 return faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW); */
 }
 
 static mode_t default_lmode(const char *pathname, void *private) {
@@ -150,10 +155,9 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 			if ((cdata->flags & PERMIT_NONEXISTENT_LEAF) && errno == ENOENT && *cdata->end != '/') {
 				errno = 0;
 				return 0;
-			} else {
-				errno = ENOENT; /* we could leave the errno returned by lmode. isn't it? */
+			} else
+				/* forward the errno returned by lmode. */
 				return -1;
-			} 
 		}
 		/* Symlink case */
 		if (S_ISLNK(cdata->mode) &&
