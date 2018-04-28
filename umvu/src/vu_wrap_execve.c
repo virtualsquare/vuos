@@ -220,7 +220,7 @@ static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf)
 static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path) {
 	int ret_value;
 	if (ht)
-		ret_value = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, path), X_OK, 0);
+		ret_value = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, path), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 	else
 		ret_value = r_access(path, X_OK);
 	if (ret_value != 0) {
