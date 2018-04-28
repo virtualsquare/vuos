@@ -183,7 +183,7 @@ static int vu_access(char *pathname, int mode, void *private) {
 
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
-		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), mode, 0);
+		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), mode, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 		vuht_drop(ht);
 	} else
 		retval = r_access(pathname, mode);

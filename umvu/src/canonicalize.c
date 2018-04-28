@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include <limits.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -75,7 +76,7 @@ static struct canon_ops operations = {
 };
 
 static int default_access(const char *pathname, int mode, void *private) {
-	return access(pathname, mode);
+	return faccessat(AT_FDCWD, pathname, mode, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 }
 
 static mode_t default_lmode(const char *pathname, void *private) {

@@ -41,6 +41,10 @@ int vu_unreal_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int co
 	return syscall(__NR_getdents64, fd, dirp, count);
 }
 
+int vu_unreal_access(char *path, int mode, int flags) {
+	return faccessat(AT_FDCWD, path, mode, flags);
+}
+
 static struct vuht_entry_t *ht1,*ht2;
 
 void vu_unreal_cleanup(uint8_t type, void *arg, int arglen,
@@ -55,7 +59,6 @@ void *vu_unreal_init(void) {
 
 	vu_syscall_handler(s, lstat) = lstat;
 	vu_syscall_handler(s, readlink) = readlink;
-	vu_syscall_handler(s, access) = access;
 	vu_syscall_handler(s, open) = open;
 	vu_syscall_handler(s, unlink) = unlink;
 	vu_syscall_handler(s, mkdir) = mkdir;
