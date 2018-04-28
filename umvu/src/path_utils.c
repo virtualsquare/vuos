@@ -176,17 +176,17 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 }
 
 /* canonicalize's helper functions */
-static int vu_access(char *pathname, int mode, void *private) {
+static int vu_dirxok(char *pathname, void *private) {
 	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
 	int retval;
 
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 	if (ht) {
-		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), mode, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 		vuht_drop(ht);
 	} else
-		retval = r_access(pathname, mode);
+		retval = r_faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 	set_vepoch(e);
 	return retval;
 }
@@ -270,8 +270,8 @@ static int vu_getroot(char *pathname, size_t size, void *private) {
 __attribute__((constructor))
 	static void init(void) {
 		struct canon_ops ops = {
-			.access = vu_access,
 			.lmode = vu_lmode,
+			.dirxok = vu_dirxok,
 			.readlink = vu_readlink,
 			.getcwd = vu_getcwd,
 			.getroot = vu_getroot,

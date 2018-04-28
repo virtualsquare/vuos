@@ -61,22 +61,22 @@ struct canonstruct {
 	int flags;
 };
 
-static int default_access(const char *pathname, int mode, void *private);
+static int default_dirxok(const char *pathname, void *private);
 static mode_t default_lmode(const char *pathname, void *private);
 static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz, void *private);
 static int default_getcwd(char *pathname, size_t size, void *private);
 static int default_getroot(char *pathname, size_t size, void *private);
 
 static struct canon_ops operations = {
-	.access = default_access,
 	.lmode = default_lmode,
+	.dirxok = default_dirxok,
 	.readlink = default_readlink,
 	.getcwd = default_getcwd,
 	.getroot = default_getroot,
 };
 
-static int default_access(const char *pathname, int mode, void *private) {
-	return faccessat(AT_FDCWD, pathname, mode, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+static int default_dirxok(const char *pathname, void *private) {
+	return faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 }
 
 static mode_t default_lmode(const char *pathname, void *private) {
@@ -208,7 +208,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 			if (!S_ISDIR(cdata->mode)) {
 				errno = ENOTDIR;
 				return -1;
-			} else if (operations.access(cdata->resolved,X_OK,cdata->private) < 0) {
+			} else if (operations.dirxok(cdata->resolved, cdata->private) < 0) {
 				return -1;
 			}
 		}
