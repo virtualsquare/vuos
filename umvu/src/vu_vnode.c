@@ -130,10 +130,10 @@ int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
 }
 
 void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
-	struct vu_stat buf;
+	struct vu_stat buf[1];
 	pthread_mutex_lock(&vnode_mutex);
-	r_vu_lstat(vnode->vpath, &buf);
-	if (length > buf.st_size)
+	r_vu_lstat(vnode->vpath, buf);
+	if (length > buf->st_size)
 		r_truncate(vnode->vpath, length);
 	pthread_mutex_unlock(&vnode_mutex);
 }

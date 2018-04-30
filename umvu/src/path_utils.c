@@ -57,11 +57,12 @@ static inline int realpath_flags(int flags) {
 
 char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
 	char path[PATH_MAX];
+	struct vu_stat nullbuf[buf == NULL];
 	struct realpath_arg_t realpath_arg = {
 		.dirfd = dirfd,
 		.nested = 0,
 		.need_rewrite = 0,
-		.statbuf = buf};
+		.statbuf = (buf == NULL) ? nullbuf : buf};
 	char *ret_value;
 	umvu_peek_str(addr, path, PATH_MAX);
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
@@ -141,11 +142,12 @@ char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t
 }
 
 char *get_nested_path(int dirfd, char *path, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
+	struct vu_stat nullbuf[buf == NULL];
 	struct realpath_arg_t realpath_arg = {
 		.dirfd = dirfd,
 		.nested = 1,
 		.need_rewrite = 0,
-		.statbuf = buf};
+		.statbuf = (buf == NULL) ? nullbuf : buf};
 	char *ret_value;
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
 	printkdebug(p,"get_nested_path %d %s->%s errno:%d epoch:%d rewr:%d", dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
@@ -212,12 +214,8 @@ static mode_t vu_lmode(char *pathname, void *private) {
 
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 
-	if (arg->statbuf != NULL) 
-		retval = get_lmode(ht, pathname, arg->statbuf);
-	else {
-		struct vu_stat buf;
-		retval = get_lmode(ht, pathname, &buf);
-	}
+	retval = get_lmode(ht, pathname, arg->statbuf);
+
 	if (ht) {
 		arg->need_rewrite = 1;
 		vuht_drop(ht);

@@ -85,9 +85,9 @@ static int default_dirxok(const char *pathname, void *private) {
 }
 
 static mode_t default_lmode(const char *pathname, void *private) {
-	struct stat buf;
-	if (lstat(pathname, &buf) == 0)
-		return buf.st_mode;
+	struct stat buf[1];
+	if (lstat(pathname, buf) == 0)
+		return buf->st_mode;
 	else
 		return 0;
 }
