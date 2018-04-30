@@ -205,6 +205,7 @@ void *vu_mountreal_init(void) {
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
 	vu_syscall_handler(s, fcntl) = fcntl;
+	vu_syscall_handler(s, epoll_ctl) = epoll_ctl;
 
 	return NULL;
 }

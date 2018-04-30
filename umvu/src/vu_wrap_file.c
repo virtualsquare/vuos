@@ -43,6 +43,7 @@
 #include <vu_fd_table.h>
 #include <vu_wrap_rw_multiplex.h>
 #include <vu_wrapper_utils.h>
+#include <vu_slow_calls.h>
 
 /* open, creat, openat */
 void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -132,7 +133,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				default: fdflags = 0;
 			}
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
-        r_lstat(sd->extra->path, &sd->extra->statbuf);
+				r_lstat(sd->extra->path, &sd->extra->statbuf);
 			fnode = vu_fnode_create(NULL, sd->extra->path, &sd->extra->statbuf, 0, -1, NULL); 
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
 		}
@@ -142,19 +143,19 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 /* close */
 void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	  int nested = sd->extra->nested;
-		if (nested) {
-			/* do not use DOIT_CB_AFTER: close must be real, not further virtualized */
-			if (ht) {
-				int fd = sd->syscall_args[0];
-				int ret_value = vu_fd_close(fd, VU_NESTED);
-				sd->ret_value = ret_value < 0 ? -errno : 0;
-				r_close(fd);
-				sd->action = SKIPIT;
-			}
-		} else {
-			sd->action = DOIT_CB_AFTER;
+	int nested = sd->extra->nested;
+	if (nested) {
+		/* do not use DOIT_CB_AFTER: close must be real, not further virtualized */
+		if (ht) {
+			int fd = sd->syscall_args[0];
+			int ret_value = vu_fd_close(fd, VU_NESTED);
+			sd->ret_value = ret_value < 0 ? -errno : 0;
+			r_close(fd);
+			sd->action = SKIPIT;
 		}
+	} else {
+		sd->action = DOIT_CB_AFTER;
+	}
 }
 
 void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -166,60 +167,102 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static int file_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
-  if (ht) {
+	if (ht) {
 		int ret_value;
-    ret_value = service_syscall(ht, __VU_close)(sfd, private);
+		ret_value = service_syscall(ht, __VU_close)(sfd, private);
 		vuht_drop(ht);
 		return ret_value;
-  } else
-    return 0;
+	} else
+		return 0;
 }
 
 /* read, readv */
+static void _file_wx_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int fd = sd->syscall_args[0];
+	int nested = sd->extra->nested;
+	void *private = NULL;
+	int sfd = vu_fd_get_sfd(fd, &private, nested);
+	if (sd->syscall_number == __NR_read) {
+		uintptr_t addr =  sd->syscall_args[1];
+		size_t bufsize = sd->syscall_args[2];
+		void *buf; 
+		ssize_t ret_value;
+		vu_alloc_arg(addr, buf, bufsize, nested);
+		ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
+		if (ret_value < 0)
+			sd->ret_value = -errno;
+		else {
+			sd->ret_value = ret_value;
+			if (ret_value > 0)
+				vu_poke_arg(addr, buf, ret_value, nested);
+		}
+		vu_free_arg(buf, nested);
+	} else { // readv
+		uintptr_t iovaddr = sd->syscall_args[1];
+		int iovcnt = sd->syscall_args[2];
+		struct iovec *iov;
+		void *buf;
+		ssize_t ret_value;
+		size_t bufsize;
+		vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
+		ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
+		if (ret_value < 0)
+			sd->ret_value = -errno;
+		else {
+			sd->ret_value = ret_value;
+			vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
+		}
+		vu_free_iov_arg(iov, buf, nested);
+	}
+}
+
 void file_wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
-		int fd = sd->syscall_args[0];
-		int nested = sd->extra->nested;
-		void *private = NULL;
-		int sfd = vu_fd_get_sfd(fd, &private, nested);
-		if (sd->syscall_number == __NR_read) {
-			uintptr_t addr =  sd->syscall_args[1];
-			size_t bufsize = sd->syscall_args[2];
-			void *buf; 
-			ssize_t ret_value;
-			vu_alloc_arg(addr, buf, bufsize, nested);
-			ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
-			if (ret_value < 0)
-				sd->ret_value = -errno;
-			else {
-				sd->ret_value = ret_value;
-				if (ret_value > 0)
-					vu_poke_arg(addr, buf, ret_value, nested);
-			}
-			vu_free_arg(buf, nested);
-		} else { // readv
-			uintptr_t iovaddr = sd->syscall_args[1];
-			int iovcnt = sd->syscall_args[2];
-			struct iovec *iov;
-			void *buf;
-			ssize_t ret_value;
-			size_t bufsize;
-			vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
-			ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
-			if (ret_value < 0)
-				sd->ret_value = -errno;
-			else {
-				sd->ret_value = ret_value;
-				vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
-			}
-			vu_free_iov_arg(iov, buf, nested);
-		}
+		_file_wx_read(ht, sd);
 		sd->action = SKIPIT;
 	}
 }
 
+void slow_wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht) {
+		int nested = sd->extra->nested;
+		if (!nested) {
+			int fd = sd->syscall_args[0];
+			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
+			if (sc != NULL) {
+				sd->inout = sc;
+				sd->action = BLOCKIT;
+				return;
+			}
+		}
+		sd->inout = NULL;
+		_file_wx_read(ht, sd);
+		sd->action = SKIPIT;
+	}
+}
+
+void slow_wd_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	struct slowcall *sc = sd->inout;
+	sd->waiting_pid = vu_slowcall_during(sc);
+}
+
+void slow_wo_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	struct slowcall *sc = sd->inout;
+	int fd = sd->syscall_args[0];
+	if (sc != NULL) {
+		vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
+		if (sd->waiting_pid != 0) {
+			sd->ret_value = -EINTR;
+			sd->action = SKIPIT;
+			return;
+		}
+	}
+	_file_wx_read(ht, sd);
+}
+
 /* write, writev */
-void file_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+static void _file_wx_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
 		int nested = sd->extra->nested;
@@ -239,33 +282,78 @@ void file_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			vu_free_arg(buf, nested);
 		} else { // writev
 			uintptr_t iovaddr = sd->syscall_args[1];
-      int iovcnt = sd->syscall_args[2];
-      struct iovec *iov;
-      void *buf;
-      ssize_t ret_value;
-      size_t bufsize;
+			int iovcnt = sd->syscall_args[2];
+			struct iovec *iov;
+			void *buf;
+			ssize_t ret_value;
+			size_t bufsize;
 			vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
 			ret_value = service_syscall(ht, __VU_write)(sfd, buf, bufsize, private);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
 			else
-        sd->ret_value = ret_value;
+				sd->ret_value = ret_value;
 			vu_free_iov_arg(iov, buf, nested);
 		}
 		sd->action = SKIPIT;
 	}
 }
 
+void file_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht) {
+		_file_wx_write(ht, sd);
+		sd->action = SKIPIT;
+	}
+}
+
+void slow_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	if (ht) {
+		int nested = sd->extra->nested;
+		if (!nested) {
+			int fd = sd->syscall_args[0];
+			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLOUT, nested);
+			if (sc != NULL) {
+				sd->inout = sc;
+				sd->action = BLOCKIT;
+				return;
+			}
+		}
+		sd->inout = NULL;
+		_file_wx_write(ht, sd);
+		sd->action = SKIPIT;
+	}
+}
+
+void slow_wd_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	struct slowcall *sc = sd->inout;
+	sd->waiting_pid = vu_slowcall_during(sc);
+}
+
+void slow_wo_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	struct slowcall *sc = sd->inout;
+	int fd = sd->syscall_args[0];
+	if (sc != NULL) {
+		vu_slowcall_out(sc, ht, fd, EPOLLIN, nested);
+		if (sd->waiting_pid != 0) {
+			sd->ret_value = -EINTR;
+			sd->action = SKIPIT;
+			return;
+		}
+	}
+	_file_wx_write(ht, sd);
+}
+
 /* pread64, preadv, preadv2 */
 void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-    int nested = sd->extra->nested;
+		int nested = sd->extra->nested;
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int flags = 0;
 		if (sd->syscall_number == __NR_pread64) {
-      uintptr_t addr =  sd->syscall_args[1];
+			uintptr_t addr =  sd->syscall_args[1];
 			size_t bufsize = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
 			void *buf;
@@ -288,20 +376,20 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (sd->syscall_number == __NR_preadv2) 
 				flags = sd->syscall_args[4];
 #endif
-      struct iovec *iov;
-      void *buf;
-      ssize_t ret_value;
-      size_t bufsize;
-      vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
+			struct iovec *iov;
+			void *buf;
+			ssize_t ret_value;
+			size_t bufsize;
+			vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
 			ret_value = service_syscall(ht, __VU_pread64)(sfd, buf, bufsize, offset, flags, private);
-      if (ret_value < 0)
-        sd->ret_value = -errno;
-      else {
-        sd->ret_value = ret_value;
-        vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
-      }
-      vu_free_iov_arg(iov, buf, nested);
-    }
+			if (ret_value < 0)
+				sd->ret_value = -errno;
+			else {
+				sd->ret_value = ret_value;
+				vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, ret_value, nested);
+			}
+			vu_free_iov_arg(iov, buf, nested);
+		}
 		sd->action = SKIPIT;
 	}
 }
@@ -310,24 +398,24 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		int fd = sd->syscall_args[0];
-    int nested = sd->extra->nested;
+		int nested = sd->extra->nested;
 		void *private = NULL;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int flags = 0;
-		    if (sd->syscall_number == __NR_pwrite64) {
-      uintptr_t addr =  sd->syscall_args[1];
-      size_t bufsize = sd->syscall_args[2];
+		if (sd->syscall_number == __NR_pwrite64) {
+			uintptr_t addr =  sd->syscall_args[1];
+			size_t bufsize = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
-      void *buf;
-      ssize_t ret_value;
-      vu_alloc_peek_arg(addr, buf, bufsize, nested);
-      ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
-      vu_free_arg(buf, nested);
-      if (ret_value < 0)
-        sd->ret_value = -errno;
-      else
-        sd->ret_value = ret_value;
-    } else { // pwritev, pwritev2
+			void *buf;
+			ssize_t ret_value;
+			vu_alloc_peek_arg(addr, buf, bufsize, nested);
+			ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
+			vu_free_arg(buf, nested);
+			if (ret_value < 0)
+				sd->ret_value = -errno;
+			else
+				sd->ret_value = ret_value;
+		} else { // pwritev, pwritev2
 			uintptr_t iovaddr = sd->syscall_args[1];
 			int iovcnt = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
@@ -335,19 +423,19 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (sd->syscall_number == __NR_pwritev2) 
 				flags = sd->syscall_args[4];
 #endif
-      struct iovec *iov;
-      void *buf;
-      ssize_t ret_value;
-      size_t bufsize;
-      vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
-      ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
-      if (ret_value < 0)
-        sd->ret_value = -errno;
-      else
-        sd->ret_value = ret_value;
-      vu_free_iov_arg(iov, buf, nested);
-    }
-    sd->action = SKIPIT;
+			struct iovec *iov;
+			void *buf;
+			ssize_t ret_value;
+			size_t bufsize;
+			vu_alloc_peek_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested);
+			ret_value = service_syscall(ht, __VU_pwrite64)(sfd, buf, bufsize, offset, flags, private);
+			if (ret_value < 0)
+				sd->ret_value = -errno;
+			else
+				sd->ret_value = ret_value;
+			vu_free_iov_arg(iov, buf, nested);
+		}
+		sd->action = SKIPIT;
 	}
 }
 
@@ -426,7 +514,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value;
 	if (ht) {
 		void *private = NULL;
-    int sfd = vu_fd_get_sfd(fd, &private, nested);
+		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		switch (cmd) { /* common mgmt virtual fd*/
 			case F_GETFD:
 				ret_value = vu_fd_get_fdflags(fd, nested);
@@ -442,36 +530,36 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				}
 				return;
 			case F_GETFL:
-				 ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_GETFL, 0, private);
-				 if (ret_value < 0) {
-					 sd->ret_value = -errno;
-					 if (errno == ENOSYS) 
-						 sd->ret_value = vu_fd_get_flflags(fd, nested);
-				 }
-				 else
-					 sd->ret_value = ret_value;
-				 sd->action = SKIPIT;
-				 return;
+				ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_GETFL, 0, private);
+				if (ret_value < 0) {
+					sd->ret_value = -errno;
+					if (errno == ENOSYS) 
+						sd->ret_value = vu_fd_get_flflags(fd, nested);
+				}
+				else
+					sd->ret_value = ret_value;
+				sd->action = SKIPIT;
+				return;
 			case F_SETFL:
-				 {
-					 int flags = sd->syscall_args[2];
-					 ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_SETFL, flags, private);
-					 if (ret_value < 0) {
-						 sd->ret_value = -errno;
-					 } else {
-						 sd->ret_value = ret_value;
-						 vu_fd_set_flflags(fd, nested, flags);
-					 }
-				 }
-				 return;
+				{
+					int flags = sd->syscall_args[2];
+					ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_SETFL, flags, private);
+					if (ret_value < 0) {
+						sd->ret_value = -errno;
+					} else {
+						sd->ret_value = ret_value;
+						vu_fd_set_flflags(fd, nested, flags);
+					}
+				}
+				return;
 		}
 	} else {
 		switch (cmd) { /* common mgmt real fd*/
 			case F_GETFD:
-      case F_GETFL:
+			case F_GETFL:
 				return; /* DOIT */
-      case F_SETFD:
-      case F_SETFL:
+			case F_SETFD:
+			case F_SETFL:
 				sd->action = DOIT_CB_AFTER;
 				return;
 		}
@@ -498,8 +586,8 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 	} else { 
 		switch(cmd) {
-      case F_DUPFD:
-      case F_DUPFD_CLOEXEC:
+			case F_DUPFD:
+			case F_DUPFD_CLOEXEC:
 				sd->action = DOIT_CB_AFTER;
 				return;
 		}
@@ -534,9 +622,9 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		case F_SETFL:
 			{
 				int flags = sd->syscall_args[2];
-        if (ret_value >= 0)
-          vu_fd_set_flflags(fd, nested, flags);
-      }
+				if (ret_value >= 0)
+					vu_fd_set_flflags(fd, nested, flags);
+			}
 			break;
 	}
 	sd->ret_value = ret_value;
@@ -588,8 +676,12 @@ __attribute__((constructor))
 		vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
 		set_wi_read(S_IFREG, file_wi_read);
 		set_wi_read(S_IFBLK, file_wi_read);
-		set_wi_read(S_IFCHR, file_wi_read); // workaround XXX chrdev_wi_read is still missing
 		set_wi_write(S_IFREG, file_wi_write);
 		set_wi_write(S_IFBLK, file_wi_write);
-		set_wi_write(S_IFCHR, file_wi_write); // workaround XXX chrdev_wi_write is still missing
+		set_wi_read(S_IFCHR, slow_wi_read);
+		set_wd_read(S_IFCHR, slow_wd_read);
+		set_wo_read(S_IFCHR, slow_wo_read);
+		set_wi_write(S_IFCHR, slow_wi_write);
+		set_wd_write(S_IFCHR, slow_wd_write);
+		set_wo_write(S_IFCHR, slow_wo_write);
 	}
