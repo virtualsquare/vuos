@@ -320,7 +320,8 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* args */
 		uid_t owner;
 		gid_t group;
-		int flags = 0;
+		/* __NR_fchownat flag AT_SYMLINK_NOFOLLOW has been already
+			 processes by the path resolution */
 		int sfd = -1;
 		void *private = NULL;
 		/* fetch args */
@@ -339,12 +340,12 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_fchownat:
 				owner = sd->syscall_args[2];
 				group = sd->syscall_args[3];
-				flags = sd->syscall_args[4];;
+				/* flags = sd->syscall_args[4]; */
 				break;
 		}
 		/* call */
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->mpath, owner, group, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_lchown)(sd->extra->mpath, owner, group, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
@@ -363,7 +364,8 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int ret_value;
 		/* args */
 		mode_t mode;
-		int flags = 0;
+		/* __NR_fchmodat flag AT_SYMLINK_NOFOLLOW has been already
+			 processes by the path resolution */
 		int sfd = -1;
 		void *private = NULL;
 		/* fetch args */
@@ -378,11 +380,11 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 			case __NR_fchmodat:
 				mode = sd->syscall_args[2];
-				flags = sd->syscall_args[3];
+				/* flags = sd->syscall_args[3]; */
 				break;
 		}
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->mpath, mode, flags, sfd, private);
+		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->mpath, mode, sfd, private);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
