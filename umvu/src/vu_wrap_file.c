@@ -588,6 +588,8 @@ __attribute__((constructor))
 		vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
 		set_wi_read(S_IFREG, file_wi_read);
 		set_wi_read(S_IFBLK, file_wi_read);
+		set_wi_read(S_IFCHR, file_wi_read); // workaround XXX chrdev_wi_read is still missing
 		set_wi_write(S_IFREG, file_wi_write);
 		set_wi_write(S_IFBLK, file_wi_write);
+		set_wi_write(S_IFCHR, file_wi_write); // workaround XXX chrdev_wi_write is still missing
 	}

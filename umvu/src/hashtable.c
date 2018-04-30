@@ -440,15 +440,15 @@ static int vuht_cleanup(struct vuht_entry_t *ht) {
 		ht = vuht_head;
 	if (ht == NULL)
 		return -1;
-  if (ht == vuht_head) {
-    if (ht->next == ht)
-      vuht_head = NULL;
-    else
-      vuht_head = ht->prev;
-  }
-  ht->prev->next = ht->next;
-  ht->next->prev = ht->prev;
-  ht->next = ht->prev = NULL;
+	if (ht == vuht_head) {
+		if (ht->next == ht)
+			vuht_head = NULL;
+		else
+			vuht_head = ht->prev;
+	}
+	ht->prev->next = ht->next;
+	ht->next->prev = ht->prev;
+	ht->next = ht->prev = NULL;
 	pthread_mutex_unlock(&vuht_head_lock);
 	if (ht->service_hte && ht->service_hte != ht) {
 		confirmfun_t service_cleanup = ht->service_hte->confirmfun;
@@ -500,13 +500,17 @@ struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int 
 				if (__builtin_expect(S_ISCHR(st->st_mode), 0)) {
 					struct vuht_entry_t *dhte = vuht_search(CHECKCHRDEVICE, &st->st_rdev,
 							sizeof(dev_t), 0);
-					if (dhte != NULL)
+					if (dhte != NULL) {
+						if (hte) hte->count--;
 						hte = dhte;
+					}
 				} else if (__builtin_expect(S_ISBLK(st->st_mode), 0)) {
 					struct vuht_entry_t *dhte = vuht_search(CHECKBLKDEVICE, &st->st_rdev,
-              sizeof(dev_t), 0);
-          if (dhte != NULL)
-            hte = dhte;
+							sizeof(dev_t), 0);
+					if (dhte != NULL) {
+						if (hte) hte->count--;
+						hte = dhte;
+					}
 				}
 			}
 			break;
@@ -678,6 +682,6 @@ void vuht_terminate(void) {
 }
 
 __attribute__((constructor))
-  static void init (void) {
-    vu_destructor_register(vuht_terminate);
-  }
+	static void init (void) {
+		vu_destructor_register(vuht_terminate);
+	}
