@@ -295,9 +295,18 @@ char *canon_realpath(const char *path, char *resolved_path, int flags, void *pri
 	size_t pathlen;
 	ssize_t prefixlen;
 	/* arg consistency check */
-	if (!path || *path == 0) {
-		errno = path ? ENOENT : EINVAL;
+	if (__builtin_expect(path == NULL, 0)) {
+		errno = EINVAL;
 		return NULL;
+	}
+	if (__builtin_expect(*path == 0, 0)) {
+		if (flags & PERMIT_EMPTY_PATH &&
+			operations.getcwd(resolved_path, PATH_MAX, private) >= 0)
+			return resolved_path;
+		else {
+			errno = ENOENT;
+			return NULL;
+		}
 	}
 	pathlen = strlen(path);
 	prefixlen = (*path == '/') ? abs_prefix(&cdata) : rel_prefix(&cdata);

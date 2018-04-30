@@ -7,6 +7,7 @@
 #define FOLLOWLINK 1
 #define PERMIT_NONEXISTENT_LEAF 2
 #define IGNORE_TRAILING_SLASH 4
+#define PERMIT_EMPTY_PATH 8
 
 struct canon_ops {
 	mode_t (*lmode) (const char *pathname, void *private);

@@ -49,10 +49,8 @@ struct realpath_arg_t {
 };
 
 static inline int realpath_flags(int flags) {
-	int retvalue = DEFAULT_REALPATH_FLAGS;
-	if (flags & FOLLOWLINK)
-		retvalue |= FOLLOWLINK;
-	return retvalue;
+	return DEFAULT_REALPATH_FLAGS |
+		(flags & (FOLLOWLINK | PERMIT_EMPTY_PATH));
 }
 
 char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
@@ -88,6 +86,19 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	}
 }
 
+int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
+	int nargs = vu_arch_table_nargs(syscall_number);
+  switch (syscall_number) {
+    case __NR_openat:
+    case __NR_open:
+    case __NR_umount2:
+    case __NR_unlinkat:
+      return 0;
+    default:
+      return (args[nargs-1] & AT_EMPTY_PATH);
+  }
+}
+
 char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int syscall_number = sd->syscall_number;
 	int patharg = vu_arch_table_patharg(syscall_number);
@@ -106,6 +117,8 @@ char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t 
 		if (type & ARCH_TYPE_IS_AT) {
 			dirfd = sd->syscall_args[patharg];
 			patharg++;
+			if (is_at_empty_path(syscall_number, sd->syscall_args))
+				flags |= PERMIT_EMPTY_PATH;
 		}
 		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
 	}
@@ -193,7 +206,7 @@ static int vu_dirxok(char *pathname, void *private) {
 	return retval;
 }
 
-static inline mode_t get_lmode(struct vuht_entry_t *ht, 
+static inline mode_t get_lmode(struct vuht_entry_t *ht,
 		char *pathname, struct vu_stat *buf) {
 	int stat_retval;
 	if (ht) {
@@ -245,7 +258,7 @@ static int vu_getcwd(char *pathname, size_t size, void *private) {
 		if (arg->nested == 0) {
 			vu_fs_get_cwd(pathname, size);
 			return 0;
-		} else 
+		} else
 			return getcwd(pathname, size) == 0 ? -1 : 0;
 	} else {
 		vu_fd_get_path(arg->dirfd, arg->nested, pathname, size);
