@@ -17,7 +17,7 @@ char *canon_realpath_dup(const char *path, int flags, void *private);
 	 virtual-world consistent re-definition of functions needed for canonicalize */
 
 struct canon_ops {
-	/* link opaque (lstat) mode definition of file type, 0 for non-existent file */
+	/* link opaque (lstat) mode_t definition of file type, 0 for non-existent file */
 	mode_t (*lmode) (const char *pathname, void *private);
 
 	/* 0 if X_OK for euid egid or supplementary group, -1 otherwise */
