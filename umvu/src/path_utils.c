@@ -188,30 +188,30 @@ void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
 
 /* canonicalize's helper functions */
 static int vu_dirxok(char *pathname, void *private) {
-	struct vuht_entry_t *ht;
-	epoch_t e = get_vepoch();
-	int retval;
-
-	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
-	if (ht) {
-		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-		vuht_drop(ht);
-	} else
-		retval = r_faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-	set_vepoch(e);
-	return retval;
+	errno = EACCES;
+	return -1;
 }
 
 static inline mode_t get_lmode(struct vuht_entry_t *ht,
 		char *pathname, struct vu_stat *buf) {
 	int stat_retval;
-	if (ht) {
+	if (ht)
 		stat_retval = service_syscall(ht,__VU_lstat)(vuht_path2mpath(ht, pathname), buf, 0, -1, NULL);
-	} else
+	else
 		stat_retval = r_vu_lstat(pathname, buf);
 	if (stat_retval < 0)
 		buf->st_mode = 0;
 	return buf->st_mode;
+}
+
+static inline mode_t get_dirxok(struct vuht_entry_t *ht,
+    char *pathname) {
+	int retval;
+	if (ht)
+		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+	else
+		retval = r_faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+	return retval == 0 ? S_IXOTH : 0;
 }
 	
 static mode_t vu_lmode(char *pathname, void *private) {
@@ -223,6 +223,9 @@ static mode_t vu_lmode(char *pathname, void *private) {
 	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
 
 	retval = get_lmode(ht, pathname, arg->statbuf);
+
+	if (S_ISDIR(retval) && !(retval & S_IXOTH))
+		retval |= get_dirxok(ht, pathname);
 
 	if (ht) {
 		arg->need_rewrite = 1;

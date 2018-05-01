@@ -213,7 +213,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				errno = ENOTDIR;
 				return -1;
 			}
-			/* check of X_OK: if S_IXOTH is true X_OK is true for everybody */
+			/* check of X_OK: if S_IXOTH is true then X_OK is true for everybody */
 			else if ((cdata->mode & S_IXOTH) == 0 &&
 					operations.dirxok(cdata->resolved, cdata->private) < 0) {
 				return -1;
