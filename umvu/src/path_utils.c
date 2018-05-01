@@ -40,7 +40,7 @@
 #include <path_utils.h>
 #include <vu_execute.h>
 
-#define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | IGNORE_TRAILING_SLASH)
+#define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | CHECK_S_IXOTH_ON_DIRS)
 
 struct realpath_arg_t {
 	int dirfd;
@@ -187,11 +187,6 @@ void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
 }
 
 /* canonicalize's helper functions */
-static int vu_dirxok(char *pathname, void *private) {
-	errno = EACCES;
-	return -1;
-}
-
 static inline mode_t get_lmode(struct vuht_entry_t *ht,
 		char *pathname, struct vu_stat *buf) {
 	int stat_retval;
@@ -280,7 +275,6 @@ __attribute__((constructor))
 	static void init(void) {
 		struct canon_ops ops = {
 			.lmode = vu_lmode,
-			.dirxok = vu_dirxok,
 			.readlink = vu_readlink,
 			.getcwd = vu_getcwd,
 			.getroot = vu_getroot,

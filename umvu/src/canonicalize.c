@@ -61,7 +61,6 @@ struct canonstruct {
 	int flags;
 };
 
-static int default_dirxok(const char *pathname, void *private);
 static mode_t default_lmode(const char *pathname, void *private);
 static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz, void *private);
 static int default_getcwd(char *pathname, size_t size, void *private);
@@ -69,20 +68,10 @@ static int default_getroot(char *pathname, size_t size, void *private);
 
 static struct canon_ops operations = {
 	.lmode = default_lmode,
-	.dirxok = default_dirxok,
 	.readlink = default_readlink,
 	.getcwd = default_getcwd,
 	.getroot = default_getroot,
 };
-
-static int default_dirxok(const char *pathname, void *private) {
-	/* default_lmode returns EACCES if search permission is denied for one of the
-		 directories in the path prefix of pathname. There is no need to
-		 check X_OK twice. */
-	return 0;
-	/* other weaker lmode definitions may require a specific check like the following one:
-		 return faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW); */
-}
 
 static mode_t default_lmode(const char *pathname, void *private) {
 	struct stat buf[1];
@@ -213,9 +202,9 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				errno = ENOTDIR;
 				return -1;
 			}
-			/* check of X_OK: if S_IXOTH is true then X_OK is true for everybody */
-			else if ((cdata->mode & S_IXOTH) == 0 &&
-					operations.dirxok(cdata->resolved, cdata->private) < 0) {
+			/* check S_IXOTH if requested */
+			else if ((cdata->flags & CHECK_S_IXOTH_ON_DIRS) && (cdata->mode & S_IXOTH) == 0) {
+				errno = EACCES;
 				return -1;
 			}
 		}
