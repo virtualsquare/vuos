@@ -262,7 +262,8 @@ static ssize_t rel_prefix(struct canonstruct *cdata) {
 	size_t rootlen;
 	char *cwd = cdata->ebuf;
 	size_t cwdlen;
-	operations.getroot(root, PATH_MAX, cdata->private);
+	if (operations.getroot(root, PATH_MAX, cdata->private) < 0)
+		return -1;
 	rootlen = strlen(root);
 	if (root[rootlen - 1] != '/')
 		root[rootlen++] = '/';
