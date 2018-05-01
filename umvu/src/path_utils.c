@@ -95,7 +95,7 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	}
 }
 
-int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
+static inline int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
   switch (syscall_number) {
     case __NR_openat:
@@ -149,6 +149,8 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 		if (type & ARCH_TYPE_IS_AT) {
 			dirfd = args[patharg];
 			patharg++;
+			if (is_at_empty_path(syscall_number, args))
+				flags |= PERMIT_EMPTY_PATH;
 		}
 		return get_path(dirfd, args[patharg], buf, flags, need_rewrite, VU_NESTED);
 	}
