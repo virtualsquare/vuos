@@ -38,6 +38,7 @@
 #include <vu_pushpop.h>
 #include <vu_log.h>
 #include <path_utils.h>
+#include <vu_execute.h>
 
 #define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | IGNORE_TRAILING_SLASH)
 
@@ -53,33 +54,26 @@ static inline int realpath_flags(int flags) {
 		(flags & (FOLLOWLINK | PERMIT_EMPTY_PATH));
 }
 
-char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
-	char path[PATH_MAX];
+char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, uint8_t *need_rewrite, int nested) {
+	char pathbuf[nested ? 0 : PATH_MAX];
+	char *path;
 	struct vu_stat nullbuf[buf == NULL];
 	struct realpath_arg_t realpath_arg = {
 		.dirfd = dirfd,
-		.nested = 0,
+		.nested = nested,
 		.need_rewrite = 0,
 		.statbuf = (buf == NULL) ? nullbuf : buf};
 	char *ret_value;
-	umvu_peek_str(addr, path, PATH_MAX);
+	if (nested)
+		path = (char *) addr;
+	else {
+		path = pathbuf;
+		umvu_peek_str(addr, path, PATH_MAX);
+	}
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_path %d %s->%s errno:%d epoch:%d rewr:%d", dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
-	if (need_rewrite)
-		*need_rewrite = realpath_arg.need_rewrite;
-	return ret_value;
-}
-
-char *get_nested_path(int dirfd, char *path, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
-	struct vu_stat nullbuf[buf == NULL];
-	struct realpath_arg_t realpath_arg = {
-		.dirfd = dirfd,
-		.nested = 1,
-		.need_rewrite = 0,
-		.statbuf = (buf == NULL) ? nullbuf : buf};
-	char *ret_value;
-	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_nested_path %d %s->%s errno:%d epoch:%d rewr:%d", dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
+	printkdebug(p,"get_%spath %d %s->%s errno:%d epoch:%d rewr:%d",
+			nested ? "nested_" : "",
+			dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
 	if (need_rewrite)
 		*need_rewrite = realpath_arg.need_rewrite;
 	return ret_value;
@@ -135,7 +129,7 @@ char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t 
 			if (is_at_empty_path(syscall_number, sd->syscall_args))
 				flags |= PERMIT_EMPTY_PATH;
 		}
-		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
+		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite, VU_NOT_NESTED);
 	}
 }
 
@@ -156,7 +150,7 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 			dirfd = args[patharg];
 			patharg++;
 		}
-		return get_nested_path(dirfd, (char *)args[patharg], buf, flags, need_rewrite);
+		return get_path(dirfd, args[patharg], buf, flags, need_rewrite, VU_NESTED);
 	}
 }
 
@@ -172,7 +166,7 @@ char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t
 		int type = vvu_arch_table_type(syscall_number);
 		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
 			flags &= ~FOLLOWLINK;
-		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
+		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite, VU_NOT_NESTED);
 	}
 }
 

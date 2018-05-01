@@ -267,7 +267,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		sd->action = SKIPIT;
 		return;
 	}
-	extra_argv[0] = get_nested_path(AT_FDCWD, extra_argv[0], &statbuf, FOLLOWLINK, NULL);
+	extra_argv[0] = get_path(AT_FDCWD, (syscall_arg_t) extra_argv[0], &statbuf, FOLLOWLINK, NULL, VU_NESTED);
 	if (extra_argv[0] == NULL) {
 		sd->ret_value = -errno;
 		sd->action = SKIPIT;
