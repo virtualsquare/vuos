@@ -70,6 +70,21 @@ char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, ui
 	return ret_value;
 }
 
+char *get_nested_path(int dirfd, char *path, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
+	struct vu_stat nullbuf[buf == NULL];
+	struct realpath_arg_t realpath_arg = {
+		.dirfd = dirfd,
+		.nested = 1,
+		.need_rewrite = 0,
+		.statbuf = (buf == NULL) ? nullbuf : buf};
+	char *ret_value;
+	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
+	printkdebug(p,"get_nested_path %d %s->%s errno:%d epoch:%d rewr:%d", dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
+	if (need_rewrite)
+		*need_rewrite = realpath_arg.need_rewrite;
+	return ret_value;
+}
+
 int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
 	switch (syscall_number) {
@@ -124,51 +139,6 @@ char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t 
 	}
 }
 
-void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
-  int syscall_number = sd->syscall_number;
-  int patharg = vu_arch_table_patharg(syscall_number);
-
-  if (patharg >= 0) {
-    int type = vu_arch_table_type(syscall_number);
-		if (type == 3)
-			type = path_check_exceptions(syscall_number, sd->syscall_args);
-    if (type & ARCH_TYPE_IS_AT)
-      patharg++;
-    sd->syscall_args[patharg] = vu_push(sd, newpath, strlen(newpath) + 1);
-  }
-}
-
-char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
-	int syscall_number = -sd->syscall_number;
-	int patharg = vvu_arch_table_patharg(syscall_number);
-	int dirfd = AT_FDCWD;
-	if (patharg < 0) {
-		errno = 0;
-		return NULL;
-	} else {
-		int flags = FOLLOWLINK;
-		int type = vvu_arch_table_type(syscall_number);
-		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
-			flags &= ~FOLLOWLINK;
-		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
-	}
-}
-
-char *get_nested_path(int dirfd, char *path, struct vu_stat *buf, int flags, uint8_t *need_rewrite) {
-	struct vu_stat nullbuf[buf == NULL];
-	struct realpath_arg_t realpath_arg = {
-		.dirfd = dirfd,
-		.nested = 1,
-		.need_rewrite = 0,
-		.statbuf = (buf == NULL) ? nullbuf : buf};
-	char *ret_value;
-	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_nested_path %d %s->%s errno:%d epoch:%d rewr:%d", dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
-	if (need_rewrite)
-		*need_rewrite = realpath_arg.need_rewrite;
-	return ret_value;
-}
-
 char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int patharg = vu_arch_table_patharg(syscall_number);
 	int dirfd = AT_FDCWD;
@@ -188,6 +158,36 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 		}
 		return get_nested_path(dirfd, (char *)args[patharg], buf, flags, need_rewrite);
 	}
+}
+
+char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
+	int syscall_number = -sd->syscall_number;
+	int patharg = vvu_arch_table_patharg(syscall_number);
+	int dirfd = AT_FDCWD;
+	if (patharg < 0) {
+		errno = 0;
+		return NULL;
+	} else {
+		int flags = FOLLOWLINK;
+		int type = vvu_arch_table_type(syscall_number);
+		if (type & ARCH_TYPE_SYMLINK_NOFOLLOW)
+			flags &= ~FOLLOWLINK;
+		return get_path(dirfd, sd->syscall_args[patharg], buf, flags, need_rewrite);
+	}
+}
+
+void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
+  int syscall_number = sd->syscall_number;
+  int patharg = vu_arch_table_patharg(syscall_number);
+
+  if (patharg >= 0) {
+    int type = vu_arch_table_type(syscall_number);
+		if (type == 3)
+			type = path_check_exceptions(syscall_number, sd->syscall_args);
+    if (type & ARCH_TYPE_IS_AT)
+      patharg++;
+    sd->syscall_args[patharg] = vu_push(sd, newpath, strlen(newpath) + 1);
+  }
 }
 
 /* canonicalize's helper functions */
