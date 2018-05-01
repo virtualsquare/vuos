@@ -207,10 +207,9 @@ static inline mode_t get_lmode(struct vuht_entry_t *ht,
 		stat_retval = service_syscall(ht,__VU_lstat)(vuht_path2mpath(ht, pathname), buf, 0, -1, NULL);
 	} else
 		stat_retval = r_vu_lstat(pathname, buf);
-	if (stat_retval == 0)
-		return buf->st_mode;
-  else
-    return buf->st_mode = 0;
+	if (stat_retval < 0)
+		buf->st_mode = 0;
+	return buf->st_mode;
 }
 	
 static mode_t vu_lmode(char *pathname, void *private) {
