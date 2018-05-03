@@ -202,8 +202,8 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				errno = ENOTDIR;
 				return -1;
 			}
-			/* check S_IXOTH if requested */
-			else if ((cdata->flags & CHECK_S_IXOTH_ON_DIRS) && (cdata->mode & S_IXOTH) == 0) {
+			/* check S_IXALL if requested */
+			else if ((cdata->flags & CHECK_S_IXALL_ON_DIRS) && (cdata->mode & S_IXALL) != S_IXALL) {
 				errno = EACCES;
 				return -1;
 			}

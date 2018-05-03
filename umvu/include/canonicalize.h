@@ -18,7 +18,9 @@
 /* if CHECK_S_IXGRP_ON_DIRS == 1 canon_realpath returns -1/EACCES if S_IXGRP is
 	 not set in the return value of lmode for one of the directories in the path
 	 (unsupported) */
-#define CHECK_S_IXOTH_ON_DIRS 8
+#define CHECK_S_IXALL_ON_DIRS 8
+
+#define S_IXALL (S_IXUSR | S_IXGRP | S_IXOTH)
 
 char *canon_realpath(const char *path, char *resolved_path, int flags, void *private);
 
@@ -29,10 +31,10 @@ char *canon_realpath_dup(const char *path, int flags, void *private);
 
 struct canon_ops {
 	/* link opaque (lstat) mode_t definition of file type, 0 for non-existent file */
-	/* when CHECK_S_IXGRP_ON_DIRS == 1, S_IXGRP means search permission on directories.
-		 if CHECK_S_IXGRP_ON_DIRS == 1 and S_IXGRP is unset for lmode's return value then
-		 any further path-resolution step inside that directory is forbidden and realpath
-		 returns -1/EACCES */
+	/* when CHECK_S_IXALL_ON_DIRS == 1, S_IXALL means search permission on directories.
+		 if CHECK_S_IXALL_ON_DIRS == 1 and at least one of S_IXALL bits is unset for lmode's
+		 return value then any further path-resolution step inside that directory is forbidden
+		 and realpath returns -1/EACCES */
 	mode_t (*lmode) (const char *pathname, void *private);
 
 	/* same as readlink(2) */

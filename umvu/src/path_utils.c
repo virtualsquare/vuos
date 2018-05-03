@@ -40,7 +40,7 @@
 #include <path_utils.h>
 #include <vu_execute.h>
 
-#define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | CHECK_S_IXOTH_ON_DIRS)
+#define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | CHECK_S_IXALL_ON_DIRS)
 
 struct realpath_arg_t {
 	int dirfd;
@@ -206,7 +206,7 @@ static inline mode_t get_dirxok(struct vuht_entry_t *ht,
 		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
 	else
 		retval = r_faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-	return retval == 0 ? S_IXOTH : 0;
+	return retval == 0 ? S_IXALL : 0;
 }
 	
 static mode_t vu_lmode(char *pathname, void *private) {
@@ -219,7 +219,7 @@ static mode_t vu_lmode(char *pathname, void *private) {
 
 	retval = get_lmode(ht, pathname, arg->statbuf);
 
-	if (S_ISDIR(retval) && !(retval & S_IXOTH))
+	if (S_ISDIR(retval) && (retval & S_IXALL) != S_IXALL)
 		retval |= get_dirxok(ht, pathname);
 
 	if (ht) {
