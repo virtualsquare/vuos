@@ -31,7 +31,7 @@
  *   --- prints the current date and time
  *   $ cat /mnt/dir/symlink
  *   --- prints yout hostname: symlink is a link to /etc/hostname
- *   $ cat /mnt/dir/printk 
+ *   $ cat /mnt/dir/printk
  *   This file can be read or written
  *   at the end printk shows the contents
  *   $ echo ciao > /mnt/dir/printk
@@ -76,12 +76,12 @@ int upcall_wronly(int tag, FILE *f, int openflags, void *pseudoprivate);
 int upcall_dir(int tag, FILE *f, int openflags, void *pseudoprivate);
 
 struct info infotree[] = {
-	{"/", {.st_mode = S_IFDIR | 0777}, upcall_dir, ""},
-	{"/date", {.st_mode = S_IFREG | 0444}, upcall_date, NULL},
-	{"/dir", {.st_mode = S_IFDIR | 0777}, upcall_dir, "/dir"},
-	{"/dir/symlink", {.st_mode = S_IFLNK | 0777}, NULL, "/etc/hostname"},
-	{"/dir/printk", {.st_mode = S_IFREG | 0666}, upcall_printk, NULL},
-	{"/dir/wronly", {.st_mode = S_IFREG | 0222}, upcall_wronly, NULL},
+	{"/", {.st_mode = S_IFDIR | 0777, .st_ino = 2}, upcall_dir, ""},
+	{"/date", {.st_mode = S_IFREG | 0444, .st_ino = 5}, upcall_date, NULL},
+	{"/dir", {.st_mode = S_IFDIR | 0777, .st_ino = 3}, upcall_dir, "/dir"},
+	{"/dir/symlink", {.st_mode = S_IFLNK | 0777, .st_ino = 6}, NULL, "/etc/hostname"},
+	{"/dir/printk", {.st_mode = S_IFREG | 0666, .st_ino = 7}, upcall_printk, NULL},
+	{"/dir/wronly", {.st_mode = S_IFREG | 0222, .st_ino = 8}, upcall_wronly, NULL},
 	{NULL, {.st_mode = 0}, NULL, NULL}
 };
 
@@ -106,13 +106,13 @@ int upcall_printk(int tag, FILE *f, int openflags, void *pseudoprivate) {
 	if (tag == PSEUDOFILE_LOAD_CONTENTS &&
 			(openflags & O_ACCMODE) == O_RDONLY) {
 		fprintf(f, "This file can be read or written\nat the end printk shows the contents\n");
-	} 
+	}
 	if (tag == PSEUDOFILE_STORE_CLOSE &&
 			(openflags & O_ACCMODE) != O_RDONLY) {
 		if (f != NULL) {
 			char *line = NULL;
 			size_t n = 0;
-			while (getline(&line, &n, f) > 0) 
+			while (getline(&line, &n, f) > 0)
 				printk("%s",line);
 			free(line);
 		}
@@ -123,7 +123,7 @@ int upcall_printk(int tag, FILE *f, int openflags, void *pseudoprivate) {
 int upcall_wronly(int tag, FILE *f, int openflags, void *pseudoprivate) {
 	if (tag == PSEUDOFILE_STORE_CLOSE && f != NULL) {
 		int n;
-		if (fscanf(f, "%d", &n) == 0) 
+		if (fscanf(f, "%d", &n) == 0)
 			printk("wronly accept numbers only\n");
 		else
 			printk("wronly output = %d\n", n);
@@ -143,7 +143,8 @@ int upcall_dir(int tag, FILE *f, int openflags, void *pseudoprivate) {
 					scan->path[prefixlen] == '/' &&
 					scan->path[prefixlen + 1] != 0 &&
 					strchr(scan->path + (prefixlen + 1), '/') == NULL)
-				pseudofile_filldir(f, scan->path + (prefixlen + 1), 2, pseudofile_mode2type(scan->stat.st_mode));
+				pseudofile_filldir(f, scan->path + (prefixlen + 1),
+						scan->stat.st_ino, pseudofile_mode2type(scan->stat.st_mode));
 		}
 	}
 	return 0;
@@ -165,7 +166,7 @@ int vu_unrealinfofs_open(const char *pathname, int flags, mode_t mode, void **fd
 			errno = EACCES;
 			return -1;
 		}
-		if (scan->upcall != NULL) 
+		if (scan->upcall != NULL)
 			pseudofile_open(scan->upcall, scan->upcall_private, flags, fdprivate);
 		return 0;
 	} else {
