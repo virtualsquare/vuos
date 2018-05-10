@@ -126,6 +126,14 @@ __attribute__((always_inline))
  immediate detach and lazy delete) */
 int vuht_del(struct vuht_entry_t *hte, int umountflags);
 
+/* load submodules */
+void *vu_mod_dlopen(const char *modname, int flags);
+
+/* inheritance management, define an upcall function to
+	 track process creation, exec, and termination */
+/* MOD_INH_CLONE happens before process creation,
+	 MOD_INH_START is an event of the new tracing thread.
+	 The return value of clone is delivered as a parameter to start */
 typedef enum mod_inheritance_state_t {
   MOD_INH_CLONE,
   MOD_INH_START,

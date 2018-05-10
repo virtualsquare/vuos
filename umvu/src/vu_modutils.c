@@ -101,6 +101,14 @@ static void *module_dlopen(const char *modname, int flags)
 #undef TRY_DLOPEN
 }
 
+/* utility function to load sub-modules.
+	 currently it is a forwarding function to module_dlopen.
+	 it has been defined as a specific function to permit
+	 customization in the future. */
+void *vu_mod_dlopen(const char *modname, int flags) {
+	return module_dlopen(modname, flags);
+}
+
 struct vu_service_t *module_load(const char *modname)
 {
 	void *handle;
