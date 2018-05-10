@@ -26,6 +26,8 @@ foreach(DYN ${VU_DYN_SOURCES})
 	execute_process(COMMAND ${VU_DYN_SOURCE_CREATE})
 endforeach(DYN)
 
+configure_file( ${VU_HEADERS}/config.h.in ${VU_DYN_HEADER_PATH}/config.h )
+
 add_subdirectory(scripts)
 add_subdirectory(umvu)
 add_subdirectory(cmd)

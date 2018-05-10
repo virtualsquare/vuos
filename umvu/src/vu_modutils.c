@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <service.h>
 #include <pthread.h>
+#include <config.h>
 #include <xcommon.h>
 #include <vu_log.h>
 #include <syscall_defs.h>
@@ -36,16 +37,13 @@ typedef void (* voidfun)(void);
  * a function pointer erroneously produces a warning */
 #pragma GCC diagnostic ignored "-Wpedantic"
 
-/* XXX temporary */
-#define MODULES_DIR "/usr/local/lib/vu/modules"
-
 long sys_enosys(void) {
 	errno = ENOSYS;
 	return -1;
 }
 
 /* This will be prefixed with getent("$HOME") */
-#define USER_MODULES_DIR "/.vu/modules"
+#define USER_MODULES_PATH "/.vu/modules"
 #define MODULES_EXT ".so"
 
 #ifndef MAX
@@ -85,8 +83,8 @@ static void *module_dlopen(const char *modname, int flags)
 	char *homedir = gethomedir();
 	int tplen = strlen(modname) + strlen(MODULES_EXT) +
 		2 + // + 1 is for a '/' and + 1 for \0
-		MAX(strlen(MODULES_DIR),
-				strlen(homedir) + strlen(USER_MODULES_DIR));
+		MAX(strlen(MODULES_INSTALL_PATH),
+				strlen(homedir) + strlen(USER_MODULES_PATH));
 	char testpath[tplen];
 
 	if (!modname)
@@ -95,10 +93,10 @@ static void *module_dlopen(const char *modname, int flags)
 		return handle;
 
 	TRY_DLOPEN("%s%s", modname, MODULES_EXT);
-	TRY_DLOPEN("%s%s/%s", homedir, USER_MODULES_DIR, modname);
-	TRY_DLOPEN("%s%s/%s%s", homedir, USER_MODULES_DIR, modname, MODULES_EXT);
-	TRY_DLOPEN("%s/%s", MODULES_DIR, modname);
-	TRY_DLOPEN("%s/%s%s", MODULES_DIR, modname, MODULES_EXT);
+	TRY_DLOPEN("%s%s/%s", homedir, USER_MODULES_PATH, modname);
+	TRY_DLOPEN("%s%s/%s%s", homedir, USER_MODULES_PATH, modname, MODULES_EXT);
+	TRY_DLOPEN("%s/%s", MODULES_INSTALL_PATH, modname);
+	TRY_DLOPEN("%s/%s%s", MODULES_INSTALL_PATH, modname, MODULES_EXT);
 	return NULL;
 #undef TRY_DLOPEN
 }
