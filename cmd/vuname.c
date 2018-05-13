@@ -71,8 +71,8 @@ void usage_exit(int exit_status)
 	exit(exit_status);
 }
 
-static char short_options[] = "snrvmpioUNaxqP";
-static char field_options[] = "snrvmpioUN";
+static char short_options[] = "snrvmpioUVaxqPN";
+static char field_options[] = "snrvmpioUV";
 static char vuos_options[]  = "        vv";
 static char unknown[] = "unknown";
 static char vuos[] = "GNU/Linux/VUOS";
@@ -87,7 +87,7 @@ static char *fields[] = {
 	/* i */ unknown,
 	/* o */ no_vuos,
 	/* U */ vi.vu_serverid,
-	/* N */ vi.vu_name
+	/* V */ vi.vu_name
 };
 
 static struct option long_options[] = {
@@ -138,13 +138,15 @@ int main(int argc, char *argv[])
 			case 0x101:
 								version_exit();
 								break;
-			default: {
-								 ret_value = ch2fieldindex(c);
-									 if (ret_value >= 0) 
-										 flags |= 1 << ret_value;
-									 else
-										 usage_exit(1);
-							 }
+			case 'N' : c = 'V'; 
+								 /* for backwards compatibility */
+								 __attribute__ ((fallthrough));
+			default: ret_value = ch2fieldindex(c);
+							 if (ret_value >= 0) 
+								 flags |= 1 << ret_value;
+							 else
+								 usage_exit(1);
+							 break;
 		}
 	}
 	if (argc - optind != 0) {
@@ -165,7 +167,7 @@ int main(int argc, char *argv[])
 	if (prompt) {
 		if (kernel_uname) 
 			printf("%s\n",vi.uname.nodename);
-		else if (strlen (vi.vu_name) > 0)
+		else if (strlen(vi.vu_name) > 0)
 			printf("%s\n",vi.vu_name);
 		else
 			printf("%s[%s]\n",vi.uname.nodename,vi.vu_serverid);
@@ -174,11 +176,13 @@ int main(int argc, char *argv[])
 	else {
 		unsigned int n;
 		char *sep;
-		for (n = 0, sep = ""; n < sizeof(field_options) - 1; n++, sep = " ") {
+		for (n = 0, sep = ""; n < sizeof(field_options) - 1; n++) {
 			if (flags & (1 << n) && 
 					(kernel_uname == 0 || vuos_options[n] == ' ') &&
-					(flags != -1 || fields[n] != unknown))
+					(flags != -1 || fields[n] != unknown)) {
 				printf("%s%s", sep, fields[n]);
+				sep = " ";
+			}
 		}
 		printf("\n");
 	}
