@@ -56,18 +56,20 @@ static void usage_n_exit(void) {
 			"UMVU: user mode implementation of VU-OS\n"
 			"Copyright 2017-2018 VirtualSquare Team\n\n"
 			"Usage:\n"
-			"\t%s OPTIONS cmd args\n\n"
-			"\t\t-h --help      print this short usage message\n"
-			"\t\t-x --nonesting disable nested virtualization support\n"
-			"\t\t-f file\n"
-			"\t\t   --rc file   initialization file\n"
-			"\t\t-n --norc      do not load standard inizialization files\n"
-			"\t\t-V name\n"
-			"\t\t   --vu_name name    define the view name (see vuname)\n"
-			"\t\t-d tags\n"
-			"\t\t   --debugtags tags  define the active debug tags (see vudebug)\n"
-			"\t\t-D cols\n"
-			"\t\t   --debugcols cols  define the debug color string (see vudebug)\n"
+			"  %s OPTIONS cmd args\n\n"
+			"    -h --help            print this short usage message\n"
+			"    -x --nonesting       disable nested virtualization support\n"
+			"    -f file\n"
+			"       --rc file         set initialization file\n"
+			"    -n --norc            do not load standard inizialization files\n"
+			"    -V name\n"
+			"       --vu_name name    define the view name (see vuname)\n"
+			"    -o outfile\n"
+			"       --output outfile  redirect console output to outfile\n"
+			"    -d tags\n"
+			"       --debugtags tags  define the active debug tags (see vudebug)\n"
+			"    -D cols\n"
+			"       --debugcols cols  define the debug color string (see vudebug)\n"
 			"\n"
 			, progname);
 	r_exit(1);
@@ -161,7 +163,7 @@ int main(int argc, char *argv[])
 		set_vu_name(vu_name);
 
 	if (output_file) {
-		/* XXX divert output, debug output only or everything? */
+		set_log_file(output_file);
 	}
 
 	if ((childpid = umvu_tracer_fork()) != 0) {

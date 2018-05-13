@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <vu_log.h>
 #include <r_table.h>
@@ -61,10 +62,14 @@ static const char *debug_tag_name[64];
 static int console_current_level = LOG_DEFAULT;
 static int syslog_current_level = -1;
 
-#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+#define SYSLOG_TOO 1
+#define NO_SYSLOG 0
 
 /* debugging output, (bypass pure_libc when loaded) */
-int vprintk(const char *fmt, va_list ap) {
+/* printk (errors, warnings etc) can be logged on syslog.
+	 vudebug output on stderr (or user defined file) only */
+
+static int _vprintk(const char *fmt, int syslog_switch, va_list ap) {
 	char *s;
 	int rv=0;
 	int level=PRINTK_STANDARD_LEVEL;
@@ -81,7 +86,7 @@ int vprintk(const char *fmt, va_list ap) {
 			rv=r_write(debugfd,s,strlen(s));
 		free(s);
 	}
-	if (level <= syslog_current_level) {
+	if (syslog_switch == SYSLOG_TOO && level <= syslog_current_level) {
 		size_t fmtlen = strlen(fmt);
 		char fmt_no_nl[fmtlen + 1];
 		fmt_no_nl[0]='\0';
@@ -95,11 +100,15 @@ int vprintk(const char *fmt, va_list ap) {
 	return rv;
 }
 
+int vprintk(const char *fmt, va_list ap) {
+	return _vprintk(fmt, SYSLOG_TOO, ap);
+}
+
 int printk(const char *fmt, ...) {
 	int rv;
 	va_list ap;
 	va_start(ap,fmt);
-	rv=vprintk(fmt,ap);
+	rv = _vprintk(fmt, SYSLOG_TOO, ap);
 	va_end(ap);
 	return rv;
 }
@@ -110,6 +119,14 @@ void set_console_log_level(int level) {
 
 void set_syslog_log_level(int level) {
 	syslog_current_level = level;
+}
+
+void set_log_file(char *logfile_path) {
+	int newfd = r_open(logfile_path, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	if (newfd < 0)
+		printk(KERN_ERR "can't open log file %s: %s\n", newfd, strerror(errno));
+	else
+		debugfd = newfd;
 }
 
 static const char *debug_alltags = DEBUG_ALLTAGS;
@@ -278,7 +295,7 @@ int _printkdebug(int index, const char *fmt, ...) {
 	va_list ap;
 	int save_errno = errno;
 	va_start(ap,fmt);
-	if (color.valid) {
+	if (color.valid && isatty(debugfd)) {
 		int fmtlen = strlen(fmt);
 		int seqlen = color_esc_sequence_len(color);
 		int prefixlen = strcspn(fmt, " \n");
@@ -297,7 +314,7 @@ int _printkdebug(int index, const char *fmt, ...) {
 				prefixlen, prefixlen, fmt,
 				tag_string_sep, tag_string,
 				postfixlen, postfixlen, fmt+prefixlen, esc_reset_color_sequence);
-		rv=vprintk(newfmt,ap);
+		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	} else {
 		int fmtlen = strlen(fmt);
 		int prefixlen = strcspn(fmt, " \n");
@@ -311,7 +328,7 @@ int _printkdebug(int index, const char *fmt, ...) {
 				prefixlen, prefixlen, fmt,
 				tag_string_sep, tag_string,
 				postfixlen, postfixlen, fmt+prefixlen);
-		rv=vprintk(newfmt,ap);
+		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	}
 	va_end(ap);
 	errno = save_errno;

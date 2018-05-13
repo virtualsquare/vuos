@@ -51,6 +51,7 @@ int printk(const char *fmt, ...);
 
 void set_console_log_level(int level);
 void set_syslog_log_level(int level);
+void set_log_file(char *logfile_path);
 
 void debug_add_tags(char *tags, int local); 
 void debug_del_tags(char *tags, int local); 
