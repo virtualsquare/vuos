@@ -29,6 +29,7 @@
 #include <r_table.h>
 #include <umvu_tracer.h>
 
+static int debugfd = 2;
 uint64_t debugmask;
 __thread uint64_t tdebugmask;
 
@@ -77,7 +78,7 @@ int vprintk(const char *fmt, va_list ap) {
 	if (level <= console_current_level) {
 		rv=vasprintf(&s, fmt, ap);
 		if (rv>0)
-			rv=r_write(2,s,strlen(s));
+			rv=r_write(debugfd,s,strlen(s));
 		free(s);
 	}
 	if (level <= syslog_current_level) {

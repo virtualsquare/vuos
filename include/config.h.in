@@ -3,4 +3,8 @@
 
 #define MODULES_INSTALL_PATH "@MODULES_INSTALL_PATH@"
 
+#define VURC "vurc"
+
+#define ETC_VURC "@CONFIGURATION_DIR_PATH@/" VURC
+
 #endif

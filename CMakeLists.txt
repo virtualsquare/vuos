@@ -8,6 +8,7 @@ execute_process(COMMAND echo ${add_definitions} RESULT_VARIABLE rv)
 execute_process(COMMAND pwd RESULT_VARIABLE rv)
 
 set(MODULES_INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/lib/vu/modules)
+set(CONFIGURATION_DIR_PATH ${CMAKE_INSTALL_PREFIX}/etc)
 set(VU_HEADERS ${PROJECT_SOURCE_DIR}/include)
 set(VU_DYN_SOURCE_PATH ${CMAKE_BINARY_DIR}/umvu_dynsrc)
 set(VU_DYN_HEADER_PATH ${CMAKE_BINARY_DIR}/include)

@@ -24,7 +24,10 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
+#include <config.h>
 #include <r_table.h>
 #include <vu_log.h>
 #include <vu_name.h>
@@ -34,11 +37,12 @@
 #include <umvu_tracer.h>
 
 static char *progname;
-static char *short_options = "+hxl:s:f:V:o:d:D:";
+static char *short_options = "+hxNl:s:f:V:o:d:D:";
 static struct option long_options[] = {
 	{"help",no_argument, 0, 'h'},
 	{"nonesting",no_argument, 0, 'x'},
 	{"rc",required_argument, 0, 'f'},
+	{"norc",no_argument, 0, 'N'},
 	{"output", required_argument, 0, 'o'},
 	{"loglevel",required_argument, 0, 'l'},
 	{"syslog",required_argument, 0, 's'},
@@ -50,16 +54,23 @@ static struct option long_options[] = {
 static void usage_n_exit(void) {
 	fprintf(stderr, 
 			"UMVU: user mode implementation of VU-OS\n"
-			"Copyright 2017 VirtualSquare Team\n\n"
+			"Copyright 2017-2018 VirtualSquare Team\n\n"
 			"Usage:\n"
 			"\t%s OPTIONS cmd args\n\n"
 			"\t\t-h --help      print this short usage message\n"
 			"\t\t-x --nonesting disable nested virtualization support\n"
 			"\t\t-f file\n"
 			"\t\t   --rc file   initialization file\n"
-			/* XXX to be completed */
+			"\t\t-n --norc      do not load standard inizialization files\n"
+			"\t\t-V name\n"
+			"\t\t   --vu_name name    define the view name (see vuname)\n"
+			"\t\t-d tags\n"
+			"\t\t   --debugtags tags  define the active debug tags (see vudebug)\n"
+			"\t\t-D cols\n"
+			"\t\t   --debugcols cols  define the debug color string (see vudebug)\n"
+			"\n"
 			, progname);
-	exit(1);
+	r_exit(1);
 }
 
 static void early_args(int argc, char *argv[]) {
@@ -84,9 +95,27 @@ static void early_args(int argc, char *argv[]) {
 		vu_nesting_init(argc, argv);
 }
 
+static void runrc(const char *path)
+{
+  if (faccessat(AT_FDCWD, path, X_OK, AT_EACCESS)==0) {
+    int pid;
+    int status;
+
+    switch (pid=fork()) {
+      case -1: exit(2);
+      case 0: execl(path,path,(char *)0);
+              exit(2);
+      default: waitpid(pid,&status,0);
+               if (!WIFEXITED(status))
+                 exit(2);
+    }
+  }
+}
+
 int main(int argc, char *argv[])
 {
 	int c;
+	int norc = 0;
 	char *output_file = NULL;
 	char *rcfile = NULL;
 	char *vu_name = NULL;
@@ -120,6 +149,8 @@ int main(int argc, char *argv[])
 								break;
 			case 'V': vu_name = optarg;
 								break;
+			case 'N': norc = 1;
+								break;
 		}
 	}
 
@@ -146,8 +177,18 @@ int main(int argc, char *argv[])
 		/* disable purelibc */
 		unsetenv("LD_PRELOAD");
 
-		/* XXX run rc file files: .vurc in home dir and /etc/vurc */
-		if (rcfile) {
+		/* run rcfile or default rc files: .vurc in home dir and /etc/vurc */
+		if (rcfile)
+			runrc(rcfile);
+		else if (norc == 0) {
+			char *home = getenv("HOME");
+			runrc(ETC_VURC);
+			if (home != NULL) {
+				int homerc_len = strlen(home) + strlen(VURC) + 3;
+				char homerc[homerc_len];
+				snprintf(homerc, homerc_len, "%s/.%s", getenv("HOME"), VURC);
+				runrc(homerc);
+			}
 		}
 
 		execvp(argv[0], argv);
