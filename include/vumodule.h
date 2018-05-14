@@ -8,6 +8,8 @@
 #include <sys/vfs.h>
 #include <sys/epoll.h>
 #include <sys/mount.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 struct vu_service_t;
 struct vuht_entry_t;
@@ -73,6 +75,23 @@ int VU_SYSNAME(name, getresfgid) (gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *
 int VU_SYSNAME(name, setresfuid) (uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, void *private); \
 int VU_SYSNAME(name, setresfgid) (gid_t rgid, gid_t egid, gid_t sgid, gid_t fsgid, void *private); \
 int VU_SYSNAME(name, socket) (int domain, int type, int protocol, void **fdprivate); \
+int VU_SYSNAME(name, bind) (int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
+int VU_SYSNAME(name, connect) (int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
+int VU_SYSNAME(name, listen) (int sockfd, int backlog, void *fdprivate); \
+int VU_SYSNAME(name, accept4) (int sockfd, struct sockaddr *addr, socklen_t addrlen, int flags, void *fdprivate); \
+int VU_SYSNAME(name, getsockname) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
+int VU_SYSNAME(name, getpeername) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
+int VU_SYSNAME(name, sendto) (int sockfd, const void *buf, size_t len, int flags, \
+                      const struct sockaddr *dest_addr, socklen_t addrlen, \
+											void *msg_control, size_t msg_controllen, void *fdprivate); \
+int VU_SYSNAME(name, recvfrom) (int sockfd, void *buf, size_t len, int flags, \
+                      const struct sockaddr *src_addr, socklen_t addrlen, \
+											void *msg_control, size_t *msg_controllen, void *fdprivate); \
+int VU_SYSNAME(name, getsockopt) (int sockfd, int level, int optname, \
+                      void *optval, socklen_t *optlen, void *fdprivate); \
+int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
+                      const void *optval, socklen_t *optlen, void *fdprivate); \
+
 
 
 #define CHECKMODULE 0        // Module name
