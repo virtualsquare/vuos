@@ -280,6 +280,8 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 	interpreter_ht = vuht_pick(CHECKPATH, extra_argv[0], &statbuf, SET_EPOCH);
 	if (xok_check(interpreter_ht, sd, extra_argv[0]) < 0) {
 		xfree(extra_argv[0]);
+		if (interpreter_ht)
+			vuht_drop(interpreter_ht);
 		return;
 	}
 
