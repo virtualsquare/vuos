@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 2.6)
+
+include_directories(${VU_HEADERS})
+
+set(VU_MOD_TARGET vufuse)
+file(GLOB_RECURSE VUFUSE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+
+add_library(${VU_MOD_TARGET} SHARED ${VUFUSE_SOURCES})
+set_target_properties(${VU_MOD_TARGET} PROPERTIES PREFIX "")
+
+install(TARGETS ${VU_MOD_TARGET} LIBRARY DESTINATION ${MODULES_INSTALL_PATH})

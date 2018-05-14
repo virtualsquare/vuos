@@ -35,7 +35,7 @@ VU_PROTOTYPES(mountreal)
 
 	struct vu_module_t vu_module = {
 		.name = "mountreal",
-		.description = "/mountreal Mount mapping to FS (server side)"
+		.description = "Mount mapping to FS (server side)"
 	};
 
 struct mountreal_entry {
