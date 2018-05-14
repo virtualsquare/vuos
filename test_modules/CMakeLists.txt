@@ -13,3 +13,4 @@ foreach(VU_MOD ${VU_MODULES})
     install(TARGETS ${VU_MOD_TARGET} LIBRARY DESTINATION ${MODULES_INSTALL_PATH})
 endforeach(VU_MOD)
 
+target_link_libraries(unrealinfofs vumodlib)
