@@ -52,7 +52,7 @@
 #include <sys/stat.h>
 #include <attr/xattr.h>
 #include <vumodule.h>
-#include <vumodlib.h>
+#include <libvumod.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>

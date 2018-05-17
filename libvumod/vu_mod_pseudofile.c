@@ -26,7 +26,7 @@
 #include<stddef.h>
 #include<sys/stat.h>
 #include<vumodule.h>
-#include<vumodlib.h>
+#include<libvumod.h>
 
 typedef int (* pseudo_upcall)(int tag, FILE *f, int openflags, void *pseudoprivate);
 

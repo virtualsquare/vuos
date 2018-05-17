@@ -6,9 +6,9 @@ include_directories(${VU_HEADERS})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 file(GLOB VUMODLIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-add_library(vumodlib SHARED ${VUMODLIB_SOURCES})
+add_library(vumod SHARED ${VUMODLIB_SOURCES})
 
-set_target_properties(vumodlib PROPERTIES VERSION ${VUMODLIB_VERSION_STRING}
+set_target_properties(vumod PROPERTIES VERSION ${VUMODLIB_VERSION_STRING}
         SOVERSION ${VUMODLIB_VERSION_MAJOR})
 
-install(TARGETS vumodlib LIBRARY DESTINATION lib)
+install(TARGETS vumod LIBRARY DESTINATION lib)
