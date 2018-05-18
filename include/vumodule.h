@@ -82,16 +82,18 @@ int VU_SYSNAME(name, accept4) (int sockfd, struct sockaddr *addr, socklen_t addr
 int VU_SYSNAME(name, getsockname) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
 int VU_SYSNAME(name, getpeername) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
 int VU_SYSNAME(name, sendto) (int sockfd, const void *buf, size_t len, int flags, \
-                      const struct sockaddr *dest_addr, socklen_t addrlen, \
-											void *msg_control, size_t msg_controllen, void *fdprivate); \
+		const struct sockaddr *dest_addr, socklen_t addrlen, \
+		void *msg_control, size_t msg_controllen, void *fdprivate); \
 int VU_SYSNAME(name, recvfrom) (int sockfd, void *buf, size_t len, int flags, \
-                      const struct sockaddr *src_addr, socklen_t addrlen, \
-											void *msg_control, size_t *msg_controllen, void *fdprivate); \
+		const struct sockaddr *src_addr, socklen_t addrlen, \
+		void *msg_control, size_t *msg_controllen, void *fdprivate); \
 int VU_SYSNAME(name, getsockopt) (int sockfd, int level, int optname, \
-                      void *optval, socklen_t *optlen, void *fdprivate); \
+		void *optval, socklen_t *optlen, void *fdprivate); \
 int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
-                      const void *optval, socklen_t *optlen, void *fdprivate); \
-
+		const void *optval, socklen_t *optlen, void *fdprivate); \
+\
+void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
+    struct vuht_entry_t *ht); \
 
 
 #define CHECKMODULE 0        // Module name
@@ -123,9 +125,9 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 struct vuht_entry_t *vu_mod_getht(void);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
-  static inline syscall_t vu_mod_getservice(void) {
+	static inline syscall_t vu_mod_getservice(void) {
 		return vuht_get_service(vu_mod_getht());
-  }
+	}
 
 const void *vuht_get_obj(struct vuht_entry_t *hte);
 void *vuht_get_private_data(struct vuht_entry_t *hte);
@@ -142,7 +144,7 @@ __attribute__((always_inline))
 	}
 
 /* supported flags: MNT_FORCE MNT_DETACH (both provide
- immediate detach and lazy delete) */
+	 immediate detach and lazy delete) */
 int vuht_del(struct vuht_entry_t *hte, int umountflags);
 
 /* load submodules */
@@ -154,10 +156,10 @@ void *vu_mod_dlopen(const char *modname, int flags);
 	 MOD_INH_START is an event of the new tracing thread.
 	 The return value of clone is delivered as a parameter to start */
 typedef enum mod_inheritance_state_t {
-  MOD_INH_CLONE,
-  MOD_INH_START,
-  MOD_INH_EXEC,
-  MOD_INH_TERMINATE
+	MOD_INH_CLONE,
+	MOD_INH_START,
+	MOD_INH_EXEC,
+	MOD_INH_TERMINATE
 } mod_inheritance_state_t;
 
 struct mod_inheritance_exec_arg {
@@ -196,9 +198,9 @@ extern __thread uint64_t tdebugmask;
 
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
-  if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-  _printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
-      basename(__FILE__), __LINE__, ##__VA_ARGS__)
+	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
+_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
+		basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_TAG2INDEX_A 1
 #define DEBUG_TAG2INDEX_B 2
