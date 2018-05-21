@@ -78,19 +78,19 @@ int VU_SYSNAME(name, socket) (int domain, int type, int protocol, void **fdpriva
 int VU_SYSNAME(name, bind) (int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
 int VU_SYSNAME(name, connect) (int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
 int VU_SYSNAME(name, listen) (int sockfd, int backlog, void *fdprivate); \
-int VU_SYSNAME(name, accept4) (int sockfd, struct sockaddr *addr, socklen_t addrlen, int flags, void *fdprivate); \
-int VU_SYSNAME(name, getsockname) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
-int VU_SYSNAME(name, getpeername) (int sockfd, struct sockaddr *addr, socklen_t addrlen, void *fdprivate); \
+int VU_SYSNAME(name, accept4) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags, void *fdprivate); \
+int VU_SYSNAME(name, getsockname) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate); \
+int VU_SYSNAME(name, getpeername) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate); \
 int VU_SYSNAME(name, sendto) (int sockfd, const void *buf, size_t len, int flags, \
 		const struct sockaddr *dest_addr, socklen_t addrlen, \
 		void *msg_control, size_t msg_controllen, void *fdprivate); \
 int VU_SYSNAME(name, recvfrom) (int sockfd, void *buf, size_t len, int flags, \
-		const struct sockaddr *src_addr, socklen_t addrlen, \
+		struct sockaddr *src_addr, socklen_t *addrlen, \
 		void *msg_control, size_t *msg_controllen, void *fdprivate); \
 int VU_SYSNAME(name, getsockopt) (int sockfd, int level, int optname, \
 		void *optval, socklen_t *optlen, void *fdprivate); \
 int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
-		const void *optval, socklen_t *optlen, void *fdprivate); \
+		const void *optval, socklen_t optlen, void *fdprivate); \
 \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
     struct vuht_entry_t *ht); \
@@ -189,6 +189,12 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 #define KERN_NOTICE KERN_SOH "5"  /* normal but significant condition */
 #define KERN_INFO KERN_SOH "6"  /* informational */
 #define KERN_DEBUG KERN_SOH "7" /*debug-level messages */
+
+void _debug_set_name(int index, const char *s);
+void debug_get_name(char tag, char *buf, size_t bufsize);
+
+#define debug_set_name(tag, s) \
+  _debug_set_name(DEBUG_TAG2INDEX_##tag, "" s)
 
 int vprintk(const char *fmt, va_list ap);
 int printk(const char *fmt, ...);
