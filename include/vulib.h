@@ -7,11 +7,13 @@
 #define __VVU_rmmod -2
 #define __VVU_lsmod -3
 #define __VVU_vuctl -4
+#define __VVU_msocket -5
 
 #define __NR_vu_insmod __VVU_insmod
 #define __NR_vu_rmmod __VVU_rmmod
 #define __NR_vu_lsmod __VVU_lsmod
 #define __NR_vuctl __VVU_vuctl
+#define __NR_msocket __VVU_msocket
 
 #define VUCTL_GETINFO 1
 #define VUCTL_SETNAME 2
@@ -20,6 +22,8 @@
 #define VUCTL_DEL_DEBUGTAGS 5
 #define VUCTL_GET_DEBUGTAGNAME 6
 #define VUCTL_SET_DEBUGCOLOR 7
+
+#define SOCK_DEFAULT 0
 
 #if 0
 /* not yet implemented */
@@ -79,6 +83,10 @@ static inline long vu_get_debugtagname(int tag, char *string, size_t len) {
 
 static inline long vu_set_debugcolor(char *debugcolor) {
 	return syscall(__NR_vuctl, VUCTL_SET_DEBUGCOLOR, debugcolor);
+}
+
+static inline long msocket(char *stack, int domain, int type, int protocol) {
+	return syscall(__NR_msocket, stack, domain, type, protocol);
 }
 
 #endif
