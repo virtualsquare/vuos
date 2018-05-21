@@ -65,7 +65,8 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	extra.path_errno = errno;
 	extra.nested = VU_NESTED;
 	extra.epoch = get_vepoch();
-	printkdebug(n, "IN %s %s %d epoch %ld", syscallname(sd.syscall_number), extra.path, errno, e);
+	printkdebug(n, "IN %d (%d) %s %s %d epoch %ld", umvu_gettid(), native_syscall(__NR_gettid),
+			syscallname(sd.syscall_number), extra.path, errno, e);
 	ht = tab_entry->choicef(&sd);
 	if (sd.action != SKIPIT)
 		tab_entry->wrapinf(ht, &sd);

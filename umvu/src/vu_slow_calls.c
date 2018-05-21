@@ -46,7 +46,7 @@ struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events
 	int sfd = vu_fd_get_sfd(fd, &private, nested);
 	int epfd = r_epoll_create1(EPOLL_CLOEXEC);
 	struct epoll_event event = {.events = events, .data.fd = fd};
-	int ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, EPOLL_CTL_ADD, sfd, &event);
+	int ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, EPOLL_CTL_ADD, sfd, &event, private);
 	//printk("vu_slowcall_in... %d (add %d)\n", epfd, ret_value);
 	if (ret_value < 0) {
 		r_close(epfd);
@@ -92,7 +92,7 @@ void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint3
 	//int rv = r_kill(sc->pid, SIGTERM);
 	struct epoll_event event = {.events = events, .data.fd = fd};
 	//printk("vu_slowcall_wakeup...\n");
-	service_syscall(ht, __VU_epoll_ctl)(sc->epfd, EPOLL_CTL_DEL, sfd, &event);
+	service_syscall(ht, __VU_epoll_ctl)(sc->epfd, EPOLL_CTL_DEL, sfd, &event, private);
 	r_close(sc->epfd);
 	free(sc);
 	//return rv;

@@ -385,7 +385,7 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 						event.events |= fds[j].events;
 				}
 				//printk("EPOLL ADD %d %d\n", fd, event.events);
-				if (service_syscall(ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_ADD, sfd, &event) < 0)
+				if (service_syscall(ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_ADD, sfd, &event, private) < 0)
 					pollio->fd[i] = -1;
 				else
 					pollio->fd[i] = virtfd[i];
@@ -543,7 +543,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					int sfd = vu_fd_get_sfd(fd, &private, nested);
 					struct epoll_event event = {.events = events, .data.fd = fd};
 					//printk("EPOLL ADD %d %d\n", fd, events);
-					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event) >= 0) {
+					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event, private) >= 0) {
 						FD_CLR(fd, &readfds);
 						FD_CLR(fd, &writefds);
 						FD_CLR(fd, &exceptfds);
