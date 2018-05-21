@@ -36,7 +36,7 @@ static struct option long_options[] = {
 	{"login", 0, 0, 'l'},
 	{"shell", 1, 0, 's'},
 	{"preserve-environment", 0, 0, 'p'},
-	{"help", 1, 0, 'h'},
+	{"help", 0, 0, 'h'},
 	{0, 0, 0, 0}
 };
 
