@@ -212,7 +212,6 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* args */
 		int fd = sd->syscall_args[0];
 		void *private = NULL;
-		void *connprivate;
 		int sfd = vu_fd_get_sfd(fd, &private, nested);
 		uintptr_t addraddr =  sd->syscall_args[1];
 		void *addr;
@@ -241,7 +240,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (flags & SOCK_CLOEXEC)
 			fflags |= O_CLOEXEC;
 		sd->action = SKIPIT;
-		ret_value = service_syscall(ht, __VU_accept4)(sfd, addr, addrlen, flags, private, &connprivate);
+		ret_value = service_syscall(ht, __VU_accept4)(sfd, addr, addrlen, flags, private, &private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
@@ -250,7 +249,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
-			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, connprivate);
+			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
 				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
