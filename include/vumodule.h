@@ -45,6 +45,7 @@ ssize_t VU_SYSNAME(name, read) (int fd, void *buf, size_t count, void *fdprivate
 ssize_t VU_SYSNAME(name, write)(int fd, const void *buf, size_t count, void *fdprivate); \
 int VU_SYSNAME(name, getdents64) (unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate); \
 off_t VU_SYSNAME(name, lseek) (int fd, off_t offset, int whence, void *fdprivate); \
+int VU_SYSNAME(name, ioctl) (int fd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate); \
 int VU_SYSNAME(name, unlink) (const char *pathname); \
 int VU_SYSNAME(name, truncate) (const char *path, off_t length, int fd, void *fdprivate); \
 int VU_SYSNAME(name, mkdir) (const char *pathname, mode_t mode); \

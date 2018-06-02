@@ -34,6 +34,7 @@
 #include <linux/if_tun.h>
 #include <libvdeplug.h>
 
+#if 0
 /* just in case prctl.h is not providing these definitions */
 #ifndef PR_CAP_AMBIENT
 #define PR_CAP_AMBIENT      47
@@ -43,6 +44,7 @@
 #endif
 #ifndef PR_CAP_AMBIENT_LOWER
 #define PR_CAP_AMBIENT_LOWER  3
+#endif
 #endif
 
 #define APPSIDE 0
@@ -191,6 +193,7 @@ static int supported_domain (int domain) {
 		case AF_INET6:
 		case AF_NETLINK:
 		case AF_PACKET:
+		case AF_UNIX:
 			return 1;
 		default:
 			return 0;
