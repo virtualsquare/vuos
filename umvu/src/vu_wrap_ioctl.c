@@ -70,7 +70,7 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		 if fd ==  -1 */
 		/* modern ioctls have already size and direction encoded in their request argument,
 			 so if the modules' call fails, reqargs gets the value of request */
-		reqargs = service_syscall(ht, __VU_ioctl)(-1, request, NULL, addr, NULL);
+		reqargs = service_syscall(ht, __VU_ioctl)(-1, request, NULL, addr, private);
 		if (reqargs == (unsigned long) -1)
 			reqargs = request;
 		len = _IOC_SIZE(reqargs);
@@ -88,7 +88,6 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (buf)
 			vu_free_arg(buf, nested);
-		sd->ret_value = -ENOSYS;
 	}
 }
 
