@@ -200,9 +200,20 @@ static int supported_domain (int domain) {
 	}
 }
 
-int vdestack_socket(int domain, int type, int protocol) {
+static int vdestack_socket(int domain, int type, int protocol) {
 	struct vdestack *vdestack = vunet_get_private_data();
 	return vde_msocket(vdestack, domain, type, protocol);
+}
+
+static int vdestack_ioctl (int fd, unsigned long request, void *addr) {
+	if (fd == -1) {
+		int retval = vunet_ioctl_parms(request);
+		if (retval == 0) {
+			errno = ENOSYS; return -1;
+		} else
+			return retval;
+	}
+	return ioctl(fd, request, addr);
 }
 
 int vdestack_init(const char *source, unsigned long flags, const char *args, void **private_data) {
@@ -229,7 +240,7 @@ struct vunet_operations vunet_ops = {
 	.getsockopt = getsockopt,
 	.setsockopt = setsockopt,
 	.shutdown = shutdown,
-	.ioctl = ioctl,
+	.ioctl = vdestack_ioctl,
 	.close = close,
 
 	.epoll_ctl = epoll_ctl,

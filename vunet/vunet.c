@@ -325,13 +325,6 @@ int vu_vunet_setsockopt(int sockfd, int level, int optname,
 int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "ioctl %p %d 0x%x %p %d", current_vnetfd, sockfd, request, buf, addr);
-	if (sockfd == -1) {
-		int retval = vunet_ioctl_parms(request);
-		if (retval == 0) {
-			errno = ENOSYS; return -1;
-		} else
-			return retval;
-	}
 	if (current_vnetfd->vunet->netops->ioctl == NULL) {
 		errno = ENOSYS; return -1;
 	} else
