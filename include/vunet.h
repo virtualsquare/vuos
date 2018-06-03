@@ -38,6 +38,7 @@ struct vunet_operations {
 	int (*epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event);
 
 	int (*supported_domain) (int domain);
+	int (*supported_ioctl) (unsigned long request);
 	int (*init) (const char *source, unsigned long flags, const char *args, void **private_data);
 	int (*fini) (void *private_data);
 };

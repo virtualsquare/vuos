@@ -53,6 +53,7 @@ struct vunet {
 	time_t mounttime;
 	time_t atime;
 	struct vuht_entry_t *socket_ht;
+	struct vuht_entry_t *ioctl_ht;
 	struct vuht_entry_t *path_ht;
 	void *private_data;
 };
@@ -125,6 +126,19 @@ static int checksocket(int type, void *arg, int arglen,
 	}
 }
 
+static int checkioctl(int type, void *arg, int arglen,
+    struct vuht_entry_t *ht) {
+	unsigned long *request = arg;
+	struct vunet *vunet = vuht_get_private_data(ht);
+	struct vunet *defvunet = get_defstack(PF_NETLINK);
+	if (vunet->netops->supported_ioctl != NULL &&
+			vunet->netops->supported_ioctl(*request) &&
+			vunet == defvunet)
+		return 1;
+	else
+		return 0;
+}
+
 int vu_vunet_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate) {
 	struct vunet *vunet = vu_get_ht_private_data();
 
@@ -154,9 +168,9 @@ int vu_vunet_lchown(const char *pathname, uid_t owner, gid_t group, int fd, void
 	struct vunet *vunet = vu_get_ht_private_data();
 
 	/* access control */
-	if (owner != (uid_t) -1) 
+	if (owner != (uid_t) -1)
 		vunet->uid = owner;
-	if (group != (gid_t) -1) 
+	if (group != (gid_t) -1)
 		vunet->gid = group;
 	return 0;
 }
@@ -165,13 +179,13 @@ int vu_vunet_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event, void
 	current_vnetfd = fdprivate;
 	if (current_vnetfd->vunet->netops->epoll_ctl == NULL) {
     errno = ENOSYS; return -1;
-  } else 
+  } else
 		return current_vnetfd->vunet->netops->epoll_ctl(epfd, op, fd, event);
 }
 
 int vu_vunet_socket(int domain, int type, int protocol, void **fdprivate) {
 	struct vunet *vunet = vu_get_ht_private_data();
-	if (vunet == NULL) 
+	if (vunet == NULL)
 		vunet = get_defstack(domain);
 	if (vunet == NULL) {
 		errno = EAFNOSUPPORT; return -1;
@@ -325,10 +339,18 @@ int vu_vunet_setsockopt(int sockfd, int level, int optname,
 int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "ioctl %p %d 0x%x %p %d", current_vnetfd, sockfd, request, buf, addr);
-	if (current_vnetfd->vunet->netops->ioctl == NULL) {
-		errno = ENOSYS; return -1;
-	} else
-		return current_vnetfd->vunet->netops->ioctl(sockfd, request, buf);
+	if (current_vnetfd == NULL) {
+		struct vunet *vunet = vu_get_ht_private_data();
+		if (vunet->netops->ioctl == NULL) {
+			errno = ENOSYS; return -1;
+		} else
+			return vunet->netops->ioctl(sockfd, request, buf);
+	} else {
+		if (current_vnetfd->vunet->netops->ioctl == NULL) {
+			errno = ENOSYS; return -1;
+		} else
+			return current_vnetfd->vunet->netops->ioctl(sockfd, request, buf);
+	}
 }
 
 int vu_vunet_close(int sockfd, void *fdprivate) {
@@ -365,6 +387,10 @@ int vu_vunet_mount(const char *source, const char *target,
 		/* XXX return value */
 		if (vunet->netops->init != NULL)
 			vunet->netops->init(source, mountflags, data, &vunet->private_data);
+		if (vunet->netops->supported_ioctl)
+			vunet->ioctl_ht = vuht_add(CHECKIOCTL, NULL, 0, s, checkioctl, vunet, 0);
+		else
+			vunet->ioctl_ht = NULL;
 		vunet->socket_ht = vuht_add(CHECKSOCKET, NULL, 0, s, checksocket, vunet, 0);
 		vunet->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, vunet);
 		printkdebug(N, "mount \'%s\' \'%s\' %s -> %p", source, target, filesystemtype, vunet);
@@ -379,6 +405,8 @@ int vu_vunet_umount2(const char *target, int flags) {
   int ret_value;
 	printkdebug(N, "umount2 \'%s\' %p", target, vunet);
 	vuht_del(vunet->socket_ht, flags);
+	if (vunet->ioctl_ht)
+		vuht_del(vunet->ioctl_ht, flags);
   if ((ret_value = vuht_del(ht, flags)) < 0) {
     errno = -ret_value;
     return -1;
@@ -390,11 +418,15 @@ void vu_vunet_cleanup(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht) {
 	struct vunet *vunet = vuht_get_private_data(ht);
 	printkdebug(N, "cleanup %p %d", vunet, type);
-  if (type == CHECKSOCKET) 
+  if (type == CHECKSOCKET)
 		vunet->socket_ht = NULL;
-  if (type == CHECKPATH) 
+  if (type == CHECKIOCTL)
+		vunet->ioctl_ht = NULL;
+  if (type == CHECKPATH)
 		vunet->path_ht = NULL;
-	if (vunet->socket_ht == NULL && vunet->path_ht == NULL) {
+	if (vunet->socket_ht == NULL &&
+			vunet->ioctl_ht == NULL &&
+			vunet->path_ht == NULL) {
 		if (vunet->netops->fini != NULL)
 			vunet->netops->fini(vunet->private_data);
     free(vunet);

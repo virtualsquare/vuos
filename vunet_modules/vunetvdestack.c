@@ -34,19 +34,6 @@
 #include <linux/if_tun.h>
 #include <libvdeplug.h>
 
-#if 0
-/* just in case prctl.h is not providing these definitions */
-#ifndef PR_CAP_AMBIENT
-#define PR_CAP_AMBIENT      47
-#endif
-#ifndef PR_CAP_AMBIENT_RAISE
-#define PR_CAP_AMBIENT_RAISE  2
-#endif
-#ifndef PR_CAP_AMBIENT_LOWER
-#define PR_CAP_AMBIENT_LOWER  3
-#endif
-#endif
-
 #define APPSIDE 0
 #define DAEMONSIDE 1
 
@@ -153,7 +140,6 @@ struct vdestack *vde_addstack(char *vdenet, char *ifname) {
 				CLONE_FILES | CLONE_NEWUSER | CLONE_NEWNET | SIGCHLD, stack);
 		if (stack->pid == -1)
 			goto err_child;
-		//uid_gid_map(stack->pid); //is this required?
 	}
 	return stack;
 err_child:
@@ -193,11 +179,14 @@ static int supported_domain (int domain) {
 		case AF_INET6:
 		case AF_NETLINK:
 		case AF_PACKET:
-		case AF_UNIX:
 			return 1;
 		default:
 			return 0;
 	}
+}
+
+static int supported_ioctl (unsigned long request) {
+	return vunet_ioctl_parms(request) != 0;
 }
 
 static int vdestack_socket(int domain, int type, int protocol) {
@@ -207,13 +196,25 @@ static int vdestack_socket(int domain, int type, int protocol) {
 
 static int vdestack_ioctl (int fd, unsigned long request, void *addr) {
 	if (fd == -1) {
-		int retval = vunet_ioctl_parms(request);
-		if (retval == 0) {
-			errno = ENOSYS; return -1;
-		} else
-			return retval;
-	}
-	return ioctl(fd, request, addr);
+		if (addr == NULL) {
+			int retval = vunet_ioctl_parms(request);
+			if (retval == 0) {
+				errno = ENOSYS; return -1;
+			} else
+				return retval;
+		} else {
+			int tmpfd = vdestack_socket(AF_NETLINK, SOCK_RAW|SOCK_CLOEXEC, 0);
+			int retval;
+			if (tmpfd < 0)
+				return -1;
+			else {
+				retval = ioctl(tmpfd, request, addr);
+				close(tmpfd);
+				return retval;
+			}
+		}
+	} else
+		return ioctl(fd, request, addr);
 }
 
 int vdestack_init(const char *source, unsigned long flags, const char *args, void **private_data) {
@@ -246,6 +247,7 @@ struct vunet_operations vunet_ops = {
 	.epoll_ctl = epoll_ctl,
 
 	.supported_domain = supported_domain,
+	.supported_ioctl = supported_ioctl,
 	.init = vdestack_init,
 	.fini = vdestack_fini,
 };
