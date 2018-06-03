@@ -27,3 +27,12 @@ VU_PROTOTYPES(unreal)
     .description = "vu virtual file systems (user level FUSE)"
   };
 
+__attribute__((constructor))
+  static void init(void) {
+    debug_set_name(F, "VUFUSE");
+  }
+
+__attribute__((destructor))
+  static void fini(void) {
+    debug_set_name(F, "");
+  }

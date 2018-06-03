@@ -27,3 +27,13 @@ VU_PROTOTYPES(unreal)
     .description = "vu binfmt_misc support"
   };
 
+__attribute__((constructor))
+  static void init(void) {
+    debug_set_name(B, "VUBINFMT");
+  }
+
+__attribute__((destructor))
+  static void fini(void) {
+    debug_set_name(B, "");
+  }
+

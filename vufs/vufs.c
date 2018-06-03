@@ -27,3 +27,12 @@ VU_PROTOTYPES(unreal)
     .description = "vu filesystem patchworking"
   };
 
+__attribute__((constructor))
+  static void init(void) {
+    debug_set_name(V, "VUFS");
+  }
+
+__attribute__((destructor))
+  static void fini(void) {
+    debug_set_name(V, "");
+  }
