@@ -93,12 +93,13 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 
 typedef long (*sfun)();
 
-#pragma GCC diagnostic ignored "-Wpedantic"
 void vu_nesting_init(int argc, char *argv) {
 	sfun (*_pure_start_p)();
 	char *ld_preload = getenv("LD_PRELOAD");
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
+#pragma GCC diagnostic ignored "-Wpedantic"
 		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
+#pragma GCC diagnostic warning "-Wpedantic"
 		if (_pure_start_p) {
 			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
 			native_syscall = _pure_start_p(capture_nested_syscall, 0);

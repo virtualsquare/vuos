@@ -19,6 +19,8 @@
  */
 
 #include <service.h>
+#include <umvu_peekpoke.h>
+#include <vu_fs.h>
 
 static __thread struct vuht_entry_t *thread_private_ht_for_modules;
 
@@ -28,4 +30,12 @@ void vu_mod_setht(struct vuht_entry_t *ht) {
 
 struct vuht_entry_t *vu_mod_getht(void) {
 	return thread_private_ht_for_modules;
+}
+
+unsigned int vu_mod_gettid() {
+  return umvu_gettid();
+}
+
+mode_t vu_mod_getumask(void) {
+	return vu_fs_get_umask();
 }

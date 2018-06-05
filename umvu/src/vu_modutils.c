@@ -33,9 +33,6 @@
 
 typedef void (* voidfun)(void);
 
-/* this is convenient since casting the return value of dlsym() to
- * a function pointer erroneously produces a warning */
-#pragma GCC diagnostic ignored "-Wpedantic"
 
 long sys_enosys(void) {
 	errno = ENOSYS;
@@ -120,7 +117,9 @@ struct vu_service_t *module_load(const char *modname)
 	}
 
 	/* populate umview_service_t structure */
+#pragma GCC diagnostic ignored "-Wpedantic"
 	if ((module = dlsym(handle, "vu_module"))) {
+#pragma GCC diagnostic warning "-Wpedantic"
 		struct vu_service_t *service = malloc(sizeof(struct vu_service_t) +
 				VU_NR_SYSCALLS * sizeof(syscall_t));
 		int prefixlen = strlen(module->name) + 4;
@@ -136,7 +135,9 @@ struct vu_service_t *module_load(const char *modname)
 		snprintf(fname, fnamelen, "vu_%s_",module->name);
 		for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {
 			strcpy(fname+prefixlen, vu_syscall_names[i]);
+#pragma GCC diagnostic ignored "-Wpedantic"
 			service->module_syscall[i] = dlsym(handle, fname);
+#pragma GCC diagnostic warning "-Wpedantic"
 			if (service->module_syscall[i] == NULL) {
 				service->module_syscall[i] = sys_enosys;
 			} else {
@@ -173,7 +174,9 @@ voidfun *module_getsym(struct vu_service_t *service, char *symbol) {
 	char symnamelen = strlen(service->mod->name) + strlen(symbol) + 5;
 	char symname[symnamelen];
 	snprintf(symname, symnamelen, "vu_%s_%s",service->mod->name, symbol);
+#pragma GCC diagnostic ignored "-Wpedantic"
 	return dlsym(service->dlhandle, symname);
+#pragma GCC diagnostic warning "-Wpedantic"
 }
 
 void module_run_init(struct vu_service_t *service) {

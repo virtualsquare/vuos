@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <dirent.h>
+#include <libgen.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
 #include <sys/epoll.h>
@@ -124,6 +125,9 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		confirmfun_t confirmfun, void *ht_private_data);
 
 struct vuht_entry_t *vu_mod_getht(void);
+void vu_mod_setht(struct vuht_entry_t *ht); // mainly for modules' threads
+unsigned int vu_mod_gettid();
+mode_t vu_mod_getumask(void);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
 	static inline syscall_t vu_mod_getservice(void) {
