@@ -452,8 +452,10 @@ static int vuht_cleanup(struct vuht_entry_t *ht) {
 	pthread_mutex_unlock(&vuht_head_lock);
 	if (ht->service_hte && ht->service_hte != ht) {
 		confirmfun_t service_cleanup = ht->service_hte->confirmfun;
-		if (service_cleanup)
+		if (service_cleanup) {
+			vu_mod_setht(ht);
 			service_cleanup(ht->type, ht->obj, ht->objlen, ht);
+		}
 		vuht_drop(ht->service_hte);
 	}
 	if (ht->count == 0)
