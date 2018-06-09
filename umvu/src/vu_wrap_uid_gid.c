@@ -234,40 +234,47 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 
 static void wi_setfsuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
+	uid_t new_fsuid = sd->syscall_args[0];
 	if (ht) {
 		uid_t ruid, euid, suid, fsuid;
-		uid_t new_fsuid = sd->syscall_args[0];
 		service_syscall(ht, __VU_getresfuid)(&ruid, &euid, &suid, &fsuid, vuht_get_private_data(ht));
 		sd->ret_value = fsuid;
 		if (new_fsuid != (uid_t ) -1) 
 			service_syscall(ht, __VU_setresfuid)(ruid, euid, suid, new_fsuid, vuht_get_private_data(ht));
 		sd->action = SKIPIT;
 	} else if (nested) {
-		uid_t new_fsuid = sd->syscall_args[0];
 		if (new_fsuid != (uid_t ) -1) {
 			sd->ret_value = -ENOSYS;
 			sd->action = SKIPIT;
+		} else {
+			uid_t ruid, euid, suid, fsuid;
+			status_getresfuid(umvu_gettid(),&ruid, &euid, &suid, &fsuid);
+			sd->ret_value = fsuid;
 		}
 	}
 }
 
 static void wi_setfsgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-  if (ht) {
-    gid_t rgid, egid, sgid, fsgid;
-    gid_t new_fsgid = sd->syscall_args[0];
-    service_syscall(ht, __VU_getresfgid)(&rgid, &egid, &sgid, &fsgid, vuht_get_private_data(ht));
-    sd->ret_value = fsgid;
-    if (new_fsgid != (gid_t ) -1)
-      service_syscall(ht, __VU_setresfgid)(rgid, egid, sgid, new_fsgid, vuht_get_private_data(ht));
-    sd->action = SKIPIT;
-  } else if (nested) {
-    gid_t new_fsgid = sd->syscall_args[0];
-    if (new_fsgid != (gid_t ) -1) {
-      sd->ret_value = -ENOSYS;
-      sd->action = SKIPIT;
-    }
-  }
+	gid_t new_fsgid = sd->syscall_args[0];
+	if (ht) {
+		gid_t rgid, egid, sgid, fsgid;
+		service_syscall(ht, __VU_getresfgid)(&rgid, &egid, &sgid, &fsgid, vuht_get_private_data(ht));
+		sd->ret_value = fsgid;
+		if (new_fsgid != (gid_t ) -1)
+			service_syscall(ht, __VU_setresfgid)(rgid, egid, sgid, new_fsgid, vuht_get_private_data(ht));
+		sd->action = SKIPIT;
+	} else if (nested) {
+		gid_t new_fsgid = sd->syscall_args[0];
+		if (new_fsgid != (gid_t ) -1) {
+			sd->ret_value = -ENOSYS;
+			sd->action = SKIPIT;
+		} else {
+			gid_t rgid, egid, sgid, fsgid;
+			status_getresfgid(umvu_gettid(),&rgid, &egid, &sgid, &fsgid);
+			sd->ret_value = fsgid;
+		}
+	}
 }
 
 void wi_setresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
