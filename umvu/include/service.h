@@ -26,7 +26,7 @@ struct vu_service_t {
 	syscall_t module_syscall[];
 };
 
-void vu_mod_setht(struct vuht_entry_t *);
+struct vuht_entry_t *vu_mod_setht(struct vuht_entry_t *ht);
 struct vuht_entry_t *vu_mod_getht(void);
 
 __attribute__((always_inline))
