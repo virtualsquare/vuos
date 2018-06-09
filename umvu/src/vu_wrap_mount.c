@@ -40,10 +40,9 @@
 //#include <vu_file_table.h>
 //#include <vu_fd_table.h>
 
-
 void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  int nested = sd->extra->nested;
-  if (ht && !nested) {
+	int nested = sd->extra->nested;
+	if (ht && !nested) {
 		/* standard args */
 		int ret_value;
 		/* args */
@@ -51,31 +50,34 @@ void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		char *target = sd->extra->path;
 		char *filesystemtype = umvu_peekdup_path(sd->syscall_args[2]);
 		unsigned long mountflags = sd->syscall_args[3];
-		char *data = umvu_peekdup_path(sd->syscall_args[4]);
+		char *data = NULL;
+		if (sd->syscall_args[4] != 0)
+			data = umvu_peekdup_path(sd->syscall_args[4]);
 		/* fetch args */
 		/* call */
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_mount)(source, target, filesystemtype, mountflags, data);
-		if (ret_value < 0) 
-      sd->ret_value = -errno;
 		xfree(source);
 		xfree(filesystemtype);
 		xfree(data);
 		/* store results */
-    sd->ret_value = ret_value;
+		if (ret_value < 0) 
+			sd->ret_value = -errno;
+		else
+			sd->ret_value = ret_value;
 	}
 }
 
 void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  int nested = sd->extra->nested;
-  if (ht && !nested) {
+	int nested = sd->extra->nested;
+	if (ht && !nested) {
 		/* standard args */
 		int syscall_number = sd->syscall_number;
-    int ret_value;
-    /* args */
+		int ret_value;
+		/* args */
 		char *target = sd->extra->path;
-    int flags;
-    /* fetch args */
+		int flags;
+		/* fetch args */
 		switch (syscall_number) {
 #ifdef __NR_umount
 			case __NR_umount: flags = 0;
@@ -84,12 +86,12 @@ void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_umount2: flags = sd->syscall_args[1];
 												 break;
 		}
-    sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_umount2)(target, flags);
-    if (ret_value < 0)
-      sd->ret_value = -errno;
+		sd->action = SKIPIT;
+		ret_value = service_syscall(ht, __VU_umount2)(target, flags);
+		if (ret_value < 0)
+			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;
-  }
+	}
 }
 
