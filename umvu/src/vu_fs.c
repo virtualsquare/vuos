@@ -113,7 +113,8 @@ static void vu_fs_create(void) {
 	newfs->rootdir = strdup("/");
 	newfs->umask = umask(0777);
 	umask(newfs->umask);
-	newfs->count = 1;
+	/* info on root process should never be deallocated */
+	newfs->count = 2;
 	pthread_rwlock_init(&newfs->lock, NULL);
 	vu_fs = newfs;
 }
