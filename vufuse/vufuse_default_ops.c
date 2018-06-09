@@ -1,6 +1,7 @@
 /*
  *   VUOS: view OS project
  *   Copyright (C) 2018  Renzo Davoli <renzo@cs.unibo.it>
+ *                       Leonardo Frioli <leonardo.frioli@studio.unibo.it>
  *   VirtualSquare team.
  *   (inherited from umfuse Copyright 2005 Renzo Davoli)
  *

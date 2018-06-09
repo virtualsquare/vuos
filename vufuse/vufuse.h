@@ -26,8 +26,6 @@
 #define VUFUSE_FUSE_VERSION 29
 #endif
 
-/** Enable merge mode */
-#define FUSE_MERGE       (1 << 27)
 /** Enable hard remove */
 #define FUSE_HARDREMOVE  (1 << 26)
 
@@ -40,25 +38,19 @@ struct fuse {
   pthread_cond_t endloop;
   int inuse;
   unsigned long flags;
-};
-
-struct main_params {
-	int (*pmain)(int argc, char **argv, char** env);
-	const char *filesystemtype;
-	const char *source;
-	const char *target;
-	unsigned long *pflags;
-	char *opts;
+	void *private_data;
 };
 
 struct fileinfo {
-  struct fuse_context *context;
+	char *path;
   off_t pos;        /* file offset */
   off_t size;       /* file offset */
   struct fuse_file_info ffi;    /* includes open flags, file handle and page_write mode  */
   //struct fuse_node *node;
-  struct vudirent *dirinfo;   /* conversion fuse-getdir into kernel compliant dirent. Dir head pointer (list of vudirent) */
-  struct vudirent *dirpos;    /* same conversion above: current pos entry (position in the list)*/
+	FILE *dirf;
 };
+
+struct fuse_context *fuse_push_context(struct fuse_context *new);
+void fuse_pop_context(struct fuse_context *old);
 
 #endif
