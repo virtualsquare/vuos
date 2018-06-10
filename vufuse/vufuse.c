@@ -1,6 +1,6 @@
 /*
  *   VUOS: view OS project
- *   Copyright (C) 2018  Renzo Davoli <renzo@cs.unibo.it> 
+ *   Copyright (C) 2018  Renzo Davoli <renzo@cs.unibo.it>
  *                       Leonardo Frioli <leonardo.frioli@studio.unibo.it>
  *   VirtualSquare team.
  *
@@ -33,10 +33,10 @@
 
 VU_PROTOTYPES(vufuse)
 
-struct vu_module_t vu_module = {
-	.name = "vufuse",
-	.description = "vu virtual file systems (user level FUSE)"
-};
+	struct vu_module_t vu_module = {
+		.name = "vufuse",
+		.description = "vu virtual file systems (user level FUSE)"
+	};
 
 /* values for INUSE and thread synchro */
 #define WAITING_FOR_LOOP -1
@@ -52,12 +52,12 @@ struct fusethreadopt {
 
 int vufuse_abort(struct fuse *f)
 {
-  f->inuse = FUSE_ABORT;
-  pthread_mutex_lock( &condition_mutex );
-  pthread_cond_signal( &f->startloop );
-  pthread_mutex_unlock( &condition_mutex );
+	f->inuse = FUSE_ABORT;
+	pthread_mutex_lock( &condition_mutex );
+	pthread_cond_signal( &f->startloop );
+	pthread_mutex_unlock( &condition_mutex );
 
-  return 0;
+	return 0;
 }
 
 static void *fusethread(void *vsmo) {
@@ -68,7 +68,7 @@ static void *fusethread(void *vsmo) {
 		vufuse_abort(psmo->new_fuse);
 
 	pthread_exit(NULL);
-  return NULL;
+	return NULL;
 }
 
 int vu_vufuse_mount(const char *source, const char *target,
@@ -102,7 +102,13 @@ int vu_vufuse_mount(const char *source, const char *target,
 		new_fuse->flags = mountflags;
 		new_fuse->inuse = WAITING_FOR_LOOP;
 
-    new_fuse->private_data = NULL;
+		new_fuse->private_data = NULL;
+
+		pthread_mutex_init(&(new_fuse->mutex), NULL);
+		pthread_cond_init(&(new_fuse->startloop), NULL);
+		pthread_cond_init(&(new_fuse->endloop), NULL);
+
+		pthread_mutex_lock(&(new_fuse->mutex));
 
 		ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, new_fuse);
 		vu_mod_setht(ht);
@@ -116,8 +122,6 @@ int vu_vufuse_mount(const char *source, const char *target,
 		smo.main_params.pflags = &(new_fuse->flags);
 		smo.main_params.opts = data ? (char *) data : "";
 
-		pthread_cond_init(&(new_fuse->startloop),NULL);
-    pthread_cond_init(&(new_fuse->endloop),NULL);
 		pthread_create(&(new_fuse->thread), NULL, fusethread, (void *)&smo);
 
 		pthread_mutex_lock( &condition_mutex );
@@ -128,23 +132,25 @@ int vu_vufuse_mount(const char *source, const char *target,
 		if (new_fuse->inuse == FUSE_ABORT)
 			goto err_startloop_fault;
 
-    if (new_fuse->fops.init != NULL) {
-      struct fuse_conn_info conn;
+		if (new_fuse->fops.init != NULL) {
+			struct fuse_conn_info conn;
 			struct fuse_context fcx, *ofcx;
 			ofcx = fuse_push_context (&fcx);
-      new_fuse->private_data=new_fuse->fops.init(&conn);
+			new_fuse->private_data=new_fuse->fops.init(&conn);
 			fuse_pop_context(ofcx);
-    }
+		}
 
+		pthread_mutex_unlock(&(new_fuse->mutex));
 		printkdebug(F, "MOUNT source:%s target:%s filesystemtype:%s mountflags:%x data:%s",
 				source,target,filesystemtype,mountflags, (data!=NULL)?data:"<NULL>");
 
 		return 0;
 err_startloop_fault:
-		errno = EFAULT; /* temporary solution */
+		pthread_mutex_unlock(&(new_fuse->mutex));
 		/* new and new_fuse as well as waiting for the thread to terminate
 			 done by cleanup */
 		vuht_del(ht,1);
+		errno = EFAULT; /* temporary solution */
 		return -1;
 err_nomem_fuse:
 		dlclose(dlhandle);
@@ -165,10 +171,11 @@ static void vufuse_umount_internal(struct fuse *fuse) {
 	pthread_mutex_lock( &condition_mutex );
 	fuse->inuse= EXITING;
 	pthread_cond_signal(&fuse->endloop);
-  pthread_mutex_unlock( &condition_mutex );
-  pthread_join(fuse->thread, NULL);
+	pthread_mutex_unlock( &condition_mutex );
+	pthread_join(fuse->thread, NULL);
 	pthread_cond_destroy(&(fuse->startloop));
 	pthread_cond_destroy(&(fuse->endloop));
+	pthread_mutex_destroy(&(fuse->mutex));
 
 	dlclose(fuse->dlhandle);
 	free(fuse);
@@ -177,29 +184,34 @@ static void vufuse_umount_internal(struct fuse *fuse) {
 int vu_vufuse_umount2(const char *target, int flags) {
 	struct fuse *fuse = vu_get_ht_private_data();
 
-  if (fuse == NULL) {
+	if (fuse == NULL) {
 		errno = EINVAL;
 		return -1;
-	} else if (fuse->inuse) {
-		errno = EBUSY;
-		return -1;
-	} else {
-    /*cleanup and umount_internal will do the right umounting sequence in a lazy way*/
-    vuht_del(vu_mod_getht(),flags);
+	} else  {
+		pthread_mutex_lock(&(fuse->mutex));
+		if (fuse->inuse) {
+			pthread_mutex_unlock(&(fuse->mutex));
+			errno = EBUSY;
+			return -1;
+		} else {
+			/*cleanup and umount_internal will do the right umounting sequence in a lazy way*/
+			vuht_del(vu_mod_getht(),flags);
 
-    printkdebug(F,"UMOUNT target:%s flags:%d",target,flags);
-    return 0;
-  }
+			pthread_mutex_unlock(&(fuse->mutex));
+			printkdebug(F,"UMOUNT target:%s flags:%d",target,flags);
+			return 0;
+		}
+	}
 }
 
 void vu_vufuse_cleanup(uint8_t type, void *arg, int arglen,struct vuht_entry_t *ht) {
-  if (type == CHECKPATH) {
-    struct fuse *fuse = vuht_get_private_data(ht);
-    if (fuse == NULL) {
+	if (type == CHECKPATH) {
+		struct fuse *fuse = vuht_get_private_data(ht);
+		if (fuse == NULL) {
 			errno = EINVAL;
 		} else
 			vufuse_umount_internal(fuse);
-  }
+	}
 }
 
 /* management of context */
@@ -207,7 +219,7 @@ static __thread struct fuse_context *__fuse_context;
 
 struct fuse_context *fuse_push_context(struct fuse_context *new) {
 	struct fuse_context *old_fuse_context = __fuse_context;
-  struct fuse *fuse = vu_get_ht_private_data();
+	struct fuse *fuse = vu_get_ht_private_data();
 	new->uid = geteuid();
 	new->gid = getegid();
 	new->pid = vu_mod_gettid();
@@ -229,14 +241,14 @@ int fuse_version(void) { return VUFUSE_FUSE_VERSION;}
 
 struct fuse_context *fuse_get_context(void)
 {
-  return __fuse_context;
+	return __fuse_context;
 }
 
 int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
-    size_t op_size, void *user_data)
+		size_t op_size, void *user_data)
 {
-  struct fuse *f;
-  struct fuse_chan *fusechan = fuse_mount(NULL, NULL); /*options have been already parsed*/
+	struct fuse *f;
+	struct fuse_chan *fusechan = fuse_mount(NULL, NULL); /*options have been already parsed*/
 	if (fusechan != NULL) {
 		f = fuse_new(fusechan, NULL, op, op_size, user_data);
 
@@ -249,13 +261,13 @@ int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
  * the real mount operation has been done in vufuse_mount */
 struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
 {
-  return vu_get_ht_private_data();
+	return vu_get_ht_private_data();
 }
 
 
 void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
 {
-  return;
+	return;
 }
 
 /* mergefun: set non-null functions */
@@ -265,79 +277,79 @@ static void fopsmerge (const struct fuse_operations *fops, const struct fuse_ope
 	const void **modf = modfops;
 	size_t i;
 	if (size > sizeof(struct fuse_operations))
-    size = sizeof(struct fuse_operations);
+		size = sizeof(struct fuse_operations);
 	size = size / sizeof(void *);
 	for (i = 0; i <size; i++) {
 		if (modf[i] != NULL)
-      f[i] = modf[i];
-  }
+			f[i] = modf[i];
+	}
 }
 
 struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
-    const struct fuse_operations *op, size_t op_size,
-    void *user_data)
+		const struct fuse_operations *op, size_t op_size,
+		void *user_data)
 {
-  struct fuse *fuse = (struct fuse *)ch;
-  if (op_size != sizeof(struct fuse_operations))
-    printk("Fuse module vs vufuse support version mismatch");
-  if (fuse != vu_get_ht_private_data() || op_size != sizeof(struct fuse_operations)){
-    fuse->inuse=FUSE_ABORT;
-    return NULL;
-  }
-  else {
-    fuse->private_data = user_data;
-    fopsmerge(&fuse->fops, op, op_size);
-    return fuse;
-  }
+	struct fuse *fuse = (struct fuse *)ch;
+	if (op_size != sizeof(struct fuse_operations))
+		printk("Fuse module vs vufuse support version mismatch");
+	if (fuse != vu_get_ht_private_data() || op_size != sizeof(struct fuse_operations)){
+		fuse->inuse=FUSE_ABORT;
+		return NULL;
+	}
+	else {
+		fuse->private_data = user_data;
+		fopsmerge(&fuse->fops, op, op_size);
+		return fuse;
+	}
 }
 
 void fuse_destroy(struct fuse *f)
 {
-  /*  **
-   * Destroy the FUSE handle.
-   *
-   * The filesystem is not unmounted.
-   *
-   * @param f the FUSE handle
-   */
+	/*  **
+	 * Destroy the FUSE handle.
+	 *
+	 * The filesystem is not unmounted.
+	 *
+	 * @param f the FUSE handle
+	 */
 }
 
 int fuse_loop(struct fuse *f)
 {
-  if (f != NULL) {
+	if (f != NULL) {
 
-    pthread_mutex_lock( &condition_mutex );
-    f->inuse = 0;
-    pthread_cond_signal( &f->startloop );
-    ////pthread_mutex_unlock( &condition_mutex );
-    //pthread_mutex_lock( &f->endmutex );
-     ////pthread_mutex_lock( &condition_mutex );
-    if (f->inuse != EXITING) {
-      //pthread_cond_wait( &f->endloop, &f->endmutex );
+		pthread_mutex_lock( &condition_mutex );
+		f->inuse = 0;
+		pthread_cond_signal( &f->startloop );
+		////pthread_mutex_unlock( &condition_mutex );
+		//pthread_mutex_lock( &f->endmutex );
+		////pthread_mutex_lock( &condition_mutex );
+		if (f->inuse != EXITING) {
+			//pthread_cond_wait( &f->endloop, &f->endmutex );
 			pthread_cond_wait( &f->endloop, &condition_mutex );
 		}
-    //pthread_mutex_unlock( &f->endmutex );
-    pthread_mutex_unlock( &condition_mutex );
-  }
-  return 0;
+		//pthread_mutex_unlock( &f->endmutex );
+		pthread_mutex_unlock( &condition_mutex );
+	}
+	return 0;
 }
 
 
 void fuse_exit(struct fuse *f)
 {
-  /**
-   * Exit from event loop
-   *
-   * @param f the FUSE handle
-   */
+	/**
+	 * Exit from event loop
+	 *
+	 * @param f the FUSE handle
+	 */
 
 }
 
 int fuse_loop_mt(struct fuse *f)
 {
-  //in fuselib is FUSE event loop with multiple threads,
-  //but hereeverything has multiple threads ;-)
-  return fuse_loop(f);
+	//in fuselib is FUSE event loop with multiple threads,
+	//but hereeverything has multiple threads ;-)
+	return fuse_loop(f);
 }
 
 

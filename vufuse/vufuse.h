@@ -33,9 +33,12 @@ struct fuse {
 	void *dlhandle;
 	struct fuse_operations fops;
 
+	pthread_mutex_t mutex;
+
   pthread_t thread;
   pthread_cond_t startloop;
   pthread_cond_t endloop;
+
   int inuse;
   unsigned long flags;
 	void *private_data;
@@ -44,7 +47,6 @@ struct fuse {
 struct fileinfo {
 	char *path;
   off_t pos;        /* file offset */
-  off_t size;       /* file offset */
   struct fuse_file_info ffi;    /* includes open flags, file handle and page_write mode  */
   //struct fuse_node *node;
 	FILE *dirf;
