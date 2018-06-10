@@ -659,7 +659,6 @@ int vu_vufuse_getdents64(int fd, struct dirent64 *dirp, unsigned int count, void
 			else {
 				struct fuse_dirhandle dh = {.f = ft->dirf};
 				rv = fc.fuse->fops.getdir(FILEPATH(ft), &dh, vufusefilldir);
-				fuse_pop_context(ofc);
 			}
 			fuse_pop_context(ofc);
 			if (rv < 0) {
