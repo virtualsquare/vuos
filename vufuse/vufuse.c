@@ -79,10 +79,11 @@ int vu_vufuse_mount(const char *source, const char *target,
 	int (*pmain)(int argc, char **argv);
 
 	//printk("vu_vufuse_mount %s %s %s 0x%x %s\n", source, target, filesystemtype, mountflags, data);
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 	if(dlhandle == NULL ||
 			(pmain = dlsym(dlhandle,"main")) == NULL) {
-#pragma GCC diagnostic warning "-Wpedantic"
+#pragma GCC diagnostic pop
 		if (dlhandle != NULL) {
 			printk(KERN_ERR "%s",dlerror());
 			dlclose(dlhandle);
