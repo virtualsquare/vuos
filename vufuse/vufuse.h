@@ -45,10 +45,10 @@ struct fuse {
 };
 
 struct fileinfo {
-	char *path;
+	//char *path;
+  struct fuse_node *node;
   off_t pos;        /* file offset */
   struct fuse_file_info ffi;    /* includes open flags, file handle and page_write mode  */
-  //struct fuse_node *node;
 	FILE *dirf;
 };
 
