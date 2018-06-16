@@ -32,8 +32,7 @@
 #include <vufuse_node.h>
 #include <vufuse.h>
 
-//#define FILEPATH(x) x->path
-#define FILEPATH(x) node_path(x->node)
+#define FILEPATH(x) vufuse_node_path(x->node)
 
 /*heuristics for file system which does not set st_ino */
 static inline unsigned long hash_inodeno (const char *s) {
@@ -481,7 +480,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 		errno = -rv;
 		return -1;
 	} else {
-		ft->node = node_add(fc.fuse, pathname);
+		ft->node = vufuse_node_add(fc.fuse, pathname);
 		fc.fuse->inuse++;
 		*private = ft;
 		/*file related function will check sfd >= 0 before accessing fdprivate. That sfd will have the value of rv, so returning 0 is ok*/
@@ -511,7 +510,7 @@ int vu_vufuse_close(int fd, void *fdprivate){
 			rv = fc.fuse->fops.release(FILEPATH(ft), &ft->ffi);
 
 		if (rv >= 0) {
-			char *hiddenfile = node_del(ft->node);
+			char *hiddenfile = vufuse_node_del(ft->node);
 			if (hiddenfile) {
 				fc.fuse->fops.unlink(hiddenfile);
 				free(hiddenfile);
@@ -756,10 +755,10 @@ int vu_vufuse_unlink (const char *pathname) {
 		return -1;
 	}
 
-	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = node_rename(fc.fuse, pathname, NULL)) == NULL ||
+	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, pathname, NULL)) == NULL ||
 			(rv = fc.fuse->fops.rename(pathname,hiddenpath)) < 0) {
 		if (hiddenpath)
-			node_rename(fc.fuse, hiddenpath, pathname);
+			vufuse_node_rename(fc.fuse, hiddenpath, pathname);
 
 		rv = fc.fuse->fops.unlink(pathname);
 
@@ -792,10 +791,10 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 	}
 
 	pthread_mutex_lock(&(fc.fuse->mutex));
-	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = node_rename(fc.fuse, linkpath, NULL)) == NULL ||
+	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, linkpath, NULL)) == NULL ||
 			fc.fuse->fops.rename(linkpath,hiddenpath) < 0) {
 		if (hiddenpath) {
-			node_rename(fc.fuse, hiddenpath, linkpath);
+			vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
 			hiddenpath = NULL;
 		}
 	}
@@ -803,10 +802,10 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 	rv = fc.fuse->fops.rename(target,linkpath);
 
 	if (rv >= 0)
-		node_rename(fc.fuse, target, linkpath);
+		vufuse_node_rename(fc.fuse, target, linkpath);
 	else if (hiddenpath)
 		// revert the renaming to hiddenpath
-		node_rename(fc.fuse, hiddenpath, linkpath);
+		vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 	fuse_pop_context(ofc);
 

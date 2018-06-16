@@ -36,30 +36,38 @@ struct fuse_node {
   struct fuse_node **pprevhash,*nexthash;
 };
 
-static pthread_mutex_t node_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t vufuse_node_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static struct fuse_node *node_head[NODE_HASH_SIZE];
+static struct fuse_node *vufuse_node_head[NODE_HASH_SIZE];
 
 #define ADDRESS_LEN ((int)(sizeof(uintptr_t) * 2))
 #define HIDDEN_PREFIX_LEN (6 + ADDRESS_LEN)
 
-char *node_hiddenpath(struct fuse *fuse)
+static char *vufuse_node_hiddenpath_rename(struct fuse *fuse, char *oldpath)
 {
   char *name;
   static unsigned long hiddencount;
-  asprintf(&name,"/.fuse%0*lx%010lu", ADDRESS_LEN, (uintptr_t)fuse, hiddencount++);
+	char *last_slash = strrchr(oldpath, '/');
+	int last_slash_pos = (last_slash == NULL) ? 0 : (last_slash - oldpath);
+  asprintf(&name,"%*.*s/.fuse%0*lx%010lu", last_slash_pos, last_slash_pos, oldpath, 
+			ADDRESS_LEN, (uintptr_t)fuse, hiddencount++);
+	free(oldpath);
   return name;
 }
 
-static inline int node_hiddenpathcheck(struct fuse *fuse, const char *path)
+static inline int vufuse_node_hiddenpath_check(struct fuse *fuse, const char *path)
 {
-  char check[HIDDEN_PREFIX_LEN + 1];
-  snprintf(check,HIDDEN_PREFIX_LEN + 1,"/.fuse%0*lx", ADDRESS_LEN, (uintptr_t) fuse);
-  return (strncmp(path,check,HIDDEN_PREFIX_LEN) == 0);
+  char *last_slash = strrchr(path, '/');
+	if (last_slash) {
+		char check[HIDDEN_PREFIX_LEN + 1];
+		snprintf(check,HIDDEN_PREFIX_LEN + 1,"/.fuse%0*lx", ADDRESS_LEN, (uintptr_t) fuse);
+		return (strncmp(last_slash, check, HIDDEN_PREFIX_LEN) == 0);
+	} else
+		return 0;
 }
 
 
-static inline long vnode_hash_sum(struct fuse *fuse, const char *path) {
+static inline long vufuse_node_hash_sum(struct fuse *fuse, const char *path) {
   long sum = (long) fuse;
   while (*path != 0) {
     sum ^= ((sum << 5) + (sum >> 2) + *path);
@@ -68,15 +76,15 @@ static inline long vnode_hash_sum(struct fuse *fuse, const char *path) {
   return sum;
 }
 
-static inline int vnode_hash_mod(long sum)
+static inline int vufuse_node_hash_mod(long sum)
 {
   return sum & NODE_HASH_MASK;
 }
 
-static inline struct fuse_node *node_find(void *fuse, const char *path,
+static inline struct fuse_node *vufuse_node_find(void *fuse, const char *path,
     long hashsum, int hashkey)
 {
-  struct fuse_node *scan=node_head[hashkey];
+  struct fuse_node *scan=vufuse_node_head[hashkey];
   //printk("node_find %s\n",path);
   while (scan != NULL) {
   //printk("node_find_scan %s\n",path,scan->path);
@@ -88,16 +96,16 @@ static inline struct fuse_node *node_find(void *fuse, const char *path,
   return NULL;
 }
 
-char *node_path(struct fuse_node *node) {
+char *vufuse_node_path(struct fuse_node *node) {
 	return node->path;
 }
 
-struct fuse_node *node_add(struct fuse *fuse, const char *path) {
-	long hashsum = vnode_hash_sum(fuse, path);
-  int hashkey = vnode_hash_mod(hashsum);
+struct fuse_node *vufuse_node_add(struct fuse *fuse, const char *path) {
+	long hashsum = vufuse_node_hash_sum(fuse, path);
+  int hashkey = vufuse_node_hash_mod(hashsum);
   struct fuse_node *new;
-	pthread_mutex_lock(&node_mutex);
-	new	= node_find(fuse, path, hashsum, hashkey);
+	pthread_mutex_lock(&vufuse_node_mutex);
+	new	= vufuse_node_find(fuse, path, hashsum, hashkey);
 	if (new != NULL)
 		new->open_count++;
 	else {
@@ -107,20 +115,20 @@ struct fuse_node *node_add(struct fuse *fuse, const char *path) {
 			new->fuse = fuse;
 			new->hashsum = hashsum;
 			new->open_count = 1;
-			if (node_head[hashkey] != NULL)
-				node_head[hashkey]->pprevhash = &(new->nexthash);
-      new->nexthash = node_head[hashkey];
-      new->pprevhash = &(node_head[hashkey]);
-      node_head[hashkey] = new;
+			if (vufuse_node_head[hashkey] != NULL)
+				vufuse_node_head[hashkey]->pprevhash = &(new->nexthash);
+      new->nexthash = vufuse_node_head[hashkey];
+      new->pprevhash = &(vufuse_node_head[hashkey]);
+      vufuse_node_head[hashkey] = new;
 		} 
 	}
-	pthread_mutex_unlock(&node_mutex);
+	pthread_mutex_unlock(&vufuse_node_mutex);
 	return new;
 }
 
-char *node_del(struct fuse_node *old) {
+char *vufuse_node_del(struct fuse_node *old) {
 	char *ret_value = NULL;
-  pthread_mutex_lock(&node_mutex);
+  pthread_mutex_lock(&vufuse_node_mutex);
 	if (old) {
 		old->open_count--;
 		if (old->open_count <= 0) {
@@ -128,7 +136,7 @@ char *node_del(struct fuse_node *old) {
 			if (old->nexthash)
 				old->nexthash->pprevhash=old->pprevhash;
 			if (old->path) {
-				if (node_hiddenpathcheck(old->fuse, old->path))
+				if (vufuse_node_hiddenpath_check(old->fuse, old->path))
 					ret_value = old->path;
 				else
 					free(old->path);
@@ -136,36 +144,36 @@ char *node_del(struct fuse_node *old) {
 			free(old);
     }
   }
-  pthread_mutex_unlock(&node_mutex);
+  pthread_mutex_unlock(&vufuse_node_mutex);
 	return ret_value;
 }
 
-char *node_rename(struct fuse *fuse, const char *path, const char *newpath) {
-	long hashsum = vnode_hash_sum(fuse, path);
-  int hashkey = vnode_hash_mod(hashsum);
+char *vufuse_node_rename(struct fuse *fuse, const char *path, const char *newpath) {
+	long hashsum = vufuse_node_hash_sum(fuse, path);
+  int hashkey = vufuse_node_hash_mod(hashsum);
   struct fuse_node *this;
   char *ret_value = NULL;
-  pthread_mutex_lock(&node_mutex);
-	this = node_find(fuse, path, hashsum, hashkey);
+  pthread_mutex_lock(&vufuse_node_mutex);
+	this = vufuse_node_find(fuse, path, hashsum, hashkey);
 	if (this != NULL) {
 		*(this->pprevhash)=this->nexthash;
 		if (this->nexthash)
 			this->nexthash->pprevhash=this->pprevhash;
-		if (this->path)
-			free(this->path);
 		if (newpath == NULL)
-			this->path = node_hiddenpath(fuse);
-		else
+			this->path = vufuse_node_hiddenpath_rename(fuse, this->path);
+		else {
+			free(this->path);
 			this->path = strdup(newpath);
-		hashsum = vnode_hash_sum(fuse, this->path);
+		}
+		hashsum = vufuse_node_hash_sum(fuse, this->path);
 		this->hashsum = hashsum;
-		if (node_head[hashkey] != NULL)
-			node_head[hashkey]->pprevhash = &(this->nexthash);
-		this->nexthash = node_head[hashkey];
-		this->pprevhash = &(node_head[hashkey]);
-		node_head[hashkey] = this;
+		if (vufuse_node_head[hashkey] != NULL)
+			vufuse_node_head[hashkey]->pprevhash = &(this->nexthash);
+		this->nexthash = vufuse_node_head[hashkey];
+		this->pprevhash = &(vufuse_node_head[hashkey]);
+		vufuse_node_head[hashkey] = this;
 		ret_value = this->path;
 	}
-  pthread_mutex_unlock(&node_mutex);
+  pthread_mutex_unlock(&vufuse_node_mutex);
 	return ret_value;
 }
