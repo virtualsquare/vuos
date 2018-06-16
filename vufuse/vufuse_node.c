@@ -122,24 +122,18 @@ char *node_del(struct fuse_node *old) {
 	char *ret_value = NULL;
   pthread_mutex_lock(&node_mutex);
 	if (old) {
-		if (old->open_count == 0) {
-			if (old->path)
-				free(old->path);
-			free(old);
-		} else {
-			old->open_count--;
-			if (old->open_count == 0) {
-				*(old->pprevhash)=old->nexthash;
-				if (old->nexthash)
-					old->nexthash->pprevhash=old->pprevhash;
-				if (old->path) {
-					if (node_hiddenpathcheck(old->fuse, old->path))
-						ret_value = old->path;
-					else
-						free(old->path);
-				}
-				free(old);
+		old->open_count--;
+		if (old->open_count <= 0) {
+			*(old->pprevhash)=old->nexthash;
+			if (old->nexthash)
+				old->nexthash->pprevhash=old->pprevhash;
+			if (old->path) {
+				if (node_hiddenpathcheck(old->fuse, old->path))
+					ret_value = old->path;
+				else
+					free(old->path);
 			}
+			free(old);
     }
   }
   pthread_mutex_unlock(&node_mutex);
