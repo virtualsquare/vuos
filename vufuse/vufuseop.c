@@ -32,6 +32,8 @@
 #include <vufuse_node.h>
 #include <vufuse.h>
 
+VU_PROTOTYPES(vufuse)
+
 #define FILEPATH(x) vufuse_node_path(x->node)
 
 /*heuristics for file system which does not set st_ino */
@@ -132,7 +134,7 @@ ssize_t vu_vufuse_readlink(char *path, char *buf, size_t bufsiz) {
 }
 
 #define FUSE_SUPER_MAGIC 0x65735546
-int vu_vufuse_statfs (const char *pathname, struct statfs *buf, int fd, void *fdprivate){
+int vu_vufuse_statfs (const char *pathname, struct statfs *buf, int fd, void *fdprivate) {
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 	printkdebug(F,"STATFS", NULL);
@@ -167,7 +169,7 @@ int vu_vufuse_statfs (const char *pathname, struct statfs *buf, int fd, void *fd
 	}
 }
 
-int vu_vufuse_mkdir (const char *pathname, mode_t mode){
+int vu_vufuse_mkdir (const char *pathname, mode_t mode) {
 	int rv = 0;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -226,7 +228,7 @@ int vu_vufuse_mknod (const char *pathname, mode_t mode, dev_t dev)
 		return rv;
 }
 
-int vu_vufuse_rmdir(const char *pathname){
+int vu_vufuse_rmdir(const char *pathname) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -251,7 +253,7 @@ int vu_vufuse_rmdir(const char *pathname){
 }
 
 
-int vu_vufuse_chmod (const char *pathname, mode_t mode, int fd, void *fdprivate){
+int vu_vufuse_chmod (const char *pathname, mode_t mode, int fd, void *fdprivate) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -275,7 +277,7 @@ int vu_vufuse_chmod (const char *pathname, mode_t mode, int fd, void *fdprivate)
 		return rv;
 }
 
-int vu_vufuse_lchown (const char *pathname, uid_t owner, gid_t group,int fd, void *fdprivate){
+int vu_vufuse_lchown (const char *pathname, uid_t owner, gid_t group,int fd, void *fdprivate) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -299,7 +301,7 @@ int vu_vufuse_lchown (const char *pathname, uid_t owner, gid_t group,int fd, voi
 		return rv;
 }
 
-int vu_vufuse_symlink (const char *target, const char *linkpath){
+int vu_vufuse_symlink (const char *target, const char *linkpath) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -323,7 +325,7 @@ int vu_vufuse_symlink (const char *target, const char *linkpath){
 		return rv;
 }
 
-int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate){
+int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -335,7 +337,7 @@ int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate){
 	}
 
 	pthread_mutex_lock(&(fc.fuse->mutex));
-	rv = fc.fuse->fops.truncate(path,(off_t)length);
+	rv = fc.fuse->fops.truncate(path, length);
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
@@ -348,7 +350,7 @@ int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate){
 		return rv;
 }
 
-int vu_vufuse_link (const char *target, const char *linkpath){
+int vu_vufuse_link (const char *target, const char *linkpath) {
 	int rv;
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
@@ -405,14 +407,14 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 		return -1;
 	}
 
-	if (exists_err == 0){ /* the file exists*/
+	if (exists_err == 0) { /* the file exists*/
 		if ((flags & O_CREAT) && (flags & O_EXCL)) {
 			errno = EEXIST;
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 			return -1;
 		}
 
-		if ((flags & O_TRUNC) && (flags & O_ACCMODE)!= O_RDONLY){
+		if ((flags & O_TRUNC) && (flags & O_ACCMODE)!= O_RDONLY) {
 			rv = fc.fuse->fops.truncate(pathname, 0);
 
 			printkdebug(F,"TRUNCATE path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
@@ -435,7 +437,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 	*private = NULL;
 
 	/* create the file: create or (obsolete mode) mknod+open */
-	if ((flags & O_CREAT) && (exists_err != 0)){
+	if ((flags & O_CREAT) && (exists_err != 0)) {
 
 		if (fc.fuse->fops.create != NULL) {
 			rv = fc.fuse->fops.create(pathname, S_IFREG | mode, &ft->ffi);
@@ -488,7 +490,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 	}
 }
 
-int vu_vufuse_close(int fd, void *fdprivate){
+int vu_vufuse_close(int fd, void *fdprivate) {
 	if (fd < 0 || fdprivate == NULL) {
 		errno = EBADF;
 		return -1;
@@ -543,7 +545,7 @@ off_t vu_vufuse_lseek(int fd, off_t offset, int whence, void *fdprivate)
 		struct fileinfo *ft =(struct fileinfo *)fdprivate;
 		struct fuse *fuse = vu_get_ht_private_data();
 
-		printkdebug(F,"LSEEK", NULL);
+		printkdebug(F,"LSEEK path:%s offset:%jd whence:%d", FILEPATH(ft), (intmax_t)offset, whence);
 		pthread_mutex_lock(&(fuse->mutex));
 		switch (whence) {
 			case SEEK_SET:
@@ -560,8 +562,7 @@ off_t vu_vufuse_lseek(int fd, off_t offset, int whence, void *fdprivate)
 	}
 }
 
-ssize_t vu_vufuse_read (int fd, void *buf, size_t count, void *fdprivate)
-{
+ssize_t vu_vufuse_read (int fd, void *buf, size_t count, void *fdprivate) {
 	if (fd < 0 || fdprivate == NULL) {
 		errno = EBADF;
 		return -1;
@@ -591,8 +592,36 @@ ssize_t vu_vufuse_read (int fd, void *buf, size_t count, void *fdprivate)
 	}
 }
 
-ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate)
-{
+ssize_t vu_vufuse_pread64 (int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
+	if (fd < 0 || fdprivate == NULL) {
+		errno = EBADF;
+		return -1;
+	} else {
+		int rv;
+		struct fileinfo *ft = (struct fileinfo *)fdprivate;
+		if ((ft->ffi.flags & O_ACCMODE) == O_WRONLY) {
+			errno = EBADF;
+			return -1;
+		} else {
+			struct fuse_context fc, *ofc;
+			ofc = fuse_push_context(&fc);
+			pthread_mutex_lock(&(fc.fuse->mutex));
+			rv = fc.fuse->fops.read(FILEPATH(ft), buf, count, offset, &ft->ffi);
+			fuse_pop_context(ofc);
+			pthread_mutex_unlock(&(fc.fuse->mutex));
+
+			printkdebug(F,"PREAD64 path:%s count:%u offset:%jd status:%s retvalue:%d",FILEPATH(ft), count,
+					(intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			if (rv < 0) {
+				errno = -rv;
+				return -1;
+			} else
+				return rv;
+		}
+	}
+}
+
+ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	if (fd < 0 || fdprivate == NULL) {
 		errno = EBADF;
 		return -1;
@@ -617,6 +646,36 @@ ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate)
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
 			printkdebug(F,"WRITE path:%s count:%x status:%s retvalue:%d",FILEPATH(ft),count, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			if (rv < 0) {
+				errno = -rv;
+				return -1;
+			} else
+				return rv;
+		}
+	}
+}
+
+ssize_t vu_vufuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
+	if (fd < 0 || fdprivate == NULL) {
+		errno = EBADF;
+		return -1;
+	} else {
+		int rv = 0;
+
+		struct fileinfo *ft = (struct fileinfo *)fdprivate;
+		if ((ft->ffi.flags & O_ACCMODE) == O_RDONLY) {
+			errno = EBADF;
+			return -1;
+		} else {
+			struct fuse_context fc, *ofc;
+			ofc = fuse_push_context(&fc);
+			pthread_mutex_lock(&(fc.fuse->mutex));
+			rv = fc.fuse->fops.write(FILEPATH(ft), buf, count, offset, &ft->ffi);
+			fuse_pop_context(ofc);
+			pthread_mutex_unlock(&(fc.fuse->mutex));
+
+			printkdebug(F,"PWRITE64 path:%s count:%x offset:%jd status:%s retvalue:%d", FILEPATH(ft), count,
+				 (intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -669,8 +728,8 @@ static int vufusefilldir(fuse_dirh_t h, const char *name, int type, ino_t ino) {
 	return vufuse_common_filldir(h->f, name, type, ino);
 }
 
-int vu_vufuse_getdents64(int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
-	if (fd < 0 || fdprivate == NULL) {
+int vu_vufuse_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
+	if (fdprivate == NULL) {
 		errno = EBADF;
 		return -1;
 	} else {
