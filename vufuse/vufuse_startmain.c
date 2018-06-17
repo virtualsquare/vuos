@@ -25,9 +25,15 @@
 #include <strcase.h>
 #include <stropt.h>
 #include <execs.h>
+#include <vumodule.h>
 #include <vufuse.h>
 #include <vufuse_startmain.h>
 
+#define FUSE_MOUNTFLAGS (MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS | MS_REMOUNT | \
+		MS_MANDLOCK | MS_DIRSYNC | MS_NOATIME | MS_NODIRATIME | MS_POSIXACL | MS_RELATIME | MS_STRICTATIME | \
+		MS_LAZYTIME)
+
+#if 0
 static struct {
 	unsigned long flag;
 	char *opt;
@@ -65,10 +71,34 @@ static void addflagoptions(char **tags, char **args, unsigned long mountflags) {
 	tags[flagoptc] = NULL;
 	args[flagoptc] = NULL;
 }
+#endif
+static int countflagoptions(unsigned long mountflags) {
+  int retval = 0;
+  int i;
+  for (i = 0; i < 32; i++) {
+    if ((mountflags & (1UL << i)) && (mountflag_strings[i]))
+      retval++;
+  }
+  return retval;
+}
+
+static void addflagoptions(char **tags, char **args, unsigned long mountflags) {
+  int i;
+  int flagoptc;
+  for (i = 0, flagoptc = 0; i < 32; i++) {
+    if ((mountflags & (1UL << i)) && (mountflag_strings[i])) {
+      tags[flagoptc] = mountflag_strings[i];
+      args[flagoptc] = NULL;
+      flagoptc++;
+    }
+  }
+  tags[flagoptc] = NULL;
+  args[flagoptc] = NULL;
+}
 
 int fusestartmain(struct main_params *mntp) {
 	int tagc = stropt(mntp->opts, NULL, NULL, 0) - 1;
-	int flagtagc =  countflagoptions(*mntp->pflags);
+	int flagtagc =  countflagoptions(*mntp->pflags & FUSE_MOUNTFLAGS);
 	char buf[strlen(mntp->opts)+1];
 	char *newopts = NULL;
 	char *format = "%N -o %O %S %T";
@@ -97,7 +127,7 @@ int fusestartmain(struct main_params *mntp) {
 														 /* here some opt could change bits in mntp->pflags */
 			}
 		}
-		addflagoptions(tags+tagc, args+tagc, *mntp->pflags);
+		addflagoptions(tags+tagc, args+tagc, *mntp->pflags & FUSE_MOUNTFLAGS);
 		newopts = stropt2str(tags, args, ',', '=');
 	}
 	//printf("NEWOPTS = %s\n", newopts);
@@ -121,6 +151,7 @@ int fusestartmain(struct main_params *mntp) {
 	}
 	argv[argc] = NULL;
 #if 0
+	printf("ARG %s\n", mntp->opts);
 	printf("argc %d\n", argc);
 	for (i = 0; i < argc; i++) {
 		printf("%i %s\n",i,argv[i]);

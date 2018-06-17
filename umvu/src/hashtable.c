@@ -36,6 +36,7 @@
 #include <hashtable.h>
 #include <service.h>
 #include <carrot.h>
+#include <mountflags.h>
 #include <vu_initfini.h>
 
 /*Hashtable object definition*/
@@ -66,11 +67,15 @@ struct vuht_entry_t {
 	int objlen;
 	long hashsum;
 	_Atomic int count;
+	
 	/* confirmfun_t */
 	confirmfun_t confirmfun;
 	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
 };
 
+#define VUHT_MTABLINE (MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS | MS_REMOUNT | \
+		MS_MANDLOCK | MS_DIRSYNC | MS_NOATIME | MS_NODIRATIME | MS_POSIXACL | MS_RELATIME | MS_STRICTATIME | \
+		MS_LAZYTIME)
 #define VUHT_DELETED(ht) ((ht)->pprevhash == NULL)
 
 /* it must be a power of two (masks are used instead of modulo) */
@@ -394,31 +399,14 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 	const char *addpath;
 	struct vuht_entry_t *rv;
 	if (source) {
-		char opts[PATH_MAX];
-		opts[0] = 0;
-		if (mountflags & MS_REMOUNT)
-			strncat(opts, "remount,", PATH_MAX);
-		if (mountflags & MS_RDONLY)
-			strncat(opts, "ro,", PATH_MAX);
-		if (mountflags & MS_NOATIME)
-			strncat(opts, "noatime,", PATH_MAX);
-		if (mountflags & MS_NODEV)
-			strncat(opts, "nodev,", PATH_MAX);
-		if (mountflags & MS_NOEXEC)
-			strncat(opts, "noexec,", PATH_MAX);
-		if (mountflags & MS_NOSUID)
-			strncat(opts, "nosuid,", PATH_MAX);
-		if (mountflags & MS_SYNCHRONOUS)
-			strncat(opts, "sync,", PATH_MAX);
-		if (mountopts && *mountopts)
-			strncat(opts, mountopts, PATH_MAX);
-		else if (*opts)
-			opts[strlen(opts) - 1] = 0;
-		else
-			strncat(opts, "rw", PATH_MAX);
+		size_t optslen = mountflags2opts(mountflags & VUHT_MTABLINE, NULL, 0);
+		char opts[optslen];
+		mountflags2opts(mountflags & VUHT_MTABLINE, opts, optslen);
 		asprintf(&mtabline, "%s%s %s %s %s 0 %" PRIu64,
 				(confirmfun == NEGATIVE_MOUNT) ? "-" : "", source, path,
-				fstype, opts, get_epoch());
+				fstype, 
+				*opts == 0 ? "rw" : opts, 
+				get_epoch());
 	} else
 		mtabline = NULL;
 	if (path[1] == '\0' && path[0] == '/')
