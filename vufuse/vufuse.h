@@ -27,7 +27,7 @@
 #endif
 
 /** Enable hard remove */
-#define FUSE_HARDREMOVE  (1 << 26)
+#define FUSE_HARDREMOVE  (1 << 0)
 
 struct fuse {
 	void *dlhandle;
@@ -40,7 +40,8 @@ struct fuse {
   pthread_cond_t endloop;
 
   int inuse;
-  unsigned long flags;
+  unsigned long mountflags;
+  unsigned long fuseflags;
 	void *private_data;
 };
 

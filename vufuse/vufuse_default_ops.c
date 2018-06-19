@@ -197,14 +197,6 @@ static int vustd_opendir (const char *path, struct fuse_file_info *fileinfo)
 	return 0;
 }
 
-static int vustd_readdir (const char *path, void *buf, fuse_fill_dir_t filler,
-		off_t offset, struct fuse_file_info *fileinfo)
-{
-	printkdebug(F,"DEFAULT readdir %s\n", path);
-	return -ENOSYS;
-}
-
-
 static int vustd_releasedir (const char *path, struct fuse_file_info *fileinfo)
 {
 	printkdebug(F,"DEFAULT removexattr %s\n", path);
@@ -269,7 +261,6 @@ struct fuse_operations vufuse_default_ops = {
 	.listxattr = vustd_listxattr,
 	.removexattr = vustd_removexattr,
 	.opendir = vustd_opendir,
-	.readdir = vustd_readdir,
 	.releasedir = vustd_releasedir,
 	.fsyncdir = vustd_fsyncdir,
 	

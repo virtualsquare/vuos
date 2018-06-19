@@ -100,7 +100,8 @@ int vu_vufuse_mount(const char *source, const char *target,
 			goto err_nomem_fuse;
 		new_fuse->dlhandle = dlhandle;
 		new_fuse->fops = vufuse_default_ops;
-		new_fuse->flags = mountflags;
+		new_fuse->mountflags = mountflags;
+		new_fuse->fuseflags = 0;
 		new_fuse->inuse = WAITING_FOR_LOOP;
 
 		new_fuse->private_data = NULL;
@@ -120,7 +121,8 @@ int vu_vufuse_mount(const char *source, const char *target,
 		smo.main_params.filesystemtype = filesystemtype;
 		smo.main_params.source = source;
 		smo.main_params.target = target;
-		smo.main_params.pflags = &(new_fuse->flags);
+		smo.main_params.pmountflags = &(new_fuse->mountflags);
+		smo.main_params.pfuseflags = &(new_fuse->fuseflags);
 		smo.main_params.opts = data ? (char *) data : "";
 
 		pthread_create(&(new_fuse->thread), NULL, fusethread, (void *)&smo);

@@ -98,7 +98,7 @@ static void addflagoptions(char **tags, char **args, unsigned long mountflags) {
 
 int fusestartmain(struct main_params *mntp) {
 	int tagc = stropt(mntp->opts, NULL, NULL, 0) - 1;
-	int flagtagc =  countflagoptions(*mntp->pflags & FUSE_MOUNTFLAGS);
+	int flagtagc =  countflagoptions(*mntp->pmountflags & FUSE_MOUNTFLAGS);
 	char buf[strlen(mntp->opts)+1];
 	char *newopts = NULL;
 	char *format = "%N -o %O %S %T";
@@ -124,10 +124,12 @@ int fusestartmain(struct main_params *mntp) {
 			//printf("%s =%s\n",tags[i],args[i]);
 			switch(strcase(tags[i])) {
 				case STRCASE(f,m,t): format = args[i]; tags[i] = STROPTX_DELETED_TAG; break;
-														 /* here some opt could change bits in mntp->pflags */
+														 /* here some opt could change bits in mntp->pfuseflags */
+				case STRCASE(h,a,r,d,_,r,e,m,o,v,e): *mntp->pfuseflags |= FUSE_HARDREMOVE; 
+																						 tags[i] = STROPTX_DELETED_TAG; break;
 			}
 		}
-		addflagoptions(tags+tagc, args+tagc, *mntp->pflags & FUSE_MOUNTFLAGS);
+		addflagoptions(tags+tagc, args+tagc, *mntp->pmountflags & FUSE_MOUNTFLAGS);
 		newopts = stropt2str(tags, args, ',', '=');
 	}
 	//printf("NEWOPTS = %s\n", newopts);

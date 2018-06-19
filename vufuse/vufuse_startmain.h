@@ -6,7 +6,8 @@ struct main_params {
   const char *filesystemtype;
   const char *source;
   const char *target;
-  unsigned long *pflags;
+  unsigned long *pmountflags;
+  unsigned long *pfuseflags;
   char *opts;
 };
 

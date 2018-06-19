@@ -90,9 +90,8 @@ int vu_vufuse_access(char *path, int mode, int flags) {
 	pthread_mutex_lock(&(fc.fuse->mutex));
 
 	/* "default permission" management */
-	if (fc.fuse->fops.access != NULL)
-		rv = fc.fuse->fops.access(path, mode);
-	else {
+	rv = fc.fuse->fops.access(path, mode);
+	if (rv == -ENOSYS) {
 		struct vu_stat buf;
 		rv = fc.fuse->fops.getattr(path, &buf);
 	}
@@ -136,35 +135,29 @@ ssize_t vu_vufuse_readlink(char *path, char *buf, size_t bufsiz) {
 #define FUSE_SUPER_MAGIC 0x65735546
 int vu_vufuse_statfs (const char *pathname, struct statfs *buf, int fd, void *fdprivate) {
 	struct fuse_context fc, *ofc;
+	int rv;
+	struct statvfs svfs;
 	ofc = fuse_push_context(&fc);
 	printkdebug(F,"STATFS", NULL);
-	if (fc.fuse->fops.statfs) {
-		int rv;
-		struct statvfs svfs;
-		pthread_mutex_lock(&(fc.fuse->mutex));
-		memset (&svfs, 0, sizeof(struct statvfs));
-		rv = fc.fuse->fops.statfs(pathname, &svfs);
-		fuse_pop_context(ofc);
-		pthread_mutex_unlock(&(fc.fuse->mutex));
-		if (rv >= 0) {
-			buf->f_type = FUSE_SUPER_MAGIC; //
-			buf->f_bsize = svfs.f_bsize;
-			buf->f_blocks = svfs.f_blocks;
-			buf->f_bfree = svfs.f_bfree;
-			buf->f_bavail = svfs.f_bavail;
-			buf->f_files = svfs.f_files;
-			buf->f_ffree = svfs.f_ffree;
-			buf->f_namelen =svfs.f_namemax;
-			buf->f_frsize =svfs.f_frsize;
-			/* fsid is left zero */
-			return rv;
-		} else {
-			errno = -rv;
-			return -1;
-		}
-	}	else {
-		fuse_pop_context(ofc);
-		errno = ENOSYS;
+	pthread_mutex_lock(&(fc.fuse->mutex));
+	memset (&svfs, 0, sizeof(struct statvfs));
+	rv = fc.fuse->fops.statfs(pathname, &svfs);
+	fuse_pop_context(ofc);
+	pthread_mutex_unlock(&(fc.fuse->mutex));
+	if (rv >= 0) {
+		buf->f_type = FUSE_SUPER_MAGIC; //
+		buf->f_bsize = svfs.f_bsize;
+		buf->f_blocks = svfs.f_blocks;
+		buf->f_bfree = svfs.f_bfree;
+		buf->f_bavail = svfs.f_bavail;
+		buf->f_files = svfs.f_files;
+		buf->f_ffree = svfs.f_ffree;
+		buf->f_namelen =svfs.f_namemax;
+		buf->f_frsize =svfs.f_frsize;
+		/* fsid is left zero */
+		return rv;
+	} else {
+		errno = -rv;
 		return -1;
 	}
 }
@@ -174,7 +167,7 @@ int vu_vufuse_mkdir (const char *pathname, mode_t mode) {
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -199,7 +192,7 @@ int vu_vufuse_mknod (const char *pathname, mode_t mode, dev_t dev)
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -213,10 +206,10 @@ int vu_vufuse_mknod (const char *pathname, mode_t mode, dev_t dev)
 		rv = fc.fuse->fops.create(pathname, mode, &fi);
 		if (rv >= 0) {
 			fc.fuse->fops.release(pathname, &fi);
-		}
-	} else {
+		} else if (rv == -ENOSYS)
+			rv = fc.fuse->fops.mknod(pathname, mode, dev);
+	} else 
 		rv = fc.fuse->fops.mknod(pathname, mode, dev);
-	}
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
@@ -233,7 +226,7 @@ int vu_vufuse_rmdir(const char *pathname) {
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -258,7 +251,7 @@ int vu_vufuse_chmod (const char *pathname, mode_t mode, int fd, void *fdprivate)
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -282,7 +275,7 @@ int vu_vufuse_lchown (const char *pathname, uid_t owner, gid_t group,int fd, voi
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -306,7 +299,7 @@ int vu_vufuse_symlink (const char *target, const char *linkpath) {
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -330,7 +323,7 @@ int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate) 
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -355,7 +348,7 @@ int vu_vufuse_link (const char *target, const char *linkpath) {
 	struct fuse_context fc, *ofc;
 	ofc = fuse_push_context(&fc);
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -386,7 +379,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 
 	exists_err = fc.fuse->fops.getattr(pathname, &buf); /* if 0 the file already exists.*/
 
-	if ((flags & O_ACCMODE) != O_RDONLY && fc.fuse->flags & MS_RDONLY) {
+	if ((flags & O_ACCMODE) != O_RDONLY && fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		pthread_mutex_unlock(&(fc.fuse->mutex));
@@ -439,11 +432,9 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 	/* create the file: create or (obsolete mode) mknod+open */
 	if ((flags & O_CREAT) && (exists_err != 0)) {
 
-		if (fc.fuse->fops.create != NULL) {
-			rv = fc.fuse->fops.create(pathname, S_IFREG | mode, &ft->ffi);
+		rv = fc.fuse->fops.create(pathname, S_IFREG | mode, &ft->ffi);
 
-			printkdebug(F,"CREATE path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
-		} else {
+		if (rv == -ENOSYS) {
 			rv = fc.fuse->fops.mknod(pathname, S_IFREG | mode, (dev_t) 0);
 
 			printkdebug(F,"MKNOD path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
@@ -455,6 +446,8 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 				return -1;
 			}
 			rv = fc.fuse->fops.open(pathname, &ft->ffi);
+		} else {
+			printkdebug(F,"CREATE path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
 		}
 
 #if 0
@@ -468,9 +461,11 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 #endif
 
 	} else { /* the file exists! */
-		if ((flags & O_DIRECTORY) && fc.fuse->fops.readdir)
+		if (flags & O_DIRECTORY && fc.fuse->fops.readdir != NULL) {
 			rv = fc.fuse->fops.opendir(pathname, &ft->ffi);
-		else
+			if (rv == -ENOSYS)
+				rv = fc.fuse->fops.open(pathname, &ft->ffi);
+		} else
 			rv = fc.fuse->fops.open(pathname, &ft->ffi);
 	}
 	fuse_pop_context(ofc);
@@ -506,9 +501,9 @@ int vu_vufuse_close(int fd, void *fdprivate) {
 		}
 
 		fc.fuse->inuse--;
-		if ((ft->ffi.flags & O_DIRECTORY) && fc.fuse->fops.readdir)
+		if ((ft->ffi.flags & O_DIRECTORY) && fc.fuse->fops.readdir != NULL) {
 			rv = fc.fuse->fops.releasedir(FILEPATH(ft), &ft->ffi);
-		else
+		} else
 			rv = fc.fuse->fops.release(FILEPATH(ft), &ft->ffi);
 
 		if (rv >= 0) {
@@ -675,7 +670,7 @@ ssize_t vu_vufuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, 
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
 			printkdebug(F,"PWRITE64 path:%s count:%x offset:%jd status:%s retvalue:%d", FILEPATH(ft), count,
-				 (intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+					(intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -744,7 +739,7 @@ int vu_vufuse_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int co
 			ofc = fuse_push_context(&fc);
 			pthread_mutex_lock(&(fc.fuse->mutex));
 			ft->dirf = volstream_open();
-			if (fc.fuse->fops.readdir)
+			if (fc.fuse->fops.readdir != NULL)
 				rv = fc.fuse->fops.readdir(FILEPATH(ft), ft->dirf, vufusefillreaddir, 0, &ft->ffi);
 			else {
 				struct fuse_dirhandle dh = {.f = ft->dirf};
@@ -800,7 +795,7 @@ int vu_vufuse_unlink (const char *pathname) {
 	ofc = fuse_push_context(&fc);
 	char *hiddenpath = NULL;
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
@@ -814,7 +809,7 @@ int vu_vufuse_unlink (const char *pathname) {
 		return -1;
 	}
 
-	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, pathname, NULL)) == NULL ||
+	if (fc.fuse->fuseflags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, pathname, NULL)) == NULL ||
 			(rv = fc.fuse->fops.rename(pathname,hiddenpath)) < 0) {
 		if (hiddenpath)
 			vufuse_node_rename(fc.fuse, hiddenpath, pathname);
@@ -839,18 +834,18 @@ int vu_vufuse_unlink (const char *pathname) {
 
 int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 	int rv;
-  struct fuse_context fc, *ofc;
-  ofc = fuse_push_context(&fc);
-  char *hiddenpath;
+	struct fuse_context fc, *ofc;
+	ofc = fuse_push_context(&fc);
+	char *hiddenpath = NULL;
 
-	if (fc.fuse->flags & MS_RDONLY) {
+	if (fc.fuse->mountflags & MS_RDONLY) {
 		fuse_pop_context(ofc);
 		errno = EROFS;
 		return -1;
 	}
 
 	pthread_mutex_lock(&(fc.fuse->mutex));
-	if (fc.fuse->flags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, linkpath, NULL)) == NULL ||
+	if (fc.fuse->fuseflags & FUSE_HARDREMOVE || (hiddenpath = vufuse_node_rename(fc.fuse, linkpath, NULL)) == NULL ||
 			fc.fuse->fops.rename(linkpath,hiddenpath) < 0) {
 		if (hiddenpath) {
 			vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
@@ -862,9 +857,11 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 
 	if (rv >= 0)
 		vufuse_node_rename(fc.fuse, target, linkpath);
-	else if (hiddenpath)
+	else if (hiddenpath) {
 		// revert the renaming to hiddenpath
-		vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
+		if (fc.fuse->fops.rename(hiddenpath, linkpath) >= 0) 
+			vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
+	}
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 	fuse_pop_context(ofc);
 
