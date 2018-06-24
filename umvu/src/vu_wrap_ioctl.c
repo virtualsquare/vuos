@@ -76,14 +76,14 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		len = _IOC_SIZE(reqargs);
 		if (len > 0) 
 			vu_alloc_arg(addr, buf, len, nested);
-		if (reqargs & IOC_IN) 
+		if (reqargs & IOC_OUT) 
 			vu_peek_arg(addr, buf, len, nested);
 		ret_value = service_syscall(ht, __VU_ioctl)(sfd, request, buf, addr, private);
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
 			sd->ret_value = ret_value;
-			if (reqargs & IOC_OUT)
+			if (reqargs & IOC_IN)
 				vu_poke_arg(addr, buf, len, nested);
 		}
 		if (buf)
