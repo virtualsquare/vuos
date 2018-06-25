@@ -31,7 +31,7 @@ struct vunet_operations {
 	int (*setsockopt) (int, int, int, const void *, socklen_t);
 	int (*getsockopt) (int, int, int, void *, socklen_t *);
 	int (*shutdown) (int, int);
-	int (*ioctl) (int, int, void *);
+	int (*ioctl) (int, unsigned long, void *);
 	int (*close) (int);
 	int (*fcntl) (int, int, long);
 

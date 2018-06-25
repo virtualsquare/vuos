@@ -45,6 +45,8 @@ void *vu_unrealsock_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 	int i;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	vu_syscall_handler(s, socket) = socket;
 	vu_syscall_handler(s, bind) = bind;
 	vu_syscall_handler(s, connect) = connect;
@@ -59,6 +61,7 @@ void *vu_unrealsock_init(void) {
 	vu_syscall_handler(s, getsockopt) = getsockopt;
 	vu_syscall_handler(s, epoll_ctl) = epoll_ctl;
 	vu_syscall_handler(s, close) = close;
+#pragma GCC diagnostic pop
 
 	for (i = 0; i < 3; i++)
 		ht[i] = vuht_add(CHECKSOCKET, &afs[i], sizeof(int), s, NULL, NULL, 0);

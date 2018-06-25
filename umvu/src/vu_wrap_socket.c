@@ -80,7 +80,7 @@ void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 			return;
 		} else {
-			struct fnode_t *fnode;
+			struct vu_fnode_t *fnode;
 			/* fake dev = 0, inode = sfd */
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
@@ -112,7 +112,7 @@ void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->orig_ret_value;
 	if (ht) {
-		struct fnode_t *fnode = sd->inout;
+		struct vu_fnode_t *fnode = sd->inout;
 		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 		if (fd >= 0) {
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
@@ -244,7 +244,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
-			struct fnode_t *fnode;
+			struct vu_fnode_t *fnode;
 			/* fake dev = 0, inode = sfd */
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
@@ -301,7 +301,7 @@ void wo_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	} else {
 		int fd = sd->orig_ret_value;
 		if (ht) {
-			struct fnode_t *fnode = sd->inout;
+			struct vu_fnode_t *fnode = sd->inout;
 			int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 			if (fd >= 0) {
 				vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);

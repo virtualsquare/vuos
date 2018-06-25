@@ -226,11 +226,14 @@ void vu_unrealinfofs_cleanup(uint8_t type, void *arg, int arglen,
 
 void *vu_unrealinfofs_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	vu_syscall_handler(s, close) = pseudofile_close;
 	vu_syscall_handler(s, read) = pseudofile_read;
 	vu_syscall_handler(s, write) = pseudofile_write;
 	vu_syscall_handler(s, lseek) = pseudofile_lseek;
 	vu_syscall_handler(s, getdents64) = pseudofile_getdents64;
+#pragma GCC diagnostic pop
 	return NULL;
 }
 

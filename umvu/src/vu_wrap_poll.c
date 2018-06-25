@@ -155,7 +155,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		 /* args */
     int flags;
 		int epfd;
-		struct fnode_t *fnode;
+		struct vu_fnode_t *fnode;
 		struct epoll_tab *tab = epoll_tab_create(nested);
     switch (syscall_number) {
 			case __NR_epoll_create:
@@ -185,7 +185,7 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		uintptr_t eventaddr = sd->syscall_args[3];
 		struct epoll_event *event;
 		struct epoll_tab *tab;
-		int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
+		int epfd = vu_fd_get_sfd(pepfd, (void **) &tab, nested);
     void *private = NULL;
     int sfd = vu_fd_get_sfd(fd, &private, nested);
 		int ret_value = 0;
@@ -244,7 +244,7 @@ void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	int pepfd = sd->syscall_args[0];
 	struct epoll_tab *tab;
-	int epfd = vu_fd_get_sfd(pepfd, &tab, nested);
+	int epfd = vu_fd_get_sfd(pepfd, (void **) &tab, nested);
 	if (epoll_tab_head(tab) != NULL) {
 		struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
 		epollio->epfd = epfd;

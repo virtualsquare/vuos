@@ -43,7 +43,7 @@ struct vu_fd_table_t {
 	size_t count;
 
 	int table_size;
-	struct fnode_t **fnode;
+	struct vu_fnode_t **fnode;
 	uint8_t *flags; /* close_on_exec */
 };
 
@@ -151,7 +151,7 @@ static void vu_fd_table_resize(struct vu_fd_table_t *fd_table, int fd) {
   }
 }
 
-void vu_fd_set_fnode(int fd, int nested, struct fnode_t *fnode, int fdflags) {
+void vu_fd_set_fnode(int fd, int nested, struct vu_fnode_t *fnode, int fdflags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   fatal(fd_table);
 	pthread_rwlock_wrlock(&fd_table->lock);
@@ -167,7 +167,7 @@ int vu_fd_close(int fd, int nested) {
 	fatal(fd_table);
 	pthread_rwlock_wrlock(&fd_table->lock);
 	if (fd >= 0 && fd < fd_table->table_size) {
-		struct fnode_t *oldfnode = fd_table->fnode[fd];
+		struct vu_fnode_t *oldfnode = fd_table->fnode[fd];
 		fd_table->fnode[fd] = NULL;
 		fd_table->flags[fd] = 0;
 		pthread_rwlock_unlock(&fd_table->lock);
@@ -222,7 +222,7 @@ static uint8_t *get_flags_addr_nolock(struct vu_fd_table_t *fd_table, int fd) {
 		return NULL;
 }
 
-struct fnode_t *vu_fd_get_fnode(int fd, int nested) {
+struct vu_fnode_t *vu_fd_get_fnode(int fd, int nested) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   struct vu_fnode_t *fnode;
 	pthread_rwlock_rdlock(&fd_table->lock);

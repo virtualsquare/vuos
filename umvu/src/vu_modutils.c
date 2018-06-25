@@ -184,7 +184,10 @@ voidfun *module_getsym(struct vu_service_t *service, char *symbol) {
 
 void module_run_init(struct vu_service_t *service) {
 	void * (*init)(void);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	init = module_getsym(service, "init");
+#pragma GCC diagnostic pop
 	if (init) {
 		printkdebug(m, "%s running vu_%s_init", service->mod->name, service->mod->name);
 		service->private = init();
@@ -193,7 +196,10 @@ void module_run_init(struct vu_service_t *service) {
 
 int module_run_fini(struct vu_service_t *service) {
   int (*fini)(void *);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
   fini = module_getsym(service, "fini");
+#pragma GCC diagnostic pop
   if (fini) {
 		printkdebug(m, "%s running vu_%s_fini", service->mod->name, service->mod->name);
 		return fini(service->private);

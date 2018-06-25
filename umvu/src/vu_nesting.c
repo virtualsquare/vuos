@@ -93,7 +93,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 
 typedef long (*sfun)();
 
-void vu_nesting_init(int argc, char *argv) {
+void vu_nesting_init(int argc, char **argv) {
 	sfun (*_pure_start_p)();
 	char *ld_preload = getenv("LD_PRELOAD");
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {

@@ -114,7 +114,7 @@ static void set_defstack(int domain, struct vunet *vunet) {
 	}
 }
 
-static int checksocket(int type, void *arg, int arglen,
+static int checksocket(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht) {
 	struct vunet *vunet = vuht_get_private_data(ht);
 	int *domain = arg;
@@ -126,7 +126,7 @@ static int checksocket(int type, void *arg, int arglen,
 	}
 }
 
-static int checkioctl(int type, void *arg, int arglen,
+static int checkioctl(uint8_t type, void *arg, int arglen,
     struct vuht_entry_t *ht) {
 	unsigned long *request = arg;
 	struct vunet *vunet = vuht_get_private_data(ht);

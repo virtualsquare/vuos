@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <r_table.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 long (*native_syscall)() = syscall;
-
-
+#pragma GCC diagnostic pop

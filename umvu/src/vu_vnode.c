@@ -40,7 +40,7 @@ struct vu_vnode_t {
 	char *vpath;
 	long usage_count;
 	long flags;
-	struct v_node *next;
+	struct vu_vnode_t *next;
 };
 
 #define VU_VNODE_HASH_SIZE 256

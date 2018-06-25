@@ -12,6 +12,10 @@ static int supported_domain (int domain) {
 	}
 }
 
+static int netreal_ioctl (int fd, unsigned long request, void *addr) {
+	return ioctl(fd, request, addr);
+}
+
 struct vunet_operations vunet_ops = {
 	.socket = socket,
 	.bind = bind,
@@ -25,7 +29,7 @@ struct vunet_operations vunet_ops = {
 	.getsockopt = getsockopt,
 	.setsockopt = setsockopt,
 	.shutdown = shutdown,
-	.ioctl = ioctl,
+	.ioctl = netreal_ioctl,
 	.close = close,
 
 	.epoll_ctl = epoll_ctl,

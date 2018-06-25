@@ -81,7 +81,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 			return;
 		} else {
-			struct fnode_t *fnode;
+			struct vu_fnode_t *fnode;
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
 				service_syscall(ht, __VU_lstat)(sd->extra->mpath, &sd->extra->statbuf, 0, ret_value, private);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private); 
@@ -113,7 +113,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->orig_ret_value;
 	if (ht) {
-		struct fnode_t *fnode = sd->inout;
+		struct vu_fnode_t *fnode = sd->inout;
 		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 		if (fd >= 0) {
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);

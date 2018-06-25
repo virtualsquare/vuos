@@ -57,6 +57,8 @@ void vu_unreal_cleanup(uint8_t type, void *arg, int arglen,
 void *vu_unreal_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	vu_syscall_handler(s, lstat) = lstat;
 	vu_syscall_handler(s, readlink) = readlink;
 	vu_syscall_handler(s, open) = open;
@@ -83,6 +85,7 @@ void *vu_unreal_init(void) {
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
 	vu_syscall_handler(s, fcntl) = fcntl;
+#pragma GCC diagnostic pop
 
 	ht1 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);
 	ht2 = vuht_pathadd(CHECKPATH,"/","/unreal","unreal",0,"",s,0,NULL,NULL);

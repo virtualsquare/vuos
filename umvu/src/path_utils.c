@@ -188,7 +188,7 @@ void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
 
 /* canonicalize's helper functions */
 static inline mode_t get_lmode(struct vuht_entry_t *ht,
-		char *pathname, struct vu_stat *buf) {
+		const char *pathname, struct vu_stat *buf) {
 	int stat_retval;
 	if (ht)
 		stat_retval = service_syscall(ht,__VU_lstat)(vuht_path2mpath(ht, pathname), buf, 0, -1, NULL);
@@ -200,7 +200,7 @@ static inline mode_t get_lmode(struct vuht_entry_t *ht,
 }
 
 static inline mode_t get_dirxok(struct vuht_entry_t *ht,
-    char *pathname) {
+    const char *pathname) {
 	int retval;
 	if (ht)
 		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
@@ -209,13 +209,13 @@ static inline mode_t get_dirxok(struct vuht_entry_t *ht,
 	return retval == 0 ? S_IXALL : 0;
 }
 	
-static mode_t vu_lmode(char *pathname, void *private) {
+static mode_t vu_lmode(const char *pathname, void *private) {
 	struct vuht_entry_t *ht;
 	struct realpath_arg_t *arg = private;
 	epoch_t e = get_vepoch();
 	mode_t retval;
 
-	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
+	ht = vuht_pick(CHECKPATH, (char *)pathname, NULL, SET_EPOCH);
 
 	retval = get_lmode(ht, pathname, arg->statbuf);
 
@@ -230,12 +230,12 @@ static mode_t vu_lmode(char *pathname, void *private) {
 	return retval;
 }
 
-static ssize_t vu_readlink(char *pathname, char *buf, size_t bufsiz, void *private) {
+static ssize_t vu_readlink(const char *pathname, char *buf, size_t bufsiz, void *private) {
 	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
 	ssize_t retval;
 
-	ht = vuht_pick(CHECKPATH, pathname, NULL, SET_EPOCH);
+	ht = vuht_pick(CHECKPATH, (char *)pathname, NULL, SET_EPOCH);
 	if (ht) {
 		retval = service_syscall(ht, __VU_readlink)(vuht_path2mpath(ht, pathname), buf, bufsiz);
 		vuht_drop(ht);

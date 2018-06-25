@@ -68,6 +68,7 @@ struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 unsigned long vuht_get_mountflags(struct vuht_entry_t *hte);
 epoch_t vuht_get_vepoch(struct vuht_entry_t *hte);
 int vuht_get_count(struct vuht_entry_t *hte);
+int vuht_get_objlen(struct vuht_entry_t *hte);
 
 void vuht_terminate();
 #endif

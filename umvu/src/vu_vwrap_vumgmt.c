@@ -69,7 +69,10 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		return;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	cleanup = module_getsym(service, "cleanup");
+#pragma GCC diagnostic pop
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
 			cleanup, NULL, permanent);
 
@@ -153,8 +156,8 @@ void vuctl_getinfo(struct syscall_descriptor_t *sd) {
 		struct vu_info info;
 		memset(&info, 0, sizeof(info));
 		r_uname(&info.uname);
-		snprintf(&info.vu_serverid, sizeof(info.vu_serverid), "%d", getpid());
-		get_vu_name(&info.vu_name, sizeof(info.vu_name));
+		snprintf(info.vu_serverid, sizeof(info.vu_serverid), "%d", getpid());
+		get_vu_name(info.vu_name, sizeof(info.vu_name));
 		if (umvu_poke_data(info_addr, &info, sizeof(info)) < 0) 
 			sd->ret_value = -EINVAL;
 		else
@@ -164,7 +167,7 @@ void vuctl_getinfo(struct syscall_descriptor_t *sd) {
 }
 
 void vuctl_setname(struct syscall_descriptor_t *sd) {
-	char *vu_name[_UTSNAME_LENGTH+1];
+	char vu_name[_UTSNAME_LENGTH+1];
 	syscall_arg_t name_addr = sd->syscall_args[1];
 	if (umvu_peek_str(name_addr, vu_name, _UTSNAME_LENGTH+1) < 0) {
     sd->ret_value = -EINVAL;

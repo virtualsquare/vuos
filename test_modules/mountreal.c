@@ -198,14 +198,14 @@ void vu_mountreal_cleanup(uint8_t type, void *arg, int arglen,
 void *vu_mountreal_init(void) {
 	struct vu_service_t *s = vu_mod_getservice();
 
-	vu_syscall_handler(s, close) = close;
+	vu_syscall_handler(s, close) = (syscall_t) close;
 	vu_syscall_handler(s, read) = read;
 	vu_syscall_handler(s, write) = write;
 	vu_syscall_handler(s, lseek) = lseek;
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
-	vu_syscall_handler(s, fcntl) = fcntl;
-	vu_syscall_handler(s, epoll_ctl) = epoll_ctl;
+	vu_syscall_handler(s, fcntl) = (syscall_t) fcntl;
+	vu_syscall_handler(s, epoll_ctl) = (syscall_t) epoll_ctl;
 
 	return NULL;
 }

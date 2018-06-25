@@ -667,6 +667,10 @@ int vuht_get_count(struct vuht_entry_t *hte) {
 	return hte->count;
 }
 
+int vuht_get_objlen(struct vuht_entry_t *hte) {
+  return hte->objlen;
+}
+
 void vuht_terminate(void) {
 	forall_vuht_terminate();
 }

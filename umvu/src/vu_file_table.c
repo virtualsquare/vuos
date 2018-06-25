@@ -90,7 +90,7 @@ int vu_fnode_close(struct vu_fnode_t *fnode) {
 	printkdebug(f, "close %s (%p) count %d", fnode->path, fnode->ht, fnode->count);
 	fnode->count -= 1;
 	if (fnode->count <= 0) {
-		struct fnode_t *oldfnode = fnode;
+		struct vu_fnode_t *oldfnode = fnode;
 		if (fnode->vnode)
 			vu_vnode_close(fnode->vnode);
 		xfree(fnode->path);

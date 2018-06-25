@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_C_FLAGS 
-		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-incompatible-pointer-types -Wno-unused-parameter")
+set(CMAKE_C_FLAGS
+		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
 add_definitions(-D_GNU_SOURCE)
 
 execute_process(COMMAND echo ${add_definitions} RESULT_VARIABLE rv)
@@ -43,3 +43,4 @@ add_subdirectory(vufs)
 add_subdirectory(vubinfmt)
 add_subdirectory(vunet_modules)
 add_subdirectory(vufuse_modules)
+add_subdirectory(vudev_modules)

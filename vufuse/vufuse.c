@@ -276,8 +276,11 @@ void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
 /* mergefun: set non-null functions */
 static void fopsmerge (const struct fuse_operations *fops, const struct fuse_operations *modfops, size_t size)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	const void **f = fops;
 	const void **modf = modfops;
+#pragma GCC diagnostic pop
 	size_t i;
 	if (size > sizeof(struct fuse_operations))
 		size = sizeof(struct fuse_operations);

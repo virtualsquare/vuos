@@ -33,45 +33,6 @@
 		MS_MANDLOCK | MS_DIRSYNC | MS_NOATIME | MS_NODIRATIME | MS_POSIXACL | MS_RELATIME | MS_STRICTATIME | \
 		MS_LAZYTIME)
 
-#if 0
-static struct {
-	unsigned long flag;
-	char *opt;
-} optable[] = {
-	{MS_RDONLY, "ro"},
-	{MS_NOSUID, "nosuid"},
-	{MS_NODEV, "nodev"},
-	{MS_NOEXEC, "noexec"},
-	{MS_SYNCHRONOUS, "sync"},
-	{MS_REMOUNT, "remount"},
-	/* XXX to be completed */
-};
-#define OPTABLE_LEN (sizeof(optable)/sizeof(optable[0]))
-
-static int countflagoptions(unsigned long mountflags) {
-	unsigned int i;
-	int flagoptc;
-  for (i = 0, flagoptc = 0; i < OPTABLE_LEN; i++) {
-		if (mountflags & optable[i].flag)
-			flagoptc++;
-	}
-	return flagoptc;
-}
-
-static void addflagoptions(char **tags, char **args, unsigned long mountflags) {
-	unsigned int i;
-	int flagoptc;
-  for (i = 0, flagoptc = 0; i < OPTABLE_LEN; i++) {
-		if (mountflags & optable[i].flag) {
-			tags[flagoptc] = optable[i].opt;
-			args[flagoptc] = NULL;
-			flagoptc++;
-		}
-	}
-	tags[flagoptc] = NULL;
-	args[flagoptc] = NULL;
-}
-#endif
 static int countflagoptions(unsigned long mountflags) {
   int retval = 0;
   int i;
@@ -136,7 +97,7 @@ int fusestartmain(struct main_params *mntp) {
 	//printf("FORMAT = %s\n", format);
 	char **xargv = s2argv(format);
 	int xargc = s2argc(xargv);
-	const char *argv[xargc + 2];
+	char *argv[xargc + 2];
 	int argc = 0;
 	for (i = 0; i < xargc; i++) {
 		switch(strcase(xargv[i])) {

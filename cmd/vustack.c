@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	if (argc > optind + 1) {
 		char *stack = argv[optind];
 		char *cmd = argv[optind + 1];
-		char *newargv = argv + optind + 1;
+		char **newargv = argv + (optind + 1);
 		
 		if (msocket(stack, 0, SOCK_DEFAULT, 0) < 0) {
 			perror("vustack: msocket");
