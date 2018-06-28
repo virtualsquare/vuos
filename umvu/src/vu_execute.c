@@ -83,8 +83,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 		switch (state) {
 			case IN_SYSCALL:
 				sd->extra = set_extra(sd, get_syspath);
-				printkdebug(s, "IN %d (%d) %s %s", umvu_gettid(), native_syscall(__NR_gettid), 
-						syscallname(sd->syscall_number), sd->extra->path);
+				printkdebug(s, "IN %d (%d) %s %s %ld", umvu_gettid(), native_syscall(__NR_gettid), 
+						syscallname(sd->syscall_number), sd->extra->path, get_vepoch());
 				ht = tab_entry->choicef(sd);
 				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);

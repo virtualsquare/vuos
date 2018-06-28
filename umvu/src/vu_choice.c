@@ -133,7 +133,7 @@ struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
 		char filesystemtype[PATH_MAX];
 		syscall_arg_t filesystemtype_addr = sd->syscall_args[2];
 		umvu_peek_str(filesystemtype_addr, filesystemtype, PATH_MAX);
-		ht = vuht_pick(CHECKFSTYPE, filesystemtype, NULL, SET_EPOCH);
+		ht = vuht_pick(CHECKFSTYPE, filesystemtype, NULL, 0);
 		printkdebug(c, "mount %s on %s: - ht %p", filesystemtype, extra->path, ht);
     return ht;
 	}
