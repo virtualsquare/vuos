@@ -402,6 +402,11 @@ int vu_vudev_mount(const char *source, const char *target,
 		pthread_mutex_init(&(new->mutex), NULL);
 
 		pthread_mutex_lock(&(new->mutex));
+		if (devops->init) {
+			new->private_data = devops->init(source, mountflags, data, new);
+			if (new->private_data == NULL)
+				goto err_init_null;
+		}
 		new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, 
 				data, s, 1, vudev_confirm_path, new);
 		if (new->flags & VUDEVFLAGS_DEVID) {
@@ -409,16 +414,11 @@ int vu_vudev_mount(const char *source, const char *target,
 				new->dev_ht = vuht_add(CHECKCHRDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
 			else if(S_ISBLK(new->stat.st_mode))
 				new->dev_ht = vuht_add(CHECKBLKDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
-		}
-		if (devops->init) {
-			new->private_data = devops->init(source, mountflags, data, new);
-			if (new->private_data == NULL)
-				goto err_init_null;
-		}
+		} else 
+			new->dev_ht = NULL;
 		pthread_mutex_unlock(&(new->mutex));
 		return 0;
 err_init_null:
-		/* vuht_del!!!! XXX */
 		pthread_mutex_unlock(&(new->mutex));
 		free(new);
 		dlclose(dlhandle);
@@ -446,12 +446,13 @@ int vu_vudev_umount2(const char *target, int flags) {
 		} else {
 			/*cleanup and umount_internal will do the right umounting sequence in a lazy way*/
 
-			vuht_del(vudev->path_ht, flags);
+			if (vudev->path_ht != NULL)
+				vuht_del(vudev->path_ht, flags);
 			if (vudev->dev_ht != NULL)
 				vuht_del(vudev->dev_ht, flags);
 
 			pthread_mutex_unlock(&(vudev->mutex));
-			printkdebug(D,"UMOUNT target:%s flags:%d",target,flags);
+			printkdebug(D,"UMOUNT target:%s flags:%d %p", target, flags, vudev);
 			return 0;
 		}
 	}
@@ -469,6 +470,7 @@ void vu_vudev_cleanup(uint8_t type, void *arg, int arglen,struct vuht_entry_t *h
 			break;
 	}
 	if(vudev->path_ht == NULL && vudev->dev_ht == NULL) {
+		printkdebug(D,"CLEANUP %p", vudev);
 		if(vudev->devops->fini)
 			vudev->devops->fini(vudev->private_data);
 		pthread_mutex_destroy(&(vudev->mutex));
