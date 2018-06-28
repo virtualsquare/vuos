@@ -117,11 +117,7 @@ int vu_vudev_close(int fd, void *fdprivate) {
 	if (retval == 0)
 		free(vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
@@ -137,11 +133,7 @@ ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	if(vudev->devops->read)
 		retval = vudev->devops->read(vudevfd, buf, count);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
@@ -157,11 +149,7 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	if(vudev->devops->write)
 		retval = vudev->devops->write(vudevfd, buf, count);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
@@ -177,11 +165,7 @@ ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flag
 	if(vudev->devops->pread)
 		retval = vudev->devops->pread(vudevfd, buf, count, offset);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
@@ -197,11 +181,7 @@ ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, i
 	if(vudev->devops->pwrite)
 		retval = vudev->devops->pwrite(vudevfd, buf, count, offset);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 int vu_vudev_access(char *path, int mode, int flags) {
@@ -217,11 +197,7 @@ off_t vu_vudev_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	if(vudev->devops->lseek)
 		retval = vudev->devops->lseek(vudevfd, offset, whence);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 int vu_vudev_ioctl(int fd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate) {
@@ -235,11 +211,7 @@ int vu_vudev_ioctl(int fd, unsigned long request, void *buf, uintptr_t addr, voi
 	if(vudev->devops->ioctl)
 		retval = vudev->devops->ioctl(vudevfd, request, buf);
 	pthread_mutex_unlock(&(vudev->mutex));
-	if (retval < 0) {
-		errno = -retval;
-		return -1;
-	} else
-		return retval;
+	return retval;
 }
 
 int vu_vudev_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate) {

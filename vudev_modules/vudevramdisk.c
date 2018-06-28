@@ -161,7 +161,8 @@ ssize_t vuramdisk_pread(struct vudevfd_t *vdefd, void *buf, size_t count, off_t 
 ssize_t vuramdisk_pwrite(struct vudevfd_t *vdefd, const void *buf, size_t count, off_t offset) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   if(ramdisk->flags & READONLY) {
-    errno = EBADF; return -1;
+    errno = EBADF; 
+		return -1;
   }
   return _vuramdisk_pwrite64(ramdisk, buf, count, offset);
 }
@@ -174,7 +175,9 @@ off_t vuramdisk_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
 		case SEEK_SET: ret_value = ramdiskfd->offset = offset; break;
 		case SEEK_CUR: ret_value = ramdiskfd->offset = ramdiskfd->offset + offset; break;
 		case SEEK_END: ret_value = ramdiskfd->offset = RAMDISK_SIZE(ramdisk) + offset; break;
-    default: errno = EINVAL; ret_value = (off_t) -1; break;
+    default: errno = EINVAL; 
+						 ret_value = (off_t) -1; 
+						 break;
 	}
 	return ret_value;
 }
@@ -202,7 +205,8 @@ int vuramdisk_ioctl(struct vudevfd_t *vdefd, unsigned long request, void *addr){
 			case HDIO_GETGEO:
 											memcpy(addr, &(ramdisk->geometry), sizeof(struct hd_geometry));
 											break;
-			default: errno = EINVAL; return -1;
+			default: errno = EINVAL; 
+							 return -1;
 		}
 		return 0;
 	} else {

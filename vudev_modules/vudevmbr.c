@@ -146,7 +146,6 @@ static int _read_gpt(int fd, off_t size, struct  vupartition_t *part_table, int 
 						new->readonly = (le64toh(gpt_entry_buf[i].attrs) & GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY) != 0;
 						new->LBAbegin = le64toh(gpt_entry_buf[i].lba_start) ;
 						new->LBAnoblocks  = le64toh(gpt_entry_buf[i].lba_end) - new->LBAbegin;
-						printk("%d %x %lld %lld\n", index, new->type, new->LBAbegin, new->LBAnoblocks);
 					}
 				}
 			}
@@ -309,7 +308,8 @@ ssize_t vumbr_pwrite64(struct vudevfd_t *vdefd, const void *buf, size_t count, o
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 	if(vumbrfd->partition->readonly) {
-		errno = EBADF; return -1;
+		errno = EBADF; 
+		return -1;
 	}
 	return _vumbr_pwrite64(vumbr->fd, buf, count, offset, vumbrfd);
 }
@@ -332,7 +332,9 @@ off_t vumbr_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
 											 ret_value = vumbrfd->offset = PART_ADDRMAX(vumbrfd->partition) + offset;
 										 break;
 									 }
-		default: errno = EINVAL; ret_value = (off_t) -1; break;
+		default: errno = EINVAL; 
+						 ret_value = (off_t) -1; 
+						 break;
 	}
 	return ret_value;
 }
@@ -382,7 +384,8 @@ int vumbr_ioctl(struct vudevfd_t *vdefd, unsigned long request, void *addr){
 													}
 													break;
 												}
-			default: errno = EINVAL; return -1;
+			default: errno = EINVAL; 
+							 return -1;
 		}
 		return 0;
 	} else
