@@ -99,18 +99,6 @@ static inline ssize_t _ck_size(struct vuramdisk_t *ramdisk, size_t count, off_t 
   return count;
 }
 
-ssize_t _vuramdisk_pread64(struct vuramdisk_t *ramdisk, void *buf, size_t count, off_t offset) {
-  count = _ck_size(ramdisk, count, offset);
-  memcpy(buf, (ramdisk->diskdata + offset), count);
-  return count;
-}
-
-ssize_t _vuramdisk_pwrite64(struct vuramdisk_t *ramdisk, const void *buf, size_t count, off_t offset) {
-  count = _ck_size(ramdisk, count, offset);
-  memcpy((ramdisk->diskdata + offset), buf, count);
-  return count;
-}
-
 /******************************************************************************/
 /***********************************SYSCALL************************************/
 
@@ -125,7 +113,9 @@ int vuramdisk_close(int fd, struct vudevfd_t *vdefd) {
 }
 ssize_t vuramdisk_pread(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
-  return _vuramdisk_pread64(ramdisk, buf, count, offset);
+	count = _ck_size(ramdisk, count, offset);
+  memcpy(buf, (ramdisk->diskdata + offset), count);
+	return count;
 }
 
 ssize_t vuramdisk_pwrite(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
@@ -134,7 +124,9 @@ ssize_t vuramdisk_pwrite(int fd, const void *buf, size_t count, off_t offset, st
     errno = EBADF; 
 		return -1;
   }
-  return _vuramdisk_pwrite64(ramdisk, buf, count, offset);
+	count = _ck_size(ramdisk, count, offset);
+  memcpy((ramdisk->diskdata + offset), buf, count);
+  return count;
 }
 
 off_t vuramdisk_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {

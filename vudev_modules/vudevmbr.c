@@ -226,18 +226,6 @@ static inline ssize_t _ck_size(struct vupartition_t *partition, off_t offset) {
 	return offset;
 }
 
-static inline size_t _vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vupartition_t *partition) {
-	if((offset = _ck_size(partition, offset)) < 0)
-		return 0;
-	return pread64(fd, buf, count, offset);
-}
-
-static inline size_t _vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vupartition_t *partition) {
-	if((offset = _ck_size(partition, offset)) < 0)
-		return 0;
-	return pwrite64(fd, buf, count, offset);
-}
-
 /******************************************************************************/
 /***********************************SYSCALL************************************/
 
@@ -267,7 +255,11 @@ int vumbr_close(int fd, struct vudevfd_t *vdefd) {
 
 ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	return _vumbr_pread64(vumbr->fd, buf, count, offset, vdefd->fdprivate);
+	struct vupartition_t *partition = vdefd->fdprivate;
+	if((offset = _ck_size(partition, offset)) < 0)
+		return 0;
+	else
+		return pread64(vumbr->fd, buf, count, offset);
 }
 
 ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
@@ -277,7 +269,10 @@ ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, stru
 		errno = EBADF; 
 		return -1;
 	}
-	return _vumbr_pwrite64(vumbr->fd, buf, count, offset, partition);
+	if((offset = _ck_size(partition, offset)) < 0)
+    return 0;
+	else
+		return pwrite64(vumbr->fd, buf, count, offset);
 }
 
 off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
