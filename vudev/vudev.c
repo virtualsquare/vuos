@@ -90,6 +90,7 @@ int vu_vudev_open(const char *pathname, int flags, mode_t mode, void **fdprivate
 		return -1;
 	}
 	vudevfd->subdev = vudev_get_subdev(pathname, ht, vudev);
+	vudevfd->offset = 0;
 	vudevfd->flags = flags;
 	vudevfd->fdprivate = NULL;
 	vudevfd->vudev = vudev;
@@ -97,11 +98,10 @@ int vu_vudev_open(const char *pathname, int flags, mode_t mode, void **fdprivate
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->open)
 		retval = vudev->devops->open(pathname, mode, vudevfd);
-	if (retval < 0) {
-		errno = -retval;
-		free(vudevfd);
-	} else
+	if (retval >= 0)
 		*fdprivate = vudevfd;
+	else
+		free(vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -109,11 +109,11 @@ int vu_vudev_open(const char *pathname, int flags, mode_t mode, void **fdprivate
 int vu_vudev_close(int fd, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = 0;
+	int retval = -1;
 	printkdebug(D,"CLOSE %p", vudevfd);
 	pthread_mutex_lock(&(vudev->mutex));
 	if (vudev->devops->close)
-		retval = vudev->devops->close(vudevfd);
+		retval = vudev->devops->close(fd, vudevfd);
 	if (retval == 0)
 		free(vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
@@ -123,7 +123,7 @@ int vu_vudev_close(int fd, void *fdprivate) {
 ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = 0;
+	int retval = -1;
 	printkdebug(D,"READ %p", vudevfd);
 	if((vudevfd->flags & O_WRONLY) != 0) {
 		errno = EBADF;
@@ -131,7 +131,7 @@ ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	}
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->read)
-		retval = vudev->devops->read(vudevfd, buf, count);
+		retval = vudev->devops->read(fd, buf, count, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -139,7 +139,7 @@ ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = 0;
+	int retval = -1;
 	printkdebug(D,"WRITE %p", vudevfd);
 	if((vudevfd->flags & O_RDONLY) != 0) {
 		errno = EBADF;
@@ -147,7 +147,7 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	}
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->write)
-		retval = vudev->devops->write(vudevfd, buf, count);
+		retval = vudev->devops->write(fd, buf, count, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -155,7 +155,7 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = 0;
+	int retval = -1;
 	printkdebug(D,"PREAD %p", vudevfd);
 	if((vudevfd->flags & O_WRONLY) != 0) {
 		errno = EBADF;
@@ -163,7 +163,7 @@ ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flag
 	}
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->pread)
-		retval = vudev->devops->pread(vudevfd, buf, count, offset);
+		retval = vudev->devops->pread(fd, buf, count, offset, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -171,7 +171,7 @@ ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flag
 ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = 0;
+	int retval = -1;
 	printkdebug(D,"PWRITE %p", vudevfd);
 	if((vudevfd->flags & O_RDONLY) != 0) {
 		errno = EBADF;
@@ -179,7 +179,7 @@ ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, i
 	}
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->pwrite)
-		retval = vudev->devops->pwrite(vudevfd, buf, count, offset);
+		retval = vudev->devops->pwrite(fd, buf, count, offset, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -192,10 +192,10 @@ off_t vu_vudev_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
 	printkdebug(D,"LSEEK %p", vudevfd);
-	int retval = 0;
+	int retval = -1;
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->lseek)
-		retval = vudev->devops->lseek(vudevfd, offset, whence);
+		retval = vudev->devops->lseek(fd, offset, whence, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -203,13 +203,13 @@ off_t vu_vudev_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 int vu_vudev_ioctl(int fd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vu_get_ht_private_data();
-	int retval = 0;
+	int retval = -1;
 	if (fd == -1)
 		vudevfd = NULL;
 	printkdebug(D,"IOCTL %p %ld", vudevfd, request);
 	pthread_mutex_lock(&(vudev->mutex));
 	if(vudev->devops->ioctl)
-		retval = vudev->devops->ioctl(vudevfd, request, buf);
+		retval = vudev->devops->ioctl(fd, request, buf, vudevfd);
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }

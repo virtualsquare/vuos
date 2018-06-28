@@ -271,13 +271,13 @@ int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdefd) {
 	return 0;
 }
 
-int vumbr_close(struct vudevfd_t *vdefd) {
+int vumbr_close(int fd, struct vudevfd_t *vdefd) {
 	struct vumbrfd_t *mbrfd = vdefd->fdprivate;
 	free(mbrfd);
 	return 0;
 }
 
-ssize_t vumbr_read(struct vudevfd_t *vdefd, void *buf, size_t count) {
+ssize_t vumbr_read(int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
 	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 	ssize_t ret_value = _vumbr_pread64(vumbr->fd, buf, count, vumbrfd->offset, vumbrfd);
@@ -286,7 +286,7 @@ ssize_t vumbr_read(struct vudevfd_t *vdefd, void *buf, size_t count) {
 	return ret_value;
 }
 
-ssize_t vumbr_write(struct vudevfd_t *vdefd, const void *buf, size_t count) {
+ssize_t vumbr_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
 	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 	if(vumbrfd->partition->readonly) {
@@ -299,12 +299,12 @@ ssize_t vumbr_write(struct vudevfd_t *vdefd, const void *buf, size_t count) {
 	return ret_value;
 }
 
-ssize_t vumbr_pread64(struct vudevfd_t *vdefd, void *buf, size_t count, off_t offset) {
+ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 	return _vumbr_pread64(vumbr->fd, buf, count, offset, vdefd->fdprivate);
 }
 
-ssize_t vumbr_pwrite64(struct vudevfd_t *vdefd, const void *buf, size_t count, off_t offset) {
+ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 	if(vumbrfd->partition->readonly) {
@@ -314,7 +314,7 @@ ssize_t vumbr_pwrite64(struct vudevfd_t *vdefd, const void *buf, size_t count, o
 	return _vumbr_pwrite64(vumbr->fd, buf, count, offset, vumbrfd);
 }
 
-off_t vumbr_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
+off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
 	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 	off_t ret_value;
 	switch (whence) {
@@ -339,8 +339,8 @@ off_t vumbr_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
 	return ret_value;
 }
 
-int vumbr_ioctl(struct vudevfd_t *vdefd, unsigned long request, void *addr){
-	if (vdefd) {
+int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vdefd){
+	if (fd >= 0) {
 		struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
 		struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
 		switch (request) {

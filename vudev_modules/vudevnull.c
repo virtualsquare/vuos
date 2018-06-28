@@ -30,17 +30,17 @@ static int null_open(const char *pathname, mode_t mode, struct vudevfd_t *vdefd)
   return 0;
 }
 
-static int null_close(struct vudevfd_t *vdefd) {
+static int null_close(int fd, struct vudevfd_t *vdefd) {
   printkdebug(D,"null_close", NULL);
   return 0;
 }
 
-static ssize_t null_read (struct vudevfd_t *vdefd, void *buf, size_t count) {
+static ssize_t null_read (int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
   printkdebug(D,"null_read: [%d]", count);
   return 0;
 }
 
-static ssize_t null_write(struct vudevfd_t *vdefd, const void *buf, size_t count) {
+static ssize_t null_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
   printkdebug(D,"null_write: [%d]", count);
   return count;
 }

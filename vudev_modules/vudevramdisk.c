@@ -126,13 +126,13 @@ int vuramdisk_open(const char *pathname, mode_t mode,  struct vudevfd_t *vdefd) 
   return 0;
 }
 
-int vuramdisk_close(struct vudevfd_t *vdefd) {
+int vuramdisk_close(int fd, struct vudevfd_t *vdefd) {
   struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
   free(ramdiskfd);
   return 0;
 }
 
-ssize_t vuramdisk_read(struct vudevfd_t *vdefd, void *buf, size_t count) {
+ssize_t vuramdisk_read(int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
   struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   size_t ret_value = _vuramdisk_pread64(ramdisk, buf, count, ramdiskfd->offset);
@@ -140,7 +140,7 @@ ssize_t vuramdisk_read(struct vudevfd_t *vdefd, void *buf, size_t count) {
   return ret_value;
 }
 
-ssize_t vuramdisk_write(struct vudevfd_t *vdefd, const void *buf, size_t count) {
+ssize_t vuramdisk_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
   struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   size_t ret_value;
@@ -153,12 +153,12 @@ ssize_t vuramdisk_write(struct vudevfd_t *vdefd, const void *buf, size_t count) 
 	return ret_value;
 }
 
-ssize_t vuramdisk_pread(struct vudevfd_t *vdefd, void *buf, size_t count, off_t offset) {
+ssize_t vuramdisk_pread(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   return _vuramdisk_pread64(ramdisk, buf, count, offset);
 }
 
-ssize_t vuramdisk_pwrite(struct vudevfd_t *vdefd, const void *buf, size_t count, off_t offset) {
+ssize_t vuramdisk_pwrite(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   if(ramdisk->flags & READONLY) {
     errno = EBADF; 
@@ -167,7 +167,7 @@ ssize_t vuramdisk_pwrite(struct vudevfd_t *vdefd, const void *buf, size_t count,
   return _vuramdisk_pwrite64(ramdisk, buf, count, offset);
 }
 
-off_t vuramdisk_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
+off_t vuramdisk_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
 	struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   off_t ret_value;
@@ -182,8 +182,8 @@ off_t vuramdisk_lseek(struct vudevfd_t *vdefd, off_t offset, int whence) {
 	return ret_value;
 }
 
-int vuramdisk_ioctl(struct vudevfd_t *vdefd, unsigned long request, void *addr){
-	if (vdefd) {
+int vuramdisk_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vdefd){
+	if (fd >= 0) {
 		struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
 		switch (request) {
 			case BLKROGET:
