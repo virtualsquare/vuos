@@ -67,11 +67,6 @@ struct vumbr_t {
   struct vupartition_t *part_table;
 };
 
-struct vumbrfd_t {
-  off_t offset;
-  struct vupartition_t *partition;
-};
-
 /******************************************************************************/
 /************************************UTILS*************************************/
 
@@ -231,14 +226,14 @@ static inline ssize_t _ck_size(struct vupartition_t *partition, off_t offset) {
 	return offset;
 }
 
-static inline size_t _vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vumbrfd_t *vumbrfd) {
-	if((offset = _ck_size(vumbrfd->partition, offset)) < 0)
+static inline size_t _vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vupartition_t *partition) {
+	if((offset = _ck_size(partition, offset)) < 0)
 		return 0;
 	return pread64(fd, buf, count, offset);
 }
 
-static inline size_t _vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vumbrfd_t *vumbrfd) {
-	if((offset = _ck_size(vumbrfd->partition, offset)) < 0)
+static inline size_t _vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vupartition_t *partition) {
+	if((offset = _ck_size(partition, offset)) < 0)
 		return 0;
 	return pwrite64(fd, buf, count, offset);
 }
@@ -253,50 +248,21 @@ int vumbr_confirm_subdev(int subdev, struct vudev_t *vudev) {
 
 int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdefd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	struct vumbrfd_t *vumbrfd;
+	struct vupartition_t *partition;
 	int subdev;
-	if((vumbrfd = calloc(1, sizeof(struct vumbrfd_t))) == NULL) {
-		errno = ENOMEM;
-		return -1;
-	}
 	subdev = vdefd->subdev;
 	if (vumbr_confirm_subdev(subdev, vdefd->vudev))
-		vumbrfd->partition = &vumbr->part_table[subdev];
+		partition = &vumbr->part_table[subdev];
 	else {
-		free(vumbrfd); 
 		errno = EINVAL;
 		return -1;
 	} 
-	vdefd->fdprivate = vumbrfd;
+	vdefd->fdprivate = partition;
 	return 0;
 }
 
 int vumbr_close(int fd, struct vudevfd_t *vdefd) {
-	struct vumbrfd_t *mbrfd = vdefd->fdprivate;
-	free(mbrfd);
 	return 0;
-}
-
-ssize_t vumbr_read(int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
-	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
-	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	ssize_t ret_value = _vumbr_pread64(vumbr->fd, buf, count, vumbrfd->offset, vumbrfd);
-	if(ret_value != -1)
-		vumbrfd->offset += ret_value;
-	return ret_value;
-}
-
-ssize_t vumbr_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
-	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
-	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	if(vumbrfd->partition->readonly) {
-		errno = EBADF; 
-		return -1;
-	}
-	ssize_t ret_value = _vumbr_pwrite64(vumbr->fd, buf, count, vumbrfd->offset, vumbrfd);
-	if(ret_value != -1)
-		vumbrfd->offset += ret_value;
-	return ret_value;
 }
 
 ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
@@ -306,35 +272,31 @@ ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vude
 
 ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
-	if(vumbrfd->partition->readonly) {
+	struct vupartition_t *partition = vdefd->fdprivate;
+	if(partition->readonly) {
 		errno = EBADF; 
 		return -1;
 	}
-	return _vumbr_pwrite64(vumbr->fd, buf, count, offset, vumbrfd);
+	return _vumbr_pwrite64(vumbr->fd, buf, count, offset, partition);
 }
 
 off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
-	struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
+	struct vupartition_t *partition = vdefd->fdprivate;
 	off_t ret_value;
 	switch (whence) {
 		case SEEK_SET:
-			ret_value = vumbrfd->offset = offset;
+			ret_value = offset;
 			break;
 		case SEEK_CUR:
-			ret_value = vumbrfd->offset = vumbrfd->offset + offset;
+			ret_value = vdefd->offset + offset;
 			break;
-		case SEEK_END: {
-										 if(vumbrfd->partition == NULL) {
-											 struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-											 ret_value = vumbrfd->offset = vumbr->size + offset;
-										 } else
-											 ret_value = vumbrfd->offset = PART_ADDRMAX(vumbrfd->partition) + offset;
-										 break;
-									 }
-		default: errno = EINVAL; 
-						 ret_value = (off_t) -1; 
-						 break;
+		case SEEK_END:
+			ret_value = PART_ADDRMAX(partition) + offset;
+			break;
+		default: 
+			errno = EINVAL; 
+			ret_value = (off_t) -1; 
+			break;
 	}
 	return ret_value;
 }
@@ -342,24 +304,24 @@ off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
 int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vdefd){
 	if (fd >= 0) {
 		struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-		struct vumbrfd_t *vumbrfd = vdefd->fdprivate;
+		struct vupartition_t *partition = vdefd->fdprivate;
 		switch (request) {
 			case BLKROGET: {
-											 *(int *)addr = vumbrfd->partition->readonly;
+											 *(int *)addr = partition->readonly;
 											 break;
 										 }
 			case BLKROSET:{
-											vumbrfd->partition->readonly = (*(int *)addr > 0)? 1:0;
+											partition->readonly = (*(int *)addr > 0)? 1:0;
 											break;
 										}
 			case BLKSSZGET:
 										*(int *)addr = IDE_BLOCKSIZE;
 										break;
 			case BLKGETSIZE: 
-										*(uint32_t *)addr = vumbrfd->partition->LBAnoblocks;
+										*(uint32_t *)addr = partition->LBAnoblocks;
 										break;
 			case BLKGETSIZE64: 
-										*(uint64_t *)addr = (vumbrfd->partition->LBAnoblocks) << IDE_BLOCKSIZE_LOG;
+										*(uint64_t *)addr = (partition->LBAnoblocks) << IDE_BLOCKSIZE_LOG;
 										break;
 			case BLKRRPART: {
 												int newpart_table_last_elem = _read_mbr(vumbr->fd, vumbr->size, NULL, 0);
@@ -439,8 +401,6 @@ struct vudev_operations_t vudev_ops = {
 	.confirm_subdev = vumbr_confirm_subdev,
 	.open = vumbr_open,
 	.close = vumbr_close,
-	.read = vumbr_read,
-	.write = vumbr_write,
 	.pread = vumbr_pread64,
 	.pwrite = vumbr_pwrite64,
 	.lseek = vumbr_lseek,

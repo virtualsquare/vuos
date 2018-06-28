@@ -52,10 +52,6 @@ struct vuramdisk_t {
 	struct hd_geometry geometry;
 };
 
-struct vuramdiskfd_t {
-  off_t offset;
-};
-
 /******************************************************************************/
 /************************************UTILS*************************************/
 
@@ -119,10 +115,6 @@ ssize_t _vuramdisk_pwrite64(struct vuramdisk_t *ramdisk, const void *buf, size_t
 /***********************************SYSCALL************************************/
 
 int vuramdisk_open(const char *pathname, mode_t mode,  struct vudevfd_t *vdefd) {
-  struct vuramdiskfd_t *ramdiskfd;
-  if((ramdiskfd = calloc(1, sizeof(struct vuramdiskfd_t))) == NULL)
-    return -1;
-	vdefd->fdprivate = ramdiskfd;
   return 0;
 }
 
@@ -131,28 +123,6 @@ int vuramdisk_close(int fd, struct vudevfd_t *vdefd) {
   free(ramdiskfd);
   return 0;
 }
-
-ssize_t vuramdisk_read(int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
-  struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
-	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
-  size_t ret_value = _vuramdisk_pread64(ramdisk, buf, count, ramdiskfd->offset);
-  ramdiskfd->offset += ret_value;
-  return ret_value;
-}
-
-ssize_t vuramdisk_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
-  struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
-	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
-  size_t ret_value;
-  if(ramdisk->flags & READONLY) {
-    errno = EBADF; 
-		return -1;
-  }
-  ret_value = _vuramdisk_pwrite64(ramdisk, buf, count, ramdiskfd->offset);
-  ramdiskfd->offset += ret_value;
-	return ret_value;
-}
-
 ssize_t vuramdisk_pread(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   return _vuramdisk_pread64(ramdisk, buf, count, offset);
@@ -168,13 +138,12 @@ ssize_t vuramdisk_pwrite(int fd, const void *buf, size_t count, off_t offset, st
 }
 
 off_t vuramdisk_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
-	struct vuramdiskfd_t *ramdiskfd = vdefd->fdprivate;
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vdefd->vudev);
   off_t ret_value;
 	switch (whence) {
-		case SEEK_SET: ret_value = ramdiskfd->offset = offset; break;
-		case SEEK_CUR: ret_value = ramdiskfd->offset = ramdiskfd->offset + offset; break;
-		case SEEK_END: ret_value = ramdiskfd->offset = RAMDISK_SIZE(ramdisk) + offset; break;
+		case SEEK_SET: ret_value = offset; break;
+		case SEEK_CUR: ret_value = vdefd->offset + offset; break;
+		case SEEK_END: ret_value = RAMDISK_SIZE(ramdisk) + offset; break;
     default: errno = EINVAL; 
 						 ret_value = (off_t) -1; 
 						 break;
@@ -255,8 +224,6 @@ int vuramdisk_fini(void *private_data) {
 struct vudev_operations_t vudev_ops = {
   .open = vuramdisk_open,
   .close = vuramdisk_close,
-  .read = vuramdisk_read,
-  .write = vuramdisk_write,
 	.pread = vuramdisk_pread,
 	.pwrite = vuramdisk_pwrite,
   .lseek = vuramdisk_lseek,
