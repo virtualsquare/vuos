@@ -517,6 +517,7 @@ void *vu_vunet_init (void) {
 }
 
 int vu_vunet_fini(void *private) {
+	mod_inheritance_upcall_deregister(vunet_tracer_upcall);
 	return 0;
 }
 
