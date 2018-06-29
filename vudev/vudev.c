@@ -67,7 +67,7 @@ void *vudev_get_private_data(struct vudev_t *vudev) {
 }
 
 void vudev_set_devtype(struct vudev_t *vudev, mode_t devtype) {
-	if (S_ISCHR(devtype) || S_ISBLK(devtype)) 
+	if (S_ISCHR(devtype) || S_ISBLK(devtype))
 		vudev->stat.st_mode = (vudev->stat.st_mode & ~S_IFMT) | (devtype & S_IFMT);
 }
 
@@ -121,7 +121,7 @@ int vu_vudev_close(int fd, void *fdprivate) {
 ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = -1;
+	ssize_t retval;
 	printkdebug(D,"READ %d %p", fd, vudevfd);
 	if((vudevfd->flags & O_WRONLY) != 0) {
 		errno = EBADF;
@@ -131,7 +131,7 @@ ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	if(vudev->devops->read)
 		retval = vudev->devops->read(fd, buf, count, vudevfd);
 	else {
-		retval = vudev->devops->pread ? 
+		retval = vudev->devops->pread ?
 			vudev->devops->pread(fd, buf, count, vudevfd->offset, vudevfd) : (errno = ENOSYS, -1);
 		if (retval > 0)
 			vudevfd->offset += retval;
@@ -143,7 +143,7 @@ ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval = -1;
+	ssize_t retval;
 	printkdebug(D,"WRITE %d %p", fd, vudevfd);
 	if((vudevfd->flags & O_RDONLY) != 0) {
 		errno = EBADF;
@@ -153,11 +153,11 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	if(vudev->devops->write)
 		retval = vudev->devops->write(fd, buf, count, vudevfd);
 	else {
-		retval = vudev->devops->pwrite ? 
+		retval = vudev->devops->pwrite ?
 			vudev->devops->pwrite(fd, buf, count, vudevfd->offset, vudevfd) : (errno = ENOSYS, -1);
 		if (retval > 0)
-      vudevfd->offset += retval;
-  }
+			vudevfd->offset += retval;
+	}
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
@@ -165,7 +165,7 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval;
+	ssize_t retval;
 	printkdebug(D,"PREAD %d %p", fd, vudevfd);
 	if((vudevfd->flags & O_WRONLY) != 0) {
 		errno = EBADF;
@@ -180,7 +180,7 @@ ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flag
 ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	int retval;
+	ssize_t retval;
 	printkdebug(D,"PWRITE %d %p", fd, vudevfd);
 	if((vudevfd->flags & O_RDONLY) != 0) {
 		errno = EBADF;
@@ -199,13 +199,13 @@ int vu_vudev_access(char *path, int mode, int flags) {
 off_t vu_vudev_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
-	printkdebug(D,"LSEEK %d %p", fd, vudevfd);
-	int retval;
+	off_t retval;
 	pthread_mutex_lock(&(vudev->mutex));
 	retval = vudev->devops->lseek ? vudev->devops->lseek(fd, offset, whence, vudevfd) : (errno = ENOSYS, -1);
 	if (retval != -1)
 		vudevfd->offset = retval;
 	pthread_mutex_unlock(&(vudev->mutex));
+	printkdebug(D,"LSEEK %d %p retval %lu", fd, vudevfd, retval);
 	return retval;
 }
 
@@ -228,8 +228,8 @@ int vu_vudev_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event, void
 	pthread_mutex_lock(&(vudev->mutex));
 	retval = vudev->devops->epoll_ctl ?
 		vudev->devops->epoll_ctl(epfd, op, fd, event, vudevfd) : (errno = ENOSYS, -1);
-	 pthread_mutex_unlock(&(vudev->mutex));
-  return retval;
+	pthread_mutex_unlock(&(vudev->mutex));
+	return retval;
 }
 
 int vu_vudev_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate) {
@@ -237,7 +237,7 @@ int vu_vudev_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void
 	struct vudev_t *vudev = vu_get_ht_private_data();
 	printkdebug(D,"LSTAT %s", pathname);
 	memcpy(buf, &vudev->stat, sizeof(struct vu_stat));
-	buf->st_rdev = makedev(major(buf->st_rdev), minor(buf->st_rdev) + 
+	buf->st_rdev = makedev(major(buf->st_rdev), minor(buf->st_rdev) +
 			vudev_get_subdev(pathname, ht, vudev));
 	return 0;
 }
@@ -397,14 +397,14 @@ int vu_vudev_mount(const char *source, const char *target,
 			if (new->private_data == NULL)
 				goto err_init_null;
 		}
-		new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, 
+		new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags,
 				data, s, 1, vudev_confirm_path, new);
 		if (new->flags & VUDEVFLAGS_DEVID) {
 			if(S_ISCHR(new->stat.st_mode))
 				new->dev_ht = vuht_add(CHECKCHRDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
 			else if(S_ISBLK(new->stat.st_mode))
 				new->dev_ht = vuht_add(CHECKBLKDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
-		} else 
+		} else
 			new->dev_ht = NULL;
 		pthread_mutex_unlock(&(new->mutex));
 		return 0;
