@@ -217,6 +217,7 @@ static int _read_mbr(int fd, off_t size, struct  vupartition_t *part_table, int 
 }
 
 /* return number subdev */
+#if 0
 static inline ssize_t _ck_size(struct vupartition_t *partition, off_t offset) {
 	if(partition) {
 		if(((uint64_t)offset >> IDE_BLOCKSIZE_LOG) < partition->LBAnoblocks)
@@ -224,6 +225,18 @@ static inline ssize_t _ck_size(struct vupartition_t *partition, off_t offset) {
 		else return -1;
 	}
 	return offset;
+}
+#endif
+
+static size_t _ck_size(struct vupartition_t *partition, size_t count, off_t offset) {
+	off_t partsize = PART_ADDRMAX(partition);
+	if (offset > partsize) {
+		errno = ENXIO;
+		return -1;
+	} else if (offset + (off_t) count > partsize)
+		return partsize - offset;
+	else
+		return count;
 }
 
 /******************************************************************************/
@@ -256,8 +269,10 @@ int vumbr_close(int fd, struct vudevfd_t *vdevfd) {
 ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
 	struct vupartition_t *partition = vdevfd->fdprivate;
-	if((offset = _ck_size(partition, offset)) < 0)
-		return 0;
+	count = _ck_size(partition, count, offset);
+	offset += PART_ADDRBASE(partition);
+	if (count <= 0)
+		return count;
 	else
 		return pread64(vumbr->fd, buf, count, offset);
 }
@@ -265,12 +280,10 @@ ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vude
 ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
 	struct vupartition_t *partition = vdevfd->fdprivate;
-	if(partition->readonly) {
-		errno = EBADF; 
-		return -1;
-	}
-	if((offset = _ck_size(partition, offset)) < 0)
-    return 0;
+	count = _ck_size(partition, count, offset);
+	offset += PART_ADDRBASE(partition);
+	if (count <= 0)
+		return count;
 	else
 		return pwrite64(vumbr->fd, buf, count, offset);
 }
