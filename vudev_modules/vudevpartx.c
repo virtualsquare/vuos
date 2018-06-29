@@ -54,17 +54,17 @@
 
 struct vupartition_t {
 	uint8_t bootflag;
-  uint8_t type;
-  uint8_t readonly;
-  uint64_t LBAbegin;
-  uint64_t LBAnoblocks;
+	uint8_t type;
+	uint8_t readonly;
+	uint64_t LBAbegin;
+	uint64_t LBAnoblocks;
 };
 
 struct vumbr_t {
 	int fd;
-  off_t size;
-  int part_table_last_elem;
-  struct vupartition_t *part_table;
+	off_t size;
+	int part_table_last_elem;
+	struct vupartition_t *part_table;
 };
 
 /******************************************************************************/
@@ -89,25 +89,25 @@ struct gpt_header_t {
 	uint32_t header_size; /* Header size in bytes (little-endian) */
 	uint32_t header_crc32; /* Header CRC checksum */
 	uint32_t reserved1; /* Must be 0 */
-  uint64_t current_lba; /* Current LBA (location of this header copy) */
-  uint64_t backup_lba; /* Backup LBA (location of the other header copy) */
-  uint64_t first_usable_lba; /* First usable LBA for partitions (primary partition table last LBA + 1) */
-  uint64_t last_usable_lba; /* Last usable LBA (secondary partition table first LBA - 1) */
-  uint8_t  disk_guid[GPT_GUID_SIZE]; /* Disk GUID */
-  uint64_t starting_lba; /* Starting LBA of array of partition entries (always 2 in primary copy) */
-  uint32_t numberof_partiton_entries; /* Number of partition entries in array */
-  uint32_t sizeof_partition_entry; /* Size of a single partition entry (usually 128) */
-  uint32_t partition_entry_array_crc32; /* Partition CRC checksum */
-  uint8_t  reserved2[512 - 92]; /* Must all be 0 */
+	uint64_t current_lba; /* Current LBA (location of this header copy) */
+	uint64_t backup_lba; /* Backup LBA (location of the other header copy) */
+	uint64_t first_usable_lba; /* First usable LBA for partitions (primary partition table last LBA + 1) */
+	uint64_t last_usable_lba; /* Last usable LBA (secondary partition table first LBA - 1) */
+	uint8_t  disk_guid[GPT_GUID_SIZE]; /* Disk GUID */
+	uint64_t starting_lba; /* Starting LBA of array of partition entries (always 2 in primary copy) */
+	uint32_t numberof_partiton_entries; /* Number of partition entries in array */
+	uint32_t sizeof_partition_entry; /* Size of a single partition entry (usually 128) */
+	uint32_t partition_entry_array_crc32; /* Partition CRC checksum */
+	uint8_t  reserved2[512 - 92]; /* Must all be 0 */
 };
 
 struct gpt_entry_t {
-  uint8_t  type[GPT_GUID_SIZE]; /* Partition type GUID */
-  uint8_t  guid[GPT_GUID_SIZE]; /* Unique partition GUID */
-  uint64_t lba_start; /* First LBA (little endian) */
-  uint64_t lba_end; /* Last LBA */
-  uint64_t attrs; /* Attribute flags */
-  uint8_t  name[72]; /* Partition name */
+	uint8_t  type[GPT_GUID_SIZE]; /* Partition type GUID */
+	uint8_t  guid[GPT_GUID_SIZE]; /* Unique partition GUID */
+	uint64_t lba_start; /* First LBA (little endian) */
+	uint64_t lba_end; /* Last LBA */
+	uint64_t attrs; /* Attribute flags */
+	uint8_t  name[72]; /* Partition name */
 };
 
 #define BLOCKPART (IDE_BLOCKSIZE / sizeof(struct gpt_entry_t))
@@ -140,7 +140,7 @@ static int _read_gpt(int fd, off_t size, struct  vupartition_t *part_table, int 
 						new->type = MBR_GPT_PARTITION_TYPE;
 						new->readonly = (le64toh(gpt_entry_buf[i].attrs) & GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY) != 0;
 						new->LBAbegin = le64toh(gpt_entry_buf[i].lba_start) ;
-						new->LBAnoblocks  = le64toh(gpt_entry_buf[i].lba_end) - new->LBAbegin;
+						new->LBAnoblocks  = le64toh(gpt_entry_buf[i].lba_end) - new->LBAbegin + 1;
 					}
 				}
 			}
@@ -150,18 +150,18 @@ static int _read_gpt(int fd, off_t size, struct  vupartition_t *part_table, int 
 }
 
 static int _read_mbr(int fd, off_t size, struct  vupartition_t *part_table, int maxpart) {
-  uint8_t vumbr_signature[2] = {0x55, 0xAA};
-  uint32_t ext_part_base = 0;
-  struct mbr_header_t vumbr_header;
+	uint8_t vumbr_signature[2] = {0x55, 0xAA};
+	uint32_t ext_part_base = 0;
+	struct mbr_header_t vumbr_header;
 
-  pread64(fd, &vumbr_header, sizeof(vumbr_header), (off_t) 0);
-  if (part_table) {
-    part_table[0].LBAnoblocks = (size >> IDE_BLOCKSIZE_LOG);
-    part_table[0].type = 0xff;
-    part_table[0].readonly = 0;
-    part_table[0].bootflag = 0;
-  }
-  if(memcmp(vumbr_header.signature, vumbr_signature, 2) != 0) {
+	pread64(fd, &vumbr_header, sizeof(vumbr_header), (off_t) 0);
+	if (part_table) {
+		part_table[0].LBAnoblocks = (size >> IDE_BLOCKSIZE_LOG);
+		part_table[0].type = 0xff;
+		part_table[0].readonly = 0;
+		part_table[0].bootflag = 0;
+	}
+	if(memcmp(vumbr_header.signature, vumbr_signature, 2) != 0) {
 		if (part_table) /* avoid double warning */
 			printk(KERN_ERR "Bad MBR signature %x %x\n", vumbr_header.signature[0], vumbr_header.signature[1]);
 		return 0;
@@ -216,18 +216,6 @@ static int _read_mbr(int fd, off_t size, struct  vupartition_t *part_table, int 
 	}
 }
 
-/* return number subdev */
-#if 0
-static inline ssize_t _ck_size(struct vupartition_t *partition, off_t offset) {
-	if(partition) {
-		if(((uint64_t)offset >> IDE_BLOCKSIZE_LOG) < partition->LBAnoblocks)
-			offset += PART_ADDRBASE(partition);
-		else return -1;
-	}
-	return offset;
-}
-#endif
-
 static size_t _ck_size(struct vupartition_t *partition, size_t count, off_t offset) {
 	off_t partsize = PART_ADDRMAX(partition);
 	if (offset > partsize) {
@@ -257,7 +245,7 @@ int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdevfd) {
 	else {
 		errno = EINVAL;
 		return -1;
-	} 
+	}
 	vdevfd->fdprivate = partition;
 	return 0;
 }
@@ -269,23 +257,19 @@ int vumbr_close(int fd, struct vudevfd_t *vdevfd) {
 ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
 	struct vupartition_t *partition = vdevfd->fdprivate;
-	count = _ck_size(partition, count, offset);
-	offset += PART_ADDRBASE(partition);
-	if (count <= 0)
+	if ((count = _ck_size(partition, count, offset)) <= 0)
 		return count;
 	else
-		return pread64(vumbr->fd, buf, count, offset);
+		return pread64(vumbr->fd, buf, count, offset + PART_ADDRBASE(partition));
 }
 
 ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
 	struct vupartition_t *partition = vdevfd->fdprivate;
-	count = _ck_size(partition, count, offset);
-	offset += PART_ADDRBASE(partition);
-	if (count <= 0)
+	if ((count = _ck_size(partition, count, offset)) <= 0)
 		return count;
 	else
-		return pwrite64(vumbr->fd, buf, count, offset);
+		return pwrite64(vumbr->fd, buf, count, offset + PART_ADDRBASE(partition));
 }
 
 off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdevfd) {
@@ -301,9 +285,9 @@ off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdevfd) {
 		case SEEK_END:
 			ret_value = PART_ADDRMAX(partition) + offset;
 			break;
-		default: 
-			errno = EINVAL; 
-			ret_value = (off_t) -1; 
+		default:
+			errno = EINVAL;
+			ret_value = (off_t) -1;
 			break;
 	}
 	return ret_value;
@@ -325,10 +309,10 @@ int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vde
 			case BLKSSZGET:
 										*(int *)addr = IDE_BLOCKSIZE;
 										break;
-			case BLKGETSIZE: 
+			case BLKGETSIZE:
 										*(uint32_t *)addr = partition->LBAnoblocks;
 										break;
-			case BLKGETSIZE64: 
+			case BLKGETSIZE64:
 										*(uint64_t *)addr = (partition->LBAnoblocks) << IDE_BLOCKSIZE_LOG;
 										break;
 			case BLKRRPART: {
@@ -355,7 +339,7 @@ int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vde
 													}
 													break;
 												}
-			default: errno = EINVAL; 
+			default: errno = EINVAL;
 							 return -1;
 		}
 		return 0;
