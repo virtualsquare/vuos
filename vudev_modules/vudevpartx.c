@@ -338,6 +338,7 @@ int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vde
 														geometry->cylinders = (vumbr->size >> IDE_BLOCKSIZE_LOG) / (geometry->heads * geometry->sectors);
 														if (geometry->cylinders * geometry->heads * geometry->sectors < (vumbr->size >> IDE_BLOCKSIZE_LOG))
 															geometry->cylinders += 1;
+														geometry->start = PART_ADDRBASE(partition);
 													}
 													break;
 												}

@@ -296,6 +296,7 @@ int vuvdi_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vud
 													hdg->heads = (unsigned char) vdgeom.cHeads;
 													hdg->sectors = (unsigned char) vdgeom.cSectors;
 													hdg->cylinders = (unsigned short) vdgeom.cCylinders;
+													hdg->start = 0;
 													break;
 												}
 			default: ioctl_err_exit:
