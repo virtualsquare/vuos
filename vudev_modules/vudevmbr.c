@@ -234,37 +234,37 @@ int vumbr_confirm_subdev(int subdev, struct vudev_t *vudev) {
 	return subdev >= 0 && subdev <= vumbr->part_table_last_elem && vumbr->part_table[subdev].type != 0;
 }
 
-int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdefd) {
-	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
+int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdevfd) {
+	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
 	struct vupartition_t *partition;
 	int subdev;
-	subdev = vdefd->subdev;
-	if (vumbr_confirm_subdev(subdev, vdefd->vudev))
+	subdev = vdevfd->subdev;
+	if (vumbr_confirm_subdev(subdev, vdevfd->vudev))
 		partition = &vumbr->part_table[subdev];
 	else {
 		errno = EINVAL;
 		return -1;
 	} 
-	vdefd->fdprivate = partition;
+	vdevfd->fdprivate = partition;
 	return 0;
 }
 
-int vumbr_close(int fd, struct vudevfd_t *vdefd) {
+int vumbr_close(int fd, struct vudevfd_t *vdevfd) {
 	return 0;
 }
 
-ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
-	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	struct vupartition_t *partition = vdefd->fdprivate;
+ssize_t vumbr_pread64(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
+	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
+	struct vupartition_t *partition = vdevfd->fdprivate;
 	if((offset = _ck_size(partition, offset)) < 0)
 		return 0;
 	else
 		return pread64(vumbr->fd, buf, count, offset);
 }
 
-ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdefd) {
-	struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-	struct vupartition_t *partition = vdefd->fdprivate;
+ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vdevfd) {
+	struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
+	struct vupartition_t *partition = vdevfd->fdprivate;
 	if(partition->readonly) {
 		errno = EBADF; 
 		return -1;
@@ -275,15 +275,15 @@ ssize_t vumbr_pwrite64(int fd, const void *buf, size_t count, off_t offset, stru
 		return pwrite64(vumbr->fd, buf, count, offset);
 }
 
-off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
-	struct vupartition_t *partition = vdefd->fdprivate;
+off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdevfd) {
+	struct vupartition_t *partition = vdevfd->fdprivate;
 	off_t ret_value;
 	switch (whence) {
 		case SEEK_SET:
 			ret_value = offset;
 			break;
 		case SEEK_CUR:
-			ret_value = vdefd->offset + offset;
+			ret_value = vdevfd->offset + offset;
 			break;
 		case SEEK_END:
 			ret_value = PART_ADDRMAX(partition) + offset;
@@ -296,10 +296,10 @@ off_t vumbr_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vdefd) {
 	return ret_value;
 }
 
-int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vdefd){
+int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vdevfd){
 	if (fd >= 0) {
-		struct vumbr_t *vumbr = vudev_get_private_data(vdefd->vudev);
-		struct vupartition_t *partition = vdefd->fdprivate;
+		struct vumbr_t *vumbr = vudev_get_private_data(vdevfd->vudev);
+		struct vupartition_t *partition = vdevfd->fdprivate;
 		switch (request) {
 			case BLKROGET: {
 											 *(int *)addr = partition->readonly;

@@ -25,22 +25,22 @@
 #include <vudev.h>
 #include <vumodule.h>
 
-static int null_open(const char *pathname, mode_t mode, struct vudevfd_t *vdefd) {
+static int null_open(const char *pathname, mode_t mode, struct vudevfd_t *vudevfd) {
   printkdebug(D,"null_open [%s]", pathname);
   return 0;
 }
 
-static int null_close(int fd, struct vudevfd_t *vdefd) {
+static int null_close(int fd, struct vudevfd_t *vudevfd) {
   printkdebug(D,"null_close", NULL);
   return 0;
 }
 
-static ssize_t null_read (int fd, void *buf, size_t count, struct vudevfd_t *vdefd) {
+static ssize_t null_read (int fd, void *buf, size_t count, struct vudevfd_t *vudevfd) {
   printkdebug(D,"null_read: [%d]", count);
   return 0;
 }
 
-static ssize_t null_write(int fd, const void *buf, size_t count, struct vudevfd_t *vdefd) {
+static ssize_t null_write(int fd, const void *buf, size_t count, struct vudevfd_t *vudevfd) {
   printkdebug(D,"null_write: [%d]", count);
   return count;
 }
