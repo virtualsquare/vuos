@@ -240,9 +240,14 @@ int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdevfd) {
 	struct vupartition_t *partition;
 	int subdev;
 	subdev = vdevfd->subdev;
-	if (vumbr_confirm_subdev(subdev, vdevfd->vudev))
-		partition = &vumbr->part_table[subdev];
-	else {
+	if (vumbr_confirm_subdev(subdev, vdevfd->vudev)) {
+		partition = malloc(sizeof(struct vupartition_t));
+		if (partition == NULL) {
+			errno = ENOMEM;
+			return -1;
+		} else
+			*partition = vumbr->part_table[subdev];
+	} else {
 		errno = EINVAL;
 		return -1;
 	}
@@ -251,6 +256,9 @@ int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdevfd) {
 }
 
 int vumbr_close(int fd, struct vudevfd_t *vdevfd) {
+	struct vupartition_t *partition = vdevfd->fdprivate;
+	if (partition)
+		free(partition);
 	return 0;
 }
 
