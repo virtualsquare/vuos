@@ -32,6 +32,7 @@
 #include <ptrace_defs.h>
 #include <xcommon.h>
 #include <vu_log.h>
+#include <vu_inheritance.h>
 #include <umvu_peekpoke.h>
 
 static int nproc;
@@ -66,37 +67,6 @@ static void wait4termination(void) {
 	pthread_mutex_unlock(&nproc_mutex);
 }
 
-struct inheritance_elem_t {
-	inheritance_upcall_t upcall;
-	struct inheritance_elem_t *next;
-};
-
-static struct inheritance_elem_t *inheritance_upcall_list_h = NULL;
-static int inheritance_upcall_list_count;
-
-void umvu_inheritance_upcall_register(inheritance_upcall_t upcall) {
-	struct inheritance_elem_t **scan;
- for (scan = &inheritance_upcall_list_h; *scan != NULL;
-		 scan = &((*scan) -> next))
-	 ;
- *scan = malloc(sizeof(struct inheritance_elem_t));
- fatal(*scan);
- (*scan)->upcall = upcall;
- (*scan)->next = NULL;
- inheritance_upcall_list_count++;
-}
-
-static void umvu_inheritance_call(inheritance_state_t state, void **destination, void *source) {
-	struct inheritance_elem_t *scan;
-	for (scan = inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
-		char *upcallarg = (source != NULL) ? source :
-			((destination != NULL) ? *destination : NULL);
-		void *result = scan->upcall(state, upcallarg);
-		if (destination != NULL)
-			*(destination++) = result;
-	}
-}
-
 /* struct definitions */
 typedef struct tracer_args {
 	pid_t tracee_tid;
@@ -118,7 +88,7 @@ static void *spawn_tracer(void *arg)
 	pid_t tracee_tid = t_arg->tracee_tid;
 	umvu_settid(tracee_tid);
 	nproc_update(1);
-	umvu_inheritance_call(INH_START, t_arg->inherited_args, NULL);
+	vu_inheritance_call(INH_START, t_arg->inherited_args, NULL);
 
 	P_SEIZE_NODIE(tracee_tid, PTRACE_STD_OPTS);
 	unblock_tracee(tracee_tid, &(t_arg->regs));
@@ -150,7 +120,7 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	pthread_t newthread;
 	pthread_attr_t thread_attr;
 	tracer_args *t_args = (tracer_args *)
-		malloc(sizeof(tracer_args) + inheritance_upcall_list_count * sizeof(void *));
+		malloc(sizeof(tracer_args) + vu_inheritance_inout_size());
 	struct user_regs_struct *regs;
 
 	fatal(t_args);
@@ -158,7 +128,7 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	block_tracee(newtid, regs);
 	/*init args for new thread*/
 	t_args->tracee_tid = newtid;
-	umvu_inheritance_call(INH_CLONE, t_args->inherited_args, &clone_flags);
+	vu_inheritance_call(INH_CLONE, t_args->inherited_args, &clone_flags);
 	P_DETACH_NODIE(newtid, 0L);
 	pthread_attr_init(&thread_attr);
 	pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
@@ -178,7 +148,7 @@ static int umvu_trace(pid_t tracee_tid)
 		sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
 		if (sig_tid == -1) {
 			perror("r_wait4 -1");
-			umvu_inheritance_call(INH_TERMINATE, NULL, NULL);
+			vu_inheritance_call(INH_TERMINATE, NULL, NULL);
 			nproc_update(-1);
 			return -1;
 		} else if (WIFSTOPPED(wstatus)) {
@@ -188,7 +158,7 @@ static int umvu_trace(pid_t tracee_tid)
 					unsigned long exit_status;
 					P_GETEVENTMSG(sig_tid, &exit_status);
 					P_DETACH(sig_tid, 0L);
-					umvu_inheritance_call(INH_TERMINATE, NULL, NULL);
+					vu_inheritance_call(INH_TERMINATE, NULL, NULL);
 					nproc_update(-1);
 					return exit_status;
 				} else if (wstatus >> 8 ==
@@ -199,7 +169,7 @@ static int umvu_trace(pid_t tracee_tid)
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
 					tracee_tid = sig_tid;
-					umvu_inheritance_call(INH_EXEC, NULL, NULL);
+					vu_inheritance_call(INH_EXEC, NULL, NULL);
 					//printf("exec %d\n", tracee_tid);
 				}
 				else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||

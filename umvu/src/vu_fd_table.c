@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <xcommon.h>
 #include <vu_log.h>
-#include <umvu_tracer.h>
+#include <vu_inheritance.h>
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
 #include <umvu_peekpoke.h>
@@ -335,6 +335,8 @@ static void *vu_fd_tracer_upcall(inheritance_state_t state, void *arg) {
 		case INH_TERMINATE:
 			vu_fd_terminate();
 			break;
+		default:
+			break;
 	}
 	return ret_value;
 }
@@ -343,7 +345,7 @@ __attribute__((constructor))
 	static void init(void) {
 		vu_n_fd = vu_fd_create();
 		vu_fd = vu_fd_create();
-		umvu_inheritance_upcall_register(vu_fd_tracer_upcall);
+		vu_inheritance_upcall_register(vu_fd_tracer_upcall);
 	}
 
 

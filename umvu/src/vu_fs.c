@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <limits.h>
 #include <string.h>
 #include <pthread.h>
@@ -27,7 +28,7 @@
 #include <sys/stat.h>
 #include <xcommon.h>
 #include <vu_log.h>
-#include <umvu_tracer.h>
+#include <vu_inheritance.h>
 
 struct vu_fs_t {
 	pthread_rwlock_t lock;
@@ -174,6 +175,8 @@ static void *vu_fs_tracer_upcall(inheritance_state_t state, void *arg) {
 		case INH_TERMINATE:
 			vu_fs_terminate();
 			break;
+		default:
+			break;
 	}
 	return ret_value;
 }
@@ -181,5 +184,5 @@ static void *vu_fs_tracer_upcall(inheritance_state_t state, void *arg) {
 __attribute__((constructor))
 	static void init(void) {
 		vu_fs_create();
-		umvu_inheritance_upcall_register(vu_fs_tracer_upcall);
+		vu_inheritance_upcall_register(vu_fs_tracer_upcall);
 	}

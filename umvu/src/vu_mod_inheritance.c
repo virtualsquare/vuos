@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <umvu_tracer.h>
+#include <vu_inheritance.h>
 #include <vumodule.h>
 #include <vu_log.h>
 #include <pthread.h>
@@ -68,33 +68,45 @@ static void mod_inheritance_call(mod_inheritance_state_t state, void **destinati
 static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
   void *ret_value = NULL;
 	void **args;
-	pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
-	if (mod_inheritance_upcall_list_count > 0) {
-		switch (state) {
-			case INH_CLONE:
+	/* CLONE/START protection against mod_inheritance_upcall_list_count modifications:
+		 INH_CLONE uses "passing le baton" and keeps the RDLOCK pending until INH_START */
+	switch (state) {
+		case INH_CLONE:
+			pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
+			if (mod_inheritance_upcall_list_count > 0) {
 				args = malloc(mod_inheritance_upcall_list_count * sizeof(void *));
 				fatal(args);
 				mod_inheritance_call(MOD_INH_CLONE, args, arg);
 				ret_value = args;
-				break;
-			case INH_START:
+			} 
+			break;
+		case INH_START:
+			if (mod_inheritance_upcall_list_count > 0) {
 				args = (void **) arg;
 				mod_inheritance_call(MOD_INH_START, args, NULL);
 				xfree(args);
-				break;
-			case INH_EXEC:
+			}
+			pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
+			break;
+		case INH_EXEC:
+			pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
+			if (mod_inheritance_upcall_list_count > 0) 
 				mod_inheritance_call(MOD_INH_EXEC, NULL, &mod_exec_arg);
-				break;
-			case INH_TERMINATE:
+			pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
+			break;
+		case INH_TERMINATE:
+			pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
+			if (mod_inheritance_upcall_list_count > 0) 
 				mod_inheritance_call(MOD_INH_TERMINATE, NULL, NULL);
-				break;
-		}
+			pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
+			break;
+		default:
+			break;
 	}
-	pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
 	return ret_value;
 }
 
 __attribute__((constructor))
 	static void init(void) {
-		umvu_inheritance_upcall_register(vu_mod_inh_tracer_upcall);
+		vu_inheritance_upcall_register(vu_mod_inh_tracer_upcall);
 	}

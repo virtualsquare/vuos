@@ -28,7 +28,7 @@
 #include <xcommon.h>
 #include <vu_file_table.h>
 #include <vu_log.h>
-#include <umvu_tracer.h>
+#include <vu_inheritance.h>
 
 struct vu_mmap_area_t {
 	uintptr_t addr;
@@ -205,6 +205,8 @@ static void *vu_mmap_tracer_upcall(inheritance_state_t state, void *arg) {
 		case INH_TERMINATE:
 			vu_mmap_terminate();
 			break;
+		default:
+			break;
 	}
 	return ret_value;
 }
@@ -212,6 +214,6 @@ static void *vu_mmap_tracer_upcall(inheritance_state_t state, void *arg) {
 __attribute__((constructor))
 	static void init(void) {
 		vu_mmap_create();
-		umvu_inheritance_upcall_register(vu_mmap_tracer_upcall);
+		vu_inheritance_upcall_register(vu_mmap_tracer_upcall);
 	}
 

@@ -34,7 +34,7 @@
 #include <vu_pushpop.h>
 #include <r_table.h>
 #include <umvu_peekpoke.h>
-#include <umvu_tracer.h>
+#include <vu_inheritance.h>
 #include <hashtable.h>
 #include <arch_table.h>
 #include <syscall_defs.h>
@@ -392,7 +392,7 @@ static void *execve_tracer_upcall(inheritance_state_t state, void *arg) {
 
 __attribute__((constructor))
 	static void init(void) {
-		umvu_inheritance_upcall_register(execve_tracer_upcall);
+		vu_inheritance_upcall_register(execve_tracer_upcall);
 	}
 
 
