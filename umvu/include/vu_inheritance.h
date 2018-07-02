@@ -6,9 +6,9 @@ typedef enum inheritance_state_t {
 	INH_START = 1,
 	INH_EXEC = 2,
 	INH_TERMINATE = 3,
-	//INH_PTHREAD_CLONE = 10,
-	//INH_PTHREAD_START = 11,
-	//INH_PTHREAD_TERMINATE = 13
+	INH_PTHREAD_CLONE = 10,
+	INH_PTHREAD_START = 11,
+	INH_PTHREAD_TERMINATE = 13
 } inheritance_state_t;
 
 typedef void *(*inheritance_upcall_t)(inheritance_state_t state, void *arg);

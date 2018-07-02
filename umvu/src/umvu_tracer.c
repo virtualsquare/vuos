@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sched.h>
+#include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/wait.h>
@@ -34,6 +35,8 @@
 #include <vu_log.h>
 #include <vu_inheritance.h>
 #include <umvu_peekpoke.h>
+
+static int (*libc_pthread_create)();
 
 static int nproc;
 static pthread_mutex_t nproc_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -132,7 +135,7 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	P_DETACH_NODIE(newtid, 0L);
 	pthread_attr_init(&thread_attr);
 	pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
-	pthread_create(&newthread, &thread_attr, &spawn_tracer, t_args);
+	libc_pthread_create(&newthread, &thread_attr, &spawn_tracer, t_args);
 	pthread_attr_destroy(&thread_attr);
 }
 
@@ -273,3 +276,12 @@ int umvu_tracer_fork(void) {
 		return childpid;
 	}
 }
+
+__attribute__((constructor))
+	static void init(void) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+		libc_pthread_create = dlsym (RTLD_NEXT, "pthread_create");
+#pragma GCC diagnostic pop
+	}
+
