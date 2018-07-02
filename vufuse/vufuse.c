@@ -45,7 +45,6 @@ VU_PROTOTYPES(vufuse)
 static pthread_mutex_t condition_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct fusethreadopt {
-	struct vuht_entry_t *ht;
 	struct fuse *new_fuse;
 	struct main_params main_params;
 };
@@ -62,7 +61,6 @@ int vufuse_abort(struct fuse *f)
 
 static void *fusethread(void *vsmo) {
 	struct fusethreadopt *psmo = (struct fusethreadopt *) vsmo;
-	vu_mod_setht(psmo->ht);
 
 	if (fusestartmain(&psmo->main_params) != 0)
 		vufuse_abort(psmo->new_fuse);
@@ -115,7 +113,6 @@ int vu_vufuse_mount(const char *source, const char *target,
 		ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, new_fuse);
 		vu_mod_setht(ht);
 
-		smo.ht = ht;
 		smo.new_fuse = new_fuse;
 		smo.main_params.pmain = pmain;
 		smo.main_params.filesystemtype = filesystemtype;
