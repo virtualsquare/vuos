@@ -25,6 +25,7 @@
 #include <syscall_table.h>
 #include <vu_execute.h>
 #include <epoch.h>
+#include <vu_thread_sd.h>
 #include <hashtable.h>
 #include <arch_table.h>
 #include <path_utils.h>
@@ -55,16 +56,17 @@ void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
-static inline struct syscall_extra_t *set_extra(struct syscall_descriptor_t *sd,
+static inline void set_extra (
+		struct syscall_extra_t *extra,
+		struct syscall_descriptor_t *sd,
 		char *(*getpath)(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite)) {
-	static __thread struct syscall_extra_t extra;
-	extra.statbuf.st_mode = 0;
-	extra.path = getpath(sd, &extra.statbuf, &extra.path_rewrite);
-	extra.mpath = extra.path;
-	extra.path_errno = errno;
-	extra.nested = VU_NOT_NESTED;
-	extra.epoch = get_vepoch();
-	return &extra;
+	extra->statbuf.st_mode = 0;
+	extra->path = getpath(sd, &extra->statbuf, &extra->path_rewrite);
+	extra->mpath = extra->path;
+	extra->path_errno = errno;
+	extra->nested = VU_NOT_NESTED;
+	extra->ht = NULL;
+	extra->epoch = get_vepoch();
 }
 
 static inline void execute_cleanup (struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -74,18 +76,22 @@ static inline void execute_cleanup (struct vuht_entry_t *ht, struct syscall_desc
 }
 
 void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) {
-	static __thread struct vuht_entry_t *ht;
+	static __thread struct syscall_extra_t extra;
+	struct vuht_entry_t *ht;
+	struct syscall_descriptor_t *ssd;
 
 	update_vepoch();
+	sd->extra = &extra;
+	ssd = set_thread_sd(sd);
 	if (sd->syscall_number >= 0) {
 		int sysno = vu_arch_table[sd->orig_syscall_number];
 		struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 		switch (state) {
 			case IN_SYSCALL:
-				sd->extra = set_extra(sd, get_syspath);
+				set_extra(&extra, sd, get_syspath);
 				printkdebug(s, "IN %d (%d) %s %s %ld", umvu_gettid(), native_syscall(__NR_gettid), 
 						syscallname(sd->syscall_number), sd->extra->path, get_vepoch());
-				ht = tab_entry->choicef(sd);
+				ht = sd->extra->ht = tab_entry->choicef(sd);
 				if (sd->action == SKIPIT)
 					execute_cleanup(ht,sd);
 				else {
@@ -97,6 +103,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				}
 				break;
 			case DURING_SYSCALL:
+				ht = sd->extra->ht;
 				printkdebug(s, "DURING %d %s %s", umvu_gettid(), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapduringf(ht, sd);
@@ -104,6 +111,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					execute_cleanup(ht,sd);
 				break;
 			case OUT_SYSCALL:
+				ht = sd->extra->ht;
 				printkdebug(s, "OUT %d %s %s", umvu_gettid(), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapoutf(ht, sd);
@@ -115,12 +123,13 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 		sd->ret_value = -ENOSYS;
 		if (vsysno < VVU_NR_SYSCALLS) {
 			struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
-			sd->extra = set_extra(sd, get_vsyspath);
-			ht = tab_entry->choicef(sd);
+			set_extra(&extra, sd, get_vsyspath);
+			ht = sd->extra->ht = tab_entry->choicef(sd);
 			tab_entry->wrapf(ht, sd);
 		}
 		sd->action = SKIPIT;
 	}
+	set_thread_sd(ssd);
 }
 
 __attribute__((constructor)) 

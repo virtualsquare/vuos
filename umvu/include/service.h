@@ -26,13 +26,13 @@ struct vu_service_t {
 	syscall_t module_syscall[];
 };
 
-struct vuht_entry_t *vu_mod_setht(struct vuht_entry_t *ht);
 struct vuht_entry_t *vu_mod_getht(void);
+void vu_mod_setht(struct vuht_entry_t *ht);
 
 __attribute__((always_inline))
 	static inline syscall_t service_syscall(struct vuht_entry_t *ht, int vu_syscall_number) {
 		struct vu_service_t *service = vuht_get_service(ht);
-		vu_mod_setht(ht);
+		//vu_mod_setht(ht);
 		return service->module_syscall[vu_syscall_number];
 	}
 

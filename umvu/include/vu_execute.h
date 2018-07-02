@@ -14,6 +14,7 @@ struct syscall_extra_t {
 	int path_errno;
 	uint8_t nested;
 	uint8_t path_rewrite;
+	struct vuht_entry_t *ht;
 	epoch_t epoch;
 };
 

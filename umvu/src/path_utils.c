@@ -213,9 +213,11 @@ static mode_t vu_lmode(const char *pathname, void *private) {
 	struct vuht_entry_t *ht;
 	struct realpath_arg_t *arg = private;
 	epoch_t e = get_vepoch();
+	struct vuht_entry_t *sht = vu_mod_getht();
 	mode_t retval;
 
 	ht = vuht_pick(CHECKPATH, (char *)pathname, NULL, SET_EPOCH);
+	vu_mod_setht(ht);
 
 	retval = get_lmode(ht, pathname, arg->statbuf);
 
@@ -227,21 +229,26 @@ static mode_t vu_lmode(const char *pathname, void *private) {
 		vuht_drop(ht);
 	}
 	set_vepoch(e);
+	vu_mod_setht(sht);
 	return retval;
 }
 
 static ssize_t vu_readlink(const char *pathname, char *buf, size_t bufsiz, void *private) {
 	struct vuht_entry_t *ht;
 	epoch_t e = get_vepoch();
+	struct vuht_entry_t *sht = vu_mod_getht();
 	ssize_t retval;
 
 	ht = vuht_pick(CHECKPATH, (char *)pathname, NULL, SET_EPOCH);
+	vu_mod_setht(ht);
+
 	if (ht) {
 		retval = service_syscall(ht, __VU_readlink)(vuht_path2mpath(ht, pathname), buf, bufsiz);
 		vuht_drop(ht);
 	} else
 		retval = r_readlink(pathname, buf, bufsiz);
 	set_vepoch(e);
+	vu_mod_setht(sht);
 	return retval;
 }
 

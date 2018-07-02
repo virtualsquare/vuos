@@ -18,26 +18,33 @@
  *
  */
 
+#include <vu_log.h>
 #include <service.h>
 #include <umvu_peekpoke.h>
+#include <vu_execute.h>
 #include <vu_fs.h>
-
-static __thread struct vuht_entry_t *thread_private_ht_for_modules;
-
-struct vuht_entry_t *vu_mod_setht(struct vuht_entry_t *ht) {
-	struct vuht_entry_t *oldht = thread_private_ht_for_modules;
-	thread_private_ht_for_modules = ht;
-	return oldht;
-}
-
-struct vuht_entry_t *vu_mod_getht(void) {
-	return thread_private_ht_for_modules;
-}
+#include <vu_thread_sd.h>
 
 unsigned int vu_mod_gettid() {
   return umvu_gettid();
 }
 
 mode_t vu_mod_getumask(void) {
-	return vu_fs_get_umask();
+  return vu_fs_get_umask();
+}
+
+struct vuht_entry_t *vu_mod_getht(void) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	if (sd->extra == NULL)
+		printk("%p %p\n",sd,sd->extra);
+	fatal(sd->extra);
+	return sd->extra->ht;
+}
+
+void vu_mod_setht(struct vuht_entry_t *ht) {
+  struct syscall_descriptor_t *sd = get_thread_sd();
+  fatal(sd);
+	fatal(sd->extra);
+  sd->extra->ht = ht;
 }

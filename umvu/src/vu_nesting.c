@@ -34,19 +34,20 @@
 #include <vu_execute.h>
 #include <path_utils.h>
 #include <epoch.h>
+#include <vu_thread_sd.h>
 
 #define PURELIBC_LIB "libpurelibc.so"
 
 static long int capture_nested_syscall(long int syscall_number, ...) {
 	va_list ap;
-	struct syscall_descriptor_t sd;
 	struct syscall_extra_t extra;
+	struct syscall_descriptor_t sd = {.extra = &extra};
 	struct vuht_entry_t *ht;
 	int sysno = vu_arch_table[syscall_number];
 	struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 	long int ret_value;
+	struct syscall_descriptor_t *ssd = set_thread_sd(&sd);
 	epoch_t e = get_vepoch();
-	sd.extra = &extra;
 	sd.orig_syscall_number =
 		sd.syscall_number = syscall_number;
 	va_start (ap, syscall_number);
@@ -64,10 +65,11 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	extra.mpath = extra.path;
 	extra.path_errno = errno;
 	extra.nested = VU_NESTED;
+	extra.ht = NULL;
 	extra.epoch = get_vepoch();
 	printkdebug(n, "IN %d (%d) %s %s %d epoch %ld", umvu_gettid(), native_syscall(__NR_gettid),
 			syscallname(sd.syscall_number), extra.path, errno, e);
-	ht = tab_entry->choicef(&sd);
+	ht = extra.ht = tab_entry->choicef(&sd);
 	if (sd.action != SKIPIT)
 		tab_entry->wrapinf(ht, &sd);
 	if (sd.action != SKIPIT) {
@@ -87,6 +89,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	if (ht != NULL)
 		vuht_drop(ht);
 	xfree(extra.path);
+	set_thread_sd(ssd);
 	set_vepoch(e);
 	return ret_value;
 }
