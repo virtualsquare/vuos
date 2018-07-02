@@ -10,11 +10,11 @@
 typedef uint64_t epoch_t;
 
 /* function definitions */
-void update_vepoch();
+void update_vepoch(void);
 epoch_t set_vepoch(epoch_t e);
-epoch_t get_vepoch();
-epoch_t get_epoch();
-epoch_t update_epoch();
+epoch_t get_vepoch(void);
+epoch_t get_epoch(void);
+epoch_t update_epoch(void);
 epoch_t matching_epoch(epoch_t service_epoch);
 
 #endif
