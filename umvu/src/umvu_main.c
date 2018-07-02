@@ -169,6 +169,7 @@ int main(int argc, char *argv[])
 	if ((childpid = umvu_tracer_fork()) != 0) {
 		/* parent = tracer */
 		int wstatus;
+		vu_nesting_enable();
 		vu_init();
 		wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
 		vu_fini();
@@ -177,7 +178,7 @@ int main(int argc, char *argv[])
 		/* child: this is the root of all the traced processes */
 
 		/* disable purelibc */
-		unsetenv("LD_PRELOAD");
+		vu_nesting_disable();
 
 		/* run rcfile or default rc files: .vurc in home dir and /etc/vurc */
 		if (rcfile)

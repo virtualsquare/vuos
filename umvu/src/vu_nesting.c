@@ -47,7 +47,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	long int ret_value;
 	epoch_t e = get_vepoch();
 	sd.extra = &extra;
-	sd.orig_syscall_number = 
+	sd.orig_syscall_number =
 		sd.syscall_number = syscall_number;
 	va_start (ap, syscall_number);
 	sd.syscall_args[0]=va_arg(ap,long int);
@@ -91,11 +91,48 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	return ret_value;
 }
 
+static long int capture_forward_syscall(long int syscall_number, ...) {
+	syscall_arg_t syscall_args[SYSCALL_ARG_NR];
+	va_list ap;
+	va_start (ap, syscall_number);
+	syscall_args[0]=va_arg(ap,long int);
+	syscall_args[1]=va_arg(ap,long int);
+	syscall_args[2]=va_arg(ap,long int);
+	syscall_args[3]=va_arg(ap,long int);
+	syscall_args[4]=va_arg(ap,long int);
+	syscall_args[5]=va_arg(ap,long int);
+	va_end(ap);
+	//printk("capture_forward_syscall %d\n", syscall_number);
+	return native_syscall(syscall_number,
+			syscall_args[0],
+			syscall_args[1],
+			syscall_args[2],
+			syscall_args[3],
+			syscall_args[4],
+			syscall_args[5]);
+}
+
 typedef long (*sfun)();
 
-void vu_nesting_init(int argc, char **argv) {
+void vu_nesting_disable(void) {
 	sfun (*_pure_start_p)();
 	char *ld_preload = getenv("LD_PRELOAD");
+	//printk("NESTINGDISABLE %d\n", native_syscall(__NR_gettid));
+	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
+#pragma GCC diagnostic pop
+		if (_pure_start_p)
+			native_syscall = _pure_start_p(capture_forward_syscall, 0);
+	}
+	unsetenv("LD_PRELOAD");
+}
+
+void vu_nesting_enable(void) {
+	sfun (*_pure_start_p)();
+	char *ld_preload = getenv("LD_PRELOAD");
+	//printk("NESTINGENABLE %d\n", native_syscall(__NR_gettid));
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -105,6 +142,22 @@ void vu_nesting_init(int argc, char **argv) {
 			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
 			native_syscall = _pure_start_p(capture_nested_syscall, 0);
 		}
+	}
+}
+
+void vu_nesting_init(int argc, char **argv) {
+	char *ld_preload = getenv("LD_PRELOAD");
+	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
+#if 0
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
+#pragma GCC diagnostic pop
+		if (_pure_start_p) {
+			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
+			native_syscall = _pure_start_p(capture_forward_syscall, 0);
+		}
+#endif
 	} else {
 		if (setenv("LD_PRELOAD", PURELIBC_LIB, 1) == 0) {
 			execv("/proc/self/exe", argv);
@@ -116,4 +169,3 @@ __attribute__((constructor))
 	static void init(void) {
 		debug_set_name(n, "NESTED");
 	}
-
