@@ -29,7 +29,7 @@ __thread epoch_t virtual_epoch;
 static epoch_t epoch_now = 2;
 
 /* one tick of the global timestap clock epoch_now */
-epoch_t update_epoch()
+epoch_t update_epoch(void)
 {
 	return __sync_fetch_and_add(&epoch_now, 1);
 }
@@ -41,17 +41,17 @@ epoch_t set_vepoch(epoch_t e)
 	return tmp;
 }
 
-epoch_t get_epoch()
+epoch_t get_epoch(void)
 {
 	return __sync_fetch_and_add(&epoch_now, 0);
 }
 
-void update_vepoch()
+void update_vepoch(void)
 {
 	virtual_epoch = __sync_fetch_and_add(&epoch_now, 0);
 }
 
-epoch_t get_vepoch()
+epoch_t get_vepoch(void)
 {
 	return virtual_epoch;
 }
