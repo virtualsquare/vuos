@@ -120,8 +120,7 @@ static void vu_fs_create(void) {
 	vu_fs = newfs;
 }
 
-static void *vu_fs_clone(void *arg) {
-	int flags = *(int *)arg;
+static void *vu_fs_clone(int flags) {
 	struct vu_fs_t *newfs;
 
 	if (flags & CLONE_FS) {
@@ -165,14 +164,17 @@ static void *vu_fs_tracer_upcall(inheritance_state_t state, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_CLONE:
-			ret_value = vu_fs_clone(arg);
+			ret_value = vu_fs_clone(*(int *)arg);
+			break;
+		case INH_PTHREAD_CLONE:
+			ret_value = vu_fs_clone(CLONE_FS);
 			break;
 		case INH_START:
+		case INH_PTHREAD_START:
 			vu_fs = arg;
 			break;
-		case INH_EXEC:
-			break;
 		case INH_TERMINATE:
+		case INH_PTHREAD_TERMINATE:
 			vu_fs_terminate();
 			break;
 		default:

@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <epoch.h>
+#include <vu_inheritance.h>
 
 /* per thread time keeping */
 __thread epoch_t virtual_epoch;
@@ -65,4 +66,25 @@ epoch_t matching_epoch(epoch_t service_epoch)
 	else
 		return 0;
 }
+
+static void *epoch_upcall(inheritance_state_t state, void *arg) {
+	void *ret_value = NULL;
+	switch (state) {
+		case INH_PTHREAD_CLONE:
+			ret_value = &virtual_epoch;
+			break;
+		case INH_PTHREAD_START:
+			virtual_epoch = *(epoch_t *) arg;
+			break;
+		default:
+			break;
+	}
+	return ret_value;
+}
+
+
+__attribute__((constructor))
+	static void init(void) {
+		vu_inheritance_upcall_register(epoch_upcall);
+	}
 
