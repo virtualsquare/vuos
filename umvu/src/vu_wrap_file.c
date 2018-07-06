@@ -169,7 +169,10 @@ void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 static int file_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	if (ht) {
 		int ret_value;
+		struct vuht_entry_t *sht = vu_mod_getht();
+		vu_mod_setht(ht);
 		ret_value = service_syscall(ht, __VU_close)(sfd, private);
+		vu_mod_setht(sht);
 		vuht_drop(ht);
 		return ret_value;
 	} else
