@@ -194,12 +194,15 @@ int vu_vufuse_umount2(const char *target, int flags) {
 			errno = EBUSY;
 			return -1;
 		} else {
+			int retval;
 			/*cleanup and umount_internal will do the right umounting sequence in a lazy way*/
-			vuht_del(vu_mod_getht(),flags);
-
+			if ((retval = vuht_del(vu_mod_getht(),flags)) < 0) {;
+				errno = -retval;
+				retval = -1;
+			}
 			pthread_mutex_unlock(&(fuse->mutex));
-			printkdebug(F,"UMOUNT target:%s flags:%d",target,flags);
-			return 0;
+			printkdebug(F,"UMOUNT target:%s flags:%d retval = %d",target,flags,retval);
+			return retval;
 		}
 	}
 }
@@ -294,7 +297,7 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
 {
 	struct fuse *fuse = (struct fuse *)ch;
 	if (op_size != sizeof(struct fuse_operations))
-		printk("Fuse module vs vufuse support version mismatch");
+		printk(KERN_ERR "Fuse module vs vufuse support version mismatch");
 	if (fuse != vu_get_ht_private_data() || op_size != sizeof(struct fuse_operations)){
 		fuse->inuse=FUSE_ABORT;
 		return NULL;
