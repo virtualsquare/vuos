@@ -67,7 +67,7 @@ int vu_vufuse_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, voi
 	fuse_pop_context(ofc);
 
 	pthread_mutex_unlock(&(fc.fuse->mutex));
-	printkdebug(F,"LSTAT path:%s status: %s retvalue:%d", pathname, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"LSTAT path:%s retvalue:%d", pathname, rv);
 
 	if (rv < 0) {
 		errno = -rv;
@@ -98,10 +98,10 @@ int vu_vufuse_access(char *path, int mode, int flags) {
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"ACCESS path:%s mode:%s%s%s%s satus:%s retvalue:%d",path,
+	printkdebug(F,"ACCESS path:%s mode:%s%s%s%s retvalue:%d",path,
 			(mode & R_OK) ? "R_OK": "", (mode & W_OK) ? "W_OK": "",
 			(mode & X_OK) ? "X_OK": "", (mode & F_OK) ? "F_OK": "",
-			rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			rv);
 
 	if (rv < 0) {
 		errno = -rv;
@@ -123,7 +123,7 @@ ssize_t vu_vufuse_readlink(char *path, char *buf, size_t bufsiz) {
 		rv = strnlen(buf,bufsiz);
 	fuse_pop_context(ofc);
 
-	printkdebug(F,"READLINK path:%s buf:%s status:%s retvalue:%d",path,buf,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"READLINK path:%s buf:%s retvalue:%zd",path,buf,rv);
 
 	if (rv < 0) {
 		errno = -rv;
@@ -178,7 +178,7 @@ int vu_vufuse_mkdir (const char *pathname, mode_t mode) {
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"MKDIR path:%s status:%s retvalue:%d",pathname,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"MKDIR path:%s retvalue:%d",pathname,rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -213,7 +213,7 @@ int vu_vufuse_mknod (const char *pathname, mode_t mode, dev_t dev)
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"MKNOD path:%s major:%d minor:%d  status:%s retvalue:%d",pathname,major(dev),minor(dev),rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"MKNOD path:%s major:%d minor:%d  retvalue:%d",pathname,major(dev),minor(dev),rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -237,7 +237,7 @@ int vu_vufuse_rmdir(const char *pathname) {
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"RMDIR path:%s status:%s retvalue:%d",pathname,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"RMDIR path:%s retvalue:%d",pathname,rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -262,7 +262,7 @@ int vu_vufuse_chmod (const char *pathname, mode_t mode, int fd, void *fdprivate)
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"CHMOD path:%s status:%s retvalue:%d",pathname,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"CHMOD path:%s retvalue:%d",pathname,rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -286,7 +286,7 @@ int vu_vufuse_lchown (const char *pathname, uid_t owner, gid_t group,int fd, voi
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"LCHOWN  status:%s retvalue:%d",rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"LCHOWN  retvalue:%d",rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -310,7 +310,7 @@ int vu_vufuse_symlink (const char *target, const char *linkpath) {
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"SYMLINK target:%s linkpath:%s status:%s retvalue:%d",target,linkpath,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"SYMLINK target:%s linkpath:%s retvalue:%d",target,linkpath,rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -334,7 +334,7 @@ int vu_vufuse_truncate(const char *path, off_t length, int fd, void *fdprivate) 
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"TRUNCATE path:%s status:%s retvalue:%d",path,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"TRUNCATE path:%s retvalue:%d",path,rv);
 
 	if (rv < 0) {
 		errno = -rv;
@@ -359,7 +359,7 @@ int vu_vufuse_link (const char *target, const char *linkpath) {
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"LINK oldpath:%s newpath:%s status:%s retvalue:%d",target,linkpath,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"LINK oldpath:%s newpath:%s retvalue:%d",target,linkpath,rv);
 	if (rv < 0) {
 		errno = -rv;
 		return -1;
@@ -410,7 +410,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 		if ((flags & O_TRUNC) && (flags & O_ACCMODE)!= O_RDONLY) {
 			rv = fc.fuse->fops.truncate(pathname, 0);
 
-			printkdebug(F,"TRUNCATE path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"TRUNCATE path:%s flags:%x retvalue:%d",pathname,flags,rv);
 			if (rv < 0) {
 				fuse_pop_context(ofc);
 				pthread_mutex_unlock(&(fc.fuse->mutex));
@@ -437,7 +437,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 		if (rv == -ENOSYS) {
 			rv = fc.fuse->fops.mknod(pathname, S_IFREG | mode, (dev_t) 0);
 
-			printkdebug(F,"MKNOD path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"MKNOD path:%s flags:%x retvalue:%d",pathname,flags,rv);
 			if (rv < 0) {
 				fuse_pop_context(ofc);
 				free(ft);
@@ -447,7 +447,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 			}
 			rv = fc.fuse->fops.open(pathname, &ft->ffi);
 		} else {
-			printkdebug(F,"CREATE path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"CREATE path:%s flags:%x retvalue:%d",pathname,flags,rv);
 		}
 
 #if 0
@@ -471,7 +471,7 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 
-	printkdebug(F,"OPEN path:%s flags:%x status:%s retvalue:%d",pathname,flags,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"OPEN path:%s flags:%x retvalue:%d",pathname,flags,rv);
 	if (rv < 0) {
 		free(ft);
 		errno = -rv;
@@ -516,7 +516,7 @@ int vu_vufuse_close(int fd, void *fdprivate) {
 
 		fuse_pop_context(ofc);
 		pthread_mutex_unlock(&(fc.fuse->mutex));
-		printkdebug(F,"CLOSE path:%s status:%s retvalue:%d", FILEPATH(ft),rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+		printkdebug(F,"CLOSE path:%s retvalue:%d", FILEPATH(ft),rv);
 
 		if (rv < 0) {
 			errno = -rv;
@@ -577,7 +577,7 @@ ssize_t vu_vufuse_read (int fd, void *buf, size_t count, void *fdprivate) {
 				ft->pos += rv;
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
-			printkdebug(F,"READ path:%s count:%u status:%s retvalue:%d",FILEPATH(ft), count,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"READ path:%s count:%u retvalue:%zd",FILEPATH(ft), count,rv);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -605,8 +605,8 @@ ssize_t vu_vufuse_pread64 (int fd, void *buf, size_t count, off_t offset, int fl
 			fuse_pop_context(ofc);
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
-			printkdebug(F,"PREAD64 path:%s count:%u offset:%jd status:%s retvalue:%d",FILEPATH(ft), count,
-					(intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"PREAD64 path:%s count:%u offset:%jd retvalue:%zd",FILEPATH(ft), count,
+					(intmax_t) offset, rv);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -640,7 +640,8 @@ ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate) 
 				ft->pos += rv;
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
-			printkdebug(F,"WRITE path:%s count:%x status:%s retvalue:%d",FILEPATH(ft),count, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"WRITE path:%s count:%x retvalue:%d %d",FILEPATH(ft),count, rv, rv > 0);
+			usleep(10000);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -669,8 +670,7 @@ ssize_t vu_vufuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, 
 			fuse_pop_context(ofc);
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
-			printkdebug(F,"PWRITE64 path:%s count:%x offset:%jd status:%s retvalue:%d", FILEPATH(ft), count,
-					(intmax_t) offset, rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+			printkdebug(F,"PWRITE64 path:%s count:%x offset:%jd retvalue:%zd", FILEPATH(ft), count, rv);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -817,11 +817,11 @@ int vu_vufuse_unlink (const char *pathname) {
 		rv = fc.fuse->fops.unlink(pathname);
 
 		pthread_mutex_unlock(&(fc.fuse->mutex));
-		printkdebug(F,"UNLINK path:%s status:%s retvalue:%d",pathname,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+		printkdebug(F,"UNLINK path:%s retvalue:%d",pathname, rv);
 	} else {
 
 		pthread_mutex_unlock(&(fc.fuse->mutex));
-		printkdebug(F,"RENAME(UNLINK) path:%s hiddenpath:%s status:%s retvalue:%d",pathname,hiddenpath,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+		printkdebug(F,"RENAME(UNLINK) path:%s hiddenpath:%s retvalue:%d",pathname,hiddenpath,rv);
 	}
 
 	fuse_pop_context(ofc);
@@ -865,7 +865,7 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 	pthread_mutex_unlock(&(fc.fuse->mutex));
 	fuse_pop_context(ofc);
 
-	printkdebug(F,"RENAME oldpath:%s newpath:%s status:%s retvalue:%d",target,linkpath,rv ? "ERROR" : "SUCCESS", (rv < 0) ? -rv : 0);
+	printkdebug(F,"RENAME oldpath:%s newpath:%s retvalue:%d",target,linkpath,rv);
 
 	if (rv < 0) {
 		errno = -rv;
