@@ -105,9 +105,8 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->action = DOIT_CB_AFTER;
 			}
 		}
-	} else if (!nested) {
+	} else
 		sd->action = DOIT_CB_AFTER;
-	}
 }
 
 void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -125,6 +124,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (fd >= 0) {
 			struct vu_fnode_t *fnode;
 			int fdflags;
+			int nested = sd->extra->nested;
 			switch (sd->syscall_number) {
 				case __NR_open: fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 												break;
@@ -135,7 +135,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
 				r_lstat(sd->extra->path, &sd->extra->statbuf);
 			fnode = vu_fnode_create(NULL, sd->extra->path, &sd->extra->statbuf, 0, -1, NULL); 
-			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
+			vu_fd_set_fnode(fd, nested, fnode, fdflags);
 		}
 	}
 	sd->ret_value = sd->orig_ret_value;
@@ -146,13 +146,11 @@ void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (nested) {
 		/* do not use DOIT_CB_AFTER: close must be real, not further virtualized */
-		if (ht) {
-			int fd = sd->syscall_args[0];
-			int ret_value = vu_fd_close(fd, VU_NESTED);
-			sd->ret_value = ret_value < 0 ? -errno : 0;
-			r_close(fd);
-			sd->action = SKIPIT;
-		}
+		int fd = sd->syscall_args[0];
+		int ret_value = vu_fd_close(fd, VU_NESTED);
+		sd->ret_value = ret_value < 0 ? -errno : 0;
+		r_close(fd);
+		sd->action = SKIPIT;
 	} else {
 		sd->action = DOIT_CB_AFTER;
 	}
@@ -476,14 +474,14 @@ void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int newfd;
 		int flags;
 		switch (sd->syscall_number) {
-			case __NR_dup: newfd = dup(fd);
+			case __NR_dup: newfd = r_dup(fd);
 										 break;
 			case __NR_dup2: newfd = sd->syscall_args[1];
-											newfd = dup2(fd, newfd);
+											newfd = r_dup2(fd, newfd);
 											break;
 			case __NR_dup3: newfd = sd->syscall_args[1];
 											flags = sd->syscall_args[2];
-											newfd = dup3(fd, newfd, flags);
+											newfd = r_dup3(fd, newfd, flags);
 		}
 		sd->action = SKIPIT;
 		if (newfd < 0)
