@@ -641,7 +641,6 @@ ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate) 
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
 			printkdebug(F,"WRITE path:%s count:%x retvalue:%d %d",FILEPATH(ft),count, rv, rv > 0);
-			usleep(10000);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;
@@ -750,7 +749,8 @@ int vu_vufuse_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int co
 			if (rv < 0) {
 				fclose(ft->dirf);
 				return 0;
-			}
+			} else
+				fseek(ft->dirf, 0, SEEK_SET);
 		}
 
 		pthread_mutex_lock(&(fuse->mutex));
