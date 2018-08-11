@@ -260,7 +260,10 @@ int vu_vufs_close(int fd, void *fdprivate) {
 	return retval;
 }
 
-static int vufs_filldir(FILE *f, const char *name, unsigned char type, __ino64_t ino) {
+/* Support of directory merging */
+
+/* add an entry to the volatile stream for getdents */
+static int vufs_filldir_entry(FILE *f, const char *name, unsigned char type, __ino64_t ino) {
   struct dirent64 entry = {
     .d_ino = ino,
     .d_type = type,
@@ -280,6 +283,9 @@ static int vufs_filldir(FILE *f, const char *name, unsigned char type, __ino64_t
   return 0;
 }
 
+/* check if a name is in the list of already seen names*/
+/* the "list" is a concatenation of zero terminated strings.
+	 an empty entry is the tag of the end of list */
 static int vufs_seen_entry(char *s, char *list) {
 	char *scan = list;
   while (*scan) {
@@ -290,67 +296,71 @@ static int vufs_seen_entry(char *s, char *list) {
 	return 0;
 }
 
+static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdprivate *vufs_fdprivate) {
+	char *seenlist = NULL;
+	size_t seenlistlen = 0;
+	FILE *seenf = open_memstream(&seenlist, &seenlistlen);
+	DIR *dir;
+	struct dirent *de;
+	vufs_fdprivate->getdentsf = volstream_open();
+	dir = fdopendir(dup(fd));
+	if (dir) {
+		int dirfd;
+		/* ADD entries in vdirfd (source) */
+		while ((de = readdir(dir)) != NULL) {
+			if (!(vufs_fdprivate->path[0] == 0 && strcmp(de->d_name, ".-") == 0)) {
+				vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
+				if (vufs->rdirfd >= 0)
+					fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
+			}
+		}
+		closedir(dir);
+		if (vufs->rdirfd >= 0) {
+			/* ADD deleted entries (ddirfd) in seenlist (if merge) */
+			if (vufs->ddirfd >= 0) {
+				if (vufs_fdprivate->path[0] == 0)
+					dirfd = openat(vufs->vdirfd, ".-", O_RDONLY | O_DIRECTORY);
+				else
+					dirfd = openat(vufs->ddirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
+				if (dirfd >= 0) {
+					dir = fdopendir(dirfd);
+					while ((de = readdir(dir)) != NULL)
+						fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
+					closedir(dir);
+				}
+			}
+			/* write the empty string as the end of the seen list */
+			fwrite("", 1, 1, seenf);
+			fflush(seenf);
+			/* ADD unseen entries in rdirfd (target) (if merge) */
+			if (vufs_fdprivate->path[0] == 0)
+				dirfd = openat(vufs->rdirfd, vufs->target, O_RDONLY | O_DIRECTORY);
+			else
+				dirfd = openat(vufs->rdirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
+			if (dirfd >= 0) {
+				dir = fdopendir(dirfd);
+				while ((de = readdir(dir)) != NULL) {
+					if (! vufs_seen_entry(de->d_name, seenlist))
+						vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
+				}
+				closedir(dir);
+			}
+		}
+	}
+	fclose(seenf);
+	if (seenlist != NULL)
+		free(seenlist);
+	fseeko(vufs_fdprivate->getdentsf, 0, SEEK_SET);
+}
+
 int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	if (fdprivate != NULL) {
 		int retval;
 		pthread_mutex_lock(&(vufs->mutex));
 		struct vufs_fdprivate *vufs_fdprivate = fdprivate;
-		if (vufs_fdprivate->getdentsf == NULL) {
-			char *seenlist = NULL;
-			size_t seenlistlen = 0;
-			FILE *seenf = open_memstream(&seenlist, &seenlistlen);
-			DIR *dir;
-			struct dirent *de;
-			vufs_fdprivate->getdentsf = volstream_open();
-			dir = fdopendir(dup(fd));
-			if (dir) {
-				int dirfd;
-				/* ADD entries in vdirfd (source) */
-				while ((de = readdir(dir)) != NULL) {
-					if (!(vufs_fdprivate->path[0] == 0 && strcmp(de->d_name, ".-") == 0)) {
-						vufs_filldir(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
-						if (vufs->rdirfd >= 0)
-							fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
-					}
-				}
-				closedir(dir);
-				if (vufs->rdirfd >= 0) {
-					/* ADD deleted entries (ddirfd) in seenlist (if merge) */
-					if (vufs->ddirfd >= 0) {
-						if (vufs_fdprivate->path[0] == 0) 
-							dirfd = openat(vufs->vdirfd, ".-", O_RDONLY | O_DIRECTORY);
-						else
-							dirfd = openat(vufs->ddirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
-						if (dirfd >= 0) {
-							dir = fdopendir(dirfd);
-							while ((de = readdir(dir)) != NULL)
-								fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
-							closedir(dir);
-						}
-					}
-					fwrite("", 1, 1, seenf);
-					fflush(seenf);
-					/* ADD unseen entries in rdirfd (target) (if merge) */
-					if (vufs_fdprivate->path[0] == 0)
-						dirfd = openat(vufs->rdirfd, vufs->target, O_RDONLY | O_DIRECTORY);
-					else
-						dirfd = openat(vufs->rdirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
-					if (dirfd >= 0) {
-						dir = fdopendir(dirfd);
-						while ((de = readdir(dir)) != NULL) {
-							if (! vufs_seen_entry(de->d_name, seenlist))
-								vufs_filldir(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
-						}
-						closedir(dir);
-					}
-				}
-			}
-			fclose(seenf);
-			if (seenlist != NULL)
-				free(seenlist);
-			fseeko(vufs_fdprivate->getdentsf, 0, SEEK_SET);
-		}
+		if (vufs_fdprivate->getdentsf == NULL)
+			vufs_filldir(fd, vufs, vufs_fdprivate);
 		if (vufs_fdprivate->getdentsf != NULL) {
 			retval = fread(dirp, 1, count, vufs_fdprivate->getdentsf);
 			if (retval == (int) count) {
@@ -378,7 +388,7 @@ int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int coun
 			}
 		}
 		pthread_mutex_unlock(&(vufs->mutex));
-		printk("vu_vufs_getdents64 %d\n", retval);
+		//printk("vu_vufs_getdents64 %d\n", retval);
 		return retval;
 	} else {
 		errno = EBADF;
