@@ -49,9 +49,12 @@ static inline int o_is_unlink(int flags) {
 
 static int vufs_vdeleted(struct vufs_t *vufs, const char *path) {
   struct vu_stat buf;
-  if (vufs->ddirfd >= 0)
-    return fstatat(vufs->ddirfd, path, &buf, AT_EMPTY_PATH) == 0 && S_ISREG(buf.st_mode);
-  else
+  if (vufs->ddirfd >= 0) {
+		if (fstatat(vufs->ddirfd, path, &buf, AT_EMPTY_PATH) == 0) 
+			return S_ISREG(buf.st_mode);
+		else
+			return errno == ENOTDIR; // a component in the path has been deleted
+	} else
     return 0;
 }
 
