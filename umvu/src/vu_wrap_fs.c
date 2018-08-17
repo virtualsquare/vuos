@@ -50,7 +50,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int ret_value;
 		/* args */
 		syscall_arg_t bufaddr;
-		int flags = 0;
+		int flags = AT_SYMLINK_NOFOLLOW;
 		int sfd = -1;
 		void *private = NULL;
 		/* local bufs */
@@ -73,7 +73,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_newfstatat:
 #endif
 				bufaddr = sd->syscall_args[2];
-				flags = sd->syscall_args[3];
+				flags |= sd->syscall_args[3];
 		}
 		vu_alloc_local_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		/* call */
