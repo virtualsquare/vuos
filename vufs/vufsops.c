@@ -39,7 +39,7 @@
 #define MAXSIZE ((1ULL<<((sizeof(size_t)*8)-1))-1)
 #define CHUNKSIZE 4096
 
-static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path, 
+static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,
 		struct vu_stat *rstat, struct vu_stat *vstat) {
 	uid_t newuid = -1;
 	gid_t newgid = -1;
@@ -57,7 +57,7 @@ static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,
 		fchownat(vufs->vdirfd, path, newuid, newgid, AT_SYMLINK_NOFOLLOW);
 }
 
-static void vufs_copyfile_vufstat(struct vufs_t *vufs, const char *path, 
+static void vufs_copyfile_vufstat(struct vufs_t *vufs, const char *path,
 		struct vu_stat *rstat, struct vu_stat *vstat) {
 	uint32_t mask = vufstat_cmpstat(rstat, vstat) & VUFSTAT_COPYMASK;
 	vufstat_write(vufs->ddirfd, path, rstat, mask);
@@ -109,7 +109,7 @@ static int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate)
 			fdout = openat(vufs->vdirfd, path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 			if (fdout >= 0) {
 				struct vu_stat outstat;
-				size_t nread, readsize = CHUNKSIZE; 
+				size_t nread, readsize = CHUNKSIZE;
 				char buf[CHUNKSIZE];
 				fstat(fdout, &outstat);
 				while (1) {
@@ -147,7 +147,7 @@ int vu_vufs_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void 
 		return fstat(sfd, buf);
 	} else {
 		struct vufs_t *vufs = vu_get_ht_private_data();
-		int retval;
+		int retval = 0;
 		vufsa_status status = VUFSA_START;
 		pathname += 1;
 		vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
@@ -183,13 +183,13 @@ int vu_vufs_access(char *path, int mode, int flags) {
   while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
     switch (status) {
       case VUFSA_DOREAL:
-        retval = faccessat(vufs->rdirfd, 
-						*path ? path : vufs->target, 
+        retval = faccessat(vufs->rdirfd,
+						*path ? path : vufs->target,
 						mode, flags);
         break;
       case VUFSA_DOVIRT:
-        retval = faccessat(vufs->vdirfd, 
-						*path ? path : vufs->target, 
+        retval = faccessat(vufs->vdirfd,
+						*path ? path : vufs->target,
 						mode, flags);
         break;
       case VUFSA_ERR:
@@ -417,7 +417,7 @@ int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
         break;
     }
   }
-  printkdebug(V, "MKNOD path:%s mode:%o major:%d minor:%d retval:%d", 
+  printkdebug(V, "MKNOD path:%s mode:%o major:%d minor:%d retval:%d",
 			path, mode, major(dev), minor(dev), retval);
   return retval;
 }
@@ -557,6 +557,45 @@ int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
 	}
 }
 
+int vu_vufs_utimensat (int dirfd, const char *path,
+    const struct timespec times[2], int flags, int sfd, void *fdprivate) {
+	if (sfd >= 0) {
+		return futimens(sfd, times);
+	} else {
+		    struct vufs_t *vufs = vu_get_ht_private_data();
+    vufsa_status status = VUFSA_START;
+    int retval;
+    path += 1;
+    vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
+    while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+      switch (status) {
+        case VUFSA_DOREAL:
+          retval = utimensat(vufs->rdirfd,
+							*path ? path : vufs->source,
+							times, flags | AT_SYMLINK_NOFOLLOW);
+          break;
+        case VUFSA_DOVIRT:
+          retval = utimensat(vufs->vdirfd,
+							*path ? path : vufs->target,
+							times, flags | AT_SYMLINK_NOFOLLOW);
+          break;
+        case VUFSA_DOCOPY:
+          retval = vufs_copyfile(vufs, path, MAXSIZE);
+          // now virt file exists, no need for whiteout file
+          // maybe useless?
+          if (retval >=0)
+            vufs_dewhiteout(vufs->ddirfd, path);
+          break;
+        case VUFSA_ERR:
+          retval = -1;
+          break;
+      }
+    }
+    printkdebug(V, "UTIMENSAT path:%s retvalue:%d", path, retval);
+    return retval;
+  }
+}
+
 /* MODIFY STAT SYSCALLS */
 int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
@@ -576,7 +615,7 @@ int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdp
 					uint32_t mask = 0;
 					if (owner != (uid_t) -1) mask |= VUFSTAT_UID;
 					if (group != (gid_t) -1) mask |= VUFSTAT_GID;
-					vufstat_update(vufs->ddirfd, path, &statbuf, mask, 
+					vufstat_update(vufs->ddirfd, path, &statbuf, mask,
 							retval < 0 && (errno == EPERM || errno == ENOENT) ? O_CREAT : 0);
 					retval = 0;
 				}
@@ -609,7 +648,7 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 				retval = fchmodat(vufs->vdirfd, path, mode, AT_EMPTY_PATH);
 				if (vufs->vdirfd >= 0) {
           struct vu_stat statbuf = {.st_mode = mode};
-					vufstat_update(vufs->ddirfd, path, &statbuf, VUFSTAT_MODE, 
+					vufstat_update(vufs->ddirfd, path, &statbuf, VUFSTAT_MODE,
 							retval < 0 && (errno == EPERM || errno == ENOENT) ? O_CREAT : 0);
           retval = 0;
         }
@@ -645,6 +684,8 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
         break;
       case VUFSA_DOVIRT:
 				filepath = *pathname ? pathname : vufs->source;
+				if (oldmode == 0)
+					vufs_create_path(vufs->vdirfd, filepath, vufs_copyfile_create_path_cb, vufs);
 				retval = openat(vufs->vdirfd, filepath, flags, mode);
         break;
       case VUFSA_DOCOPY:
