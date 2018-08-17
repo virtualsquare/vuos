@@ -73,24 +73,29 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	if (sd.action != SKIPIT)
 		tab_entry->wrapinf(ht, &sd);
 	if (sd.action != SKIPIT) {
-		sd.orig_ret_value = native_syscall(syscall_number,
+		long orig_ret_value = native_syscall(syscall_number,
 				sd.syscall_args[0],
 				sd.syscall_args[1],
 				sd.syscall_args[2],
 				sd.syscall_args[3],
 				sd.syscall_args[4],
 				sd.syscall_args[5]);
+		sd.orig_ret_value = (orig_ret_value == -1) ? -errno : orig_ret_value;
 		if (sd.action == DOIT_CB_AFTER)
 			tab_entry->wrapoutf(ht, &sd);
 		else
 			sd.ret_value = sd.orig_ret_value;
 	}
-	ret_value =  sd.ret_value;
+	ret_value = sd.ret_value;
 	if (ht != NULL)
 		vuht_drop(ht);
 	xfree(extra.path);
 	set_thread_sd(ssd);
 	set_vepoch(e);
+	if (ret_value < 0) {
+		errno = -ret_value;
+		ret_value = -1;
+	}
 	return ret_value;
 }
 
