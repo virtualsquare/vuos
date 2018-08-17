@@ -24,6 +24,7 @@
 #include <vu_execute.h>
 #include <vu_fs.h>
 #include <vu_thread_sd.h>
+#include <vumodule.h>
 
 unsigned int vu_mod_gettid() {
   return umvu_gettid();
@@ -31,6 +32,13 @@ unsigned int vu_mod_gettid() {
 
 mode_t vu_mod_getumask(void) {
   return vu_fs_get_umask();
+}
+
+mode_t vu_mod_getmode() {
+	  struct syscall_descriptor_t *sd = get_thread_sd();
+  fatal(sd);
+  fatal(sd->extra);
+	return sd->extra->statbuf.st_mode;
 }
 
 struct vuht_entry_t *vu_mod_getht(void) {

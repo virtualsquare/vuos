@@ -132,6 +132,7 @@ struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 unsigned int vu_mod_gettid();
 mode_t vu_mod_getumask(void);
+mode_t vu_mod_getmode(void);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
 	static inline struct vu_service_t * vu_mod_getservice(void) {
