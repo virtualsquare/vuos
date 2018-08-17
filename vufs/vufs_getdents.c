@@ -29,9 +29,7 @@
 #include <sys/syscall.h>
 #include <volatilestream.h>
 #include <pthread.h>
-#include <strcase.h>
 #include <stropt.h>
-#include <vustat.h>
 #include <vufs.h>
 
 /* add an entry to the volatile stream for getdents */
@@ -74,49 +72,58 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 	FILE *seenf = open_memstream(&seenlist, &seenlistlen);
 	DIR *dir;
 	struct dirent *de;
+	int dirfd;
 	vufs_fdprivate->getdentsf = volstream_open();
-	dir = fdopendir(dup(fd));
-	if (dir) {
-		int dirfd;
-		/* ADD entries in vdirfd (source) */
-		while ((de = readdir(dir)) != NULL) {
-			if (!(vufs_fdprivate->path[0] == 0 && strcmp(de->d_name, ".-") == 0)) {
-				vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
-				if (vufs->rdirfd >= 0)
-					fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
-			}
-		}
-		closedir(dir);
-		if (vufs->rdirfd >= 0) {
-			/* ADD deleted entries (ddirfd) in seenlist (if merge) */
-			if (vufs->ddirfd >= 0) {
-				if (vufs_fdprivate->path[0] == 0)
-					dirfd = openat(vufs->vdirfd, ".-", O_RDONLY | O_DIRECTORY);
-				else
-					dirfd = openat(vufs->ddirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
-				if (dirfd >= 0) {
-					dir = fdopendir(dirfd);
-					while ((de = readdir(dir)) != NULL)
+	if (vufs_fdprivate->path[0] == 0)
+		dirfd = openat(vufs->vdirfd, vufs->source, O_RDONLY | O_DIRECTORY);
+	else
+		dirfd = openat(vufs->vdirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
+	if (dirfd) {
+		dir = fdopendir(dirfd);
+		if (dir) {
+			/* ADD entries in vdirfd (source) */
+			while ((de = readdir(dir)) != NULL) {
+				if (!(vufs_fdprivate->path[0] == 0 && strcmp(de->d_name, ".-") == 0)) {
+					vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
+					if (vufs->rdirfd >= 0)
 						fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
-					closedir(dir);
 				}
 			}
-			/* write the empty string as the end of the seen list */
-			fwrite("", 1, 1, seenf);
-			fflush(seenf);
-			/* ADD unseen entries in rdirfd (target) (if merge) */
+			closedir(dir);
+		}
+	}
+	if (vufs->rdirfd >= 0) {
+		/* ADD deleted entries (ddirfd) in seenlist (if merge) */
+		if (vufs->ddirfd >= 0) {
 			if (vufs_fdprivate->path[0] == 0)
-				dirfd = openat(vufs->rdirfd, vufs->target, O_RDONLY | O_DIRECTORY);
+				dirfd = openat(vufs->vdirfd, ".-", O_RDONLY | O_DIRECTORY);
 			else
-				dirfd = openat(vufs->rdirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
+				dirfd = openat(vufs->ddirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
 			if (dirfd >= 0) {
 				dir = fdopendir(dirfd);
 				while ((de = readdir(dir)) != NULL) {
-					if (! vufs_seen_entry(de->d_name, seenlist))
-						vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
+					struct vu_stat buf;
+					if (fstatat(dirfd, de->d_name, &buf, 0) == 0 && S_ISREG(buf.st_mode))
+						fwrite(de->d_name, strlen(de->d_name) + 1, 1, seenf);
 				}
 				closedir(dir);
 			}
+		}
+		/* write the empty string as the end of the seen list */
+		fwrite("", 1, 1, seenf);
+		fflush(seenf);
+		/* ADD unseen entries in rdirfd (target) (if merge) */
+		if (vufs_fdprivate->path[0] == 0)
+			dirfd = openat(vufs->rdirfd, vufs->target, O_RDONLY | O_DIRECTORY);
+		else
+			dirfd = openat(vufs->rdirfd, vufs_fdprivate->path, O_RDONLY | O_DIRECTORY);
+		if (dirfd >= 0) {
+			dir = fdopendir(dirfd);
+			while ((de = readdir(dir)) != NULL) {
+				if (! vufs_seen_entry(de->d_name, seenlist))
+					vufs_filldir_entry(vufs_fdprivate->getdentsf, de->d_name, de->d_type, de->d_ino);
+			}
+			closedir(dir);
 		}
 	}
 	fclose(seenf);
@@ -127,7 +134,10 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 
 int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-	if (fdprivate != NULL) {
+	int vufs_type = vufs->flags & VUFS_TYPEMASK;
+  if (vufs_type == VUFS_MOVE)
+    return syscall(__NR_getdents64, fd, dirp, count);
+	else if (fdprivate != NULL) {
 		int retval;
 		pthread_mutex_lock(&(vufs->mutex));
 		struct vufs_fdprivate *vufs_fdprivate = fdprivate;
@@ -160,11 +170,80 @@ int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int coun
 			}
 		}
 		pthread_mutex_unlock(&(vufs->mutex));
-		//printk("vu_vufs_getdents64 %d\n", retval);
+		printkdebug(V, "GETDENTS retvalue:%d", retval);
 		return retval;
 	} else {
 		errno = EBADF;
 		return -1;
 	}
-	//return syscall(__NR_getdents64, fd, dirp, count);
+}
+
+static int skipdir(const char *name, int dotdelete) {
+	if (name[0] == 0 || name[0] != '.')
+		return 0;
+	if (name[1] == 0)
+		return 1;
+	if (name[1] == '.' && name[2] == 0)
+		return 1;
+	if (dotdelete && name[1] == '-' && name[2] == 0)
+		return 1;
+	return 0;
+}
+
+static int vufs_enotempty_dir(int fd, int dfd, int dotdelete) {
+	DIR *dir;
+  struct dirent *de;
+	int retval = 0;
+	int errno_copy;
+	dir = fdopendir(fd);
+	while ((de = readdir(dir)) != NULL) {
+		if (skipdir(de->d_name, dotdelete) == 0) {
+			struct vu_stat buf;
+			if (dfd < 0 || fstatat(dfd, de->d_name, &buf, 0) < 0 || !S_ISREG(buf.st_mode)) {
+				retval = -1;
+				errno = ENOTEMPTY;
+				break;
+			}
+		}
+	}
+	errno_copy = errno;
+	closedir(dir);
+	if (dfd >= 0)
+		close(dfd);
+	errno = errno_copy;
+	return retval;
+}
+
+int vufs_enotempty_ck(struct vufs_t *vufs, const char *path) {
+	int vfd = openat(vufs->vdirfd, *path == 0 ? vufs->source : path, O_RDONLY | O_DIRECTORY);
+	int rfd;
+	int dfd;
+	/* scan virt dir, if there is at least a file, dir is not empty */
+	if (vfd >= 0) {
+		if (vufs_enotempty_dir(vfd, -1, *path == 0) < 0)
+			return -1;
+	} else if (errno != ENOENT)
+		return -1;
+	/* the virt dir either does not exist or it is empty */
+	/* try the real directory */
+	/* let us first test if the dir has been virtually deleted */
+	if (*path == 0)
+		dfd = openat(vufs->vdirfd, ".-", O_PATH);
+	else
+		dfd = openat(vufs->ddirfd, path, O_PATH);
+	if (dfd > 0) {
+		struct vu_stat buf;
+		if (fstatat(dfd, "", &buf, AT_EMPTY_PATH) == 0 && S_ISREG(buf.st_mode)) {
+			close(dfd);
+			return vfd >= 0 ? 0 : -1;
+		}
+	}
+	/* scan the real dir looking for (undeleted) files */
+	rfd = openat(vufs->rdirfd, *path == 0 ? vufs->target : path, O_RDONLY | O_DIRECTORY);
+	if (rfd >= 0)
+		return vufs_enotempty_dir(rfd, dfd, 0);
+	else {
+		if (dfd >= 0) close(dfd);
+		return vfd >= 0 ? 0 : -1;
+	}
 }

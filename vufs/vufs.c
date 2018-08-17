@@ -27,11 +27,9 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/syscall.h>
-#include <volatilestream.h>
 #include <pthread.h>
 #include <strcase.h>
 #include <stropt.h>
-#include <vustat.h>
 #include <vufs.h>
 
 static int vufs_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
@@ -104,10 +102,10 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 						vufs->flags |= VUFS_MERGE;
 						break;
 					case STRCASE(c,o,w):
-						vufs->flags |= VUFS_MERGE | VUFS_COW;
+						vufs->flags |= VUFS_COW;
 						break;
 					case STRCASE(m,i,n,c,o,w):
-						vufs->flags |= VUFS_MERGE | VUFS_COW | VUFS_MINCOW;
+						vufs->flags |= VUFS_MINCOW;
 						break;
 				}
 			}
@@ -142,27 +140,23 @@ int vu_vufs_mount(const char *source, const char *target,
 	new_vufs->ddirfd = -1;
 	new_vufs->flags = 0;
 	set_mount_options(data, new_vufs);
-	if (mountflags & MS_RDONLY) {
-		new_vufs->flags |= VUFS_RDONLY;
-		/* if it is RDONLY then COW or MINCOW become MERGE */
-		if (new_vufs->flags & VUFS_MERGE)
-			new_vufs->flags &= ~(VUFS_COW | VUFS_MINCOW);
-	}
 	new_vufs->vdirfd = open(source, O_PATH);
 	if (new_vufs->vdirfd < 0) {
 		errno = ENOENT;
 		goto vdirerr;
 	}
-	if (new_vufs->flags & VUFS_MERGE) {
+	if (new_vufs->flags & VUFS_TYPEMASK) {
 		new_vufs->rdirfd = open(target, O_PATH);
 		if (new_vufs->rdirfd < 0) {
 			errno = ENOENT;
 			goto rdirerr;
 		}
-		if ((new_vufs->flags & VUFS_RDONLY) == 0) {
-			mkdirat(new_vufs->vdirfd, ".-", 0777);
-			new_vufs->ddirfd = openat(new_vufs->vdirfd, ".-", O_PATH, 0777);
+		switch (new_vufs->flags & VUFS_TYPEMASK) {
+			case VUFS_COW:
+			case VUFS_MINCOW:
+				mkdirat(new_vufs->vdirfd, ".-", 0777);
 		}
+		new_vufs->ddirfd = openat(new_vufs->vdirfd, ".-", O_PATH, 0777);
 	}
 	pthread_mutex_init(&(new_vufs->mutex), NULL);
 	pthread_mutex_lock(&(new_vufs->mutex));

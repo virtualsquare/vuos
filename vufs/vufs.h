@@ -1,13 +1,17 @@
 #ifndef VUFS_H
 #define VUFS_H
 #include <vumodule.h>
+#include <fcntl.h>
 
 VU_PROTOTYPES(vufs)
 
+#define O_UNLINK (O_PATH | O_EXCL)
+
+#define VUFS_TYPEMASK 0x7
+#define VUFS_MOVE 0x0
 #define VUFS_MERGE 0x1
 #define VUFS_COW 0x2
 #define VUFS_MINCOW 0x4
-#define VUFS_RDONLY 0x8
 #define VUFS_VSTAT 0x100
 
 struct vufs_t {
