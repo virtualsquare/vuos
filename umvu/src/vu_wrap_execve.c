@@ -92,7 +92,7 @@ static int need_interpreter(struct binfmt_req_t *req) {
 		return 0;
 	if (req->filehead[0] == '#' && req->filehead[1] == '!')
 		return 1;
-	req->fileheadlen = snprintf(req->filehead, req->fileheadsize, "#!\n");
+	req->fileheadlen = snprintf(req->filehead, req->fileheadsize, "#!/bin/sh\n");
 	return 1; /* XXX unknown => script ?? */  
 }
 
