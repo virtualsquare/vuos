@@ -169,7 +169,7 @@ int vu_vufs_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void 
 					break;
 			}
 		}
-		printkdebug(V, "LSTAT path:%s retvalue:%d errno:%d", pathname, retval, errno);
+		printkdebug(V, "LSTAT path:%s retvalue:%d errno:%d", pathname, retval, retval < 0 ? errno : 0);
 		return retval;
 	}
 }
@@ -577,7 +577,7 @@ int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdp
 					if (owner != (uid_t) -1) mask |= VUFSTAT_UID;
 					if (group != (gid_t) -1) mask |= VUFSTAT_GID;
 					vufstat_update(vufs->ddirfd, path, &statbuf, mask, 
-							retval < 0 && errno == EPERM ? O_CREAT : 0);
+							retval < 0 && (errno == EPERM || errno == ENOENT) ? O_CREAT : 0);
 					retval = 0;
 				}
 				break;
@@ -610,7 +610,7 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 				if (vufs->vdirfd >= 0) {
           struct vu_stat statbuf = {.st_mode = mode};
 					vufstat_update(vufs->ddirfd, path, &statbuf, VUFSTAT_MODE, 
-							retval < 0 && errno == EPERM ? O_CREAT : 0);
+							retval < 0 && (errno == EPERM || errno == ENOENT) ? O_CREAT : 0);
           retval = 0;
         }
 				break;
