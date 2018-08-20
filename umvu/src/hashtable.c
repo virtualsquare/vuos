@@ -372,7 +372,7 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	return new;
 }
 
-struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
+struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *private_data, int permanent) {
 	return internal_vuht_add(type, obj, objlen, 0, NULL, service, 1,

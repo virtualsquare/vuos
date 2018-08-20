@@ -100,7 +100,6 @@ int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
     struct vuht_entry_t *ht); \
 
-
 #define CHECKMODULE 0        // Module name
 #define CHECKPATH 1          // Path
 #define CHECKSOCKET 2        // Address Family
@@ -116,7 +115,7 @@ void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht);
 
-struct vuht_entry_t *vuht_add(uint8_t type, void *obj, int objlen,
+struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *ht_private_data, int permanent);
 
@@ -127,12 +126,27 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		unsigned char trailingnumbers,
 		confirmfun_t confirmfun, void *ht_private_data);
 
+#define BINFMTBUFLEN 128
+#define BINFMTLINELEN 1920
+#define BINFMT_PRESERVE_ARGV0 0x1
+#define BINFMT_OPEN_BINARY    0x2
+#define BINFMT_CREDENTIALS    0x4
+
+struct binfmt_req_t {
+  char *path;
+  char filehead[BINFMTBUFLEN + 2];
+  int fileheadlen;
+  int flags;
+};
+
 /* mainly for modules' threads */
 struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 unsigned int vu_mod_gettid();
+
 mode_t vu_mod_getumask(void);
 mode_t vu_mod_getmode(void);
+
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
 	static inline struct vu_service_t * vu_mod_getservice(void) {

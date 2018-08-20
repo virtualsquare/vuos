@@ -48,7 +48,6 @@
 #include <vu_mod_inheritance.h>
 #include <vu_fnode_copy.h>
 
-#define BINFMTBUFLEN 128
 static __thread struct vu_fnode_t *tmp_fnode;
 
 static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path, struct vu_stat *statbuf) {
@@ -67,13 +66,13 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 		fd = service_syscall(ht, __VU_open)(vuht_path2mpath(ht, req->path), O_RDONLY, 0, &private);
 		if (fd < 0)
 			return -errno;
-		ret_value = service_syscall(ht, __VU_read)(fd, req->filehead, req->fileheadsize, private);
+		ret_value = service_syscall(ht, __VU_read)(fd, req->filehead, BINFMTBUFLEN, private);
 		service_syscall(ht, __VU_close)(fd, private);
 	} else {
 		fd = r_open(req->path, O_RDONLY);
 		if (fd < 0)
 			return -errno;
-		ret_value = read(fd, req->filehead, req->fileheadsize);
+		ret_value = read(fd, req->filehead, BINFMTBUFLEN);
 		close(fd);
 	}
 	req->fileheadlen = ret_value;
@@ -82,7 +81,7 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 
 static void check_binfmt_misc(struct binfmt_req_t *req) {
 	struct vuht_entry_t *binfmt_ht;
-	if ((binfmt_ht = vuht_pick(CHECKBINFMT, &req, NULL, 0)) != NULL)
+	if ((binfmt_ht = vuht_pick(CHECKBINFMT, req, NULL, 0)) != NULL)
 		vuht_drop(binfmt_ht);
 }
 
@@ -92,7 +91,7 @@ static int need_interpreter(struct binfmt_req_t *req) {
 		return 0;
 	if (req->filehead[0] == '#' && req->filehead[1] == '!')
 		return 1;
-	req->fileheadlen = snprintf(req->filehead, req->fileheadsize, "#!/bin/sh\n");
+	req->fileheadlen = snprintf(req->filehead, BINFMTBUFLEN, "#!/bin/sh\n");
 	return 1; /* XXX unknown => script ?? */  
 }
 
@@ -241,11 +240,8 @@ static void exec_setuid_setgid(struct vu_stat *statbuf) {
 #define EXECVE_MAX_DEPTH 4
 
 static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descriptor_t *sd, struct argv_list *argv_list, int depth) {
-	char exec_head[BINFMTBUFLEN];
 	struct binfmt_req_t new_req = {
 		.path = NULL,
-		.filehead = exec_head,
-		.fileheadsize = sizeof(exec_head),
 		.fileheadlen = 0,
 		.flags = 0
 	};
@@ -285,7 +281,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		return;
 	}
 
-	if (!(req->flags & BINFMT_KEEP_ARG0))
+	if (!(req->flags & BINFMT_PRESERVE_ARGV0))
 		argv_behead(argv_list);
 
 	if (depth == 1) 
@@ -328,16 +324,11 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		vuht_drop(interpreter_ht);
 }
 
-
-
 void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
-		char exec_head[BINFMTBUFLEN];
 		struct binfmt_req_t binfmt_req = {
 			.path = sd->extra->path,
-			.filehead = exec_head,
-			.fileheadsize = sizeof(exec_head),
 			.fileheadlen = 0,
 			.flags = 0
 		};
