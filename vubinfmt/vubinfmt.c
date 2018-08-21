@@ -229,7 +229,7 @@ static int vubinfmt_match(struct binfmt_req_t *req, struct vubinfmt_entry_t *hea
 				int suffixpos = strlen(req->path) - scan->len;
 				if (suffixpos > 0 &&
 						req->path[suffixpos - 1] == '.' &&
-						strcmp(req->path + suffixpos, (const char *) scan->magic)==0)
+						strncmp(req->path + suffixpos, (const char *) scan->magic, scan->len)==0)
 					break;
 			}
 		}
