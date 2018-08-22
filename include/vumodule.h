@@ -86,10 +86,10 @@ int VU_SYSNAME(name, listen) (int sockfd, int backlog, void *fdprivate); \
 int VU_SYSNAME(name, accept4) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags, void *fdprivate); \
 int VU_SYSNAME(name, getsockname) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate); \
 int VU_SYSNAME(name, getpeername) (int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate); \
-int VU_SYSNAME(name, sendto) (int sockfd, const void *buf, size_t len, int flags, \
+ssize_t VU_SYSNAME(name, sendto) (int sockfd, const void *buf, size_t len, int flags, \
 		const struct sockaddr *dest_addr, socklen_t addrlen, \
 		void *msg_control, size_t msg_controllen, void *fdprivate); \
-int VU_SYSNAME(name, recvfrom) (int sockfd, void *buf, size_t len, int flags, \
+ssize_t VU_SYSNAME(name, recvfrom) (int sockfd, void *buf, size_t len, int flags, \
 		struct sockaddr *src_addr, socklen_t *addrlen, \
 		void *msg_control, size_t *msg_controllen, void *fdprivate); \
 int VU_SYSNAME(name, getsockopt) (int sockfd, int level, int optname, \

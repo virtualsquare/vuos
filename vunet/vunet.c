@@ -279,7 +279,7 @@ int vu_vunet_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen, 
 		return current_vnetfd->vunet->netops->getpeername(sockfd, addr, addrlen);
 }
 
-int vu_vunet_sendto(int sockfd, const void *buf, size_t len, int flags,
+ssize_t vu_vunet_sendto(int sockfd, const void *buf, size_t len, int flags,
 		const struct sockaddr *dest_addr, socklen_t addrlen,
 		void *msg_control, size_t msg_controllen, void *fdprivate) {
 	current_vnetfd = fdprivate;
@@ -293,7 +293,7 @@ int vu_vunet_sendto(int sockfd, const void *buf, size_t len, int flags,
 	}
 }
 
-int vu_vunet_recvfrom(int sockfd, void *buf, size_t len, int flags,
+ssize_t vu_vunet_recvfrom(int sockfd, void *buf, size_t len, int flags,
 		struct sockaddr *src_addr, socklen_t *addrlen,
 		void *msg_control, size_t *msg_controllen, void *fdprivate) {
 	  current_vnetfd = fdprivate;
