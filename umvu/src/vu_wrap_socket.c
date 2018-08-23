@@ -335,7 +335,7 @@ void wi_getsockname(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 		else {
 			vu_poke_arg(addraddr, addr, *addrlen, nested);
-			vu_poke_arg(paddrlen, addrlen, sizeof(addrlen), nested);
+			vu_poke_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
 			sd->ret_value = ret_value;
 		}
 	}
@@ -362,7 +362,7 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 		else {
 			vu_poke_arg(addraddr, addr, *addrlen, nested);
-			vu_poke_arg(paddrlen, addrlen, sizeof(addrlen), nested);
+			vu_poke_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
 			sd->ret_value = ret_value;
 		}
 	}
