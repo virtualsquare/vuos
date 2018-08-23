@@ -376,25 +376,37 @@ int vu_vunet_mount(const char *source, const char *target,
 	} else {
 		struct vu_service_t *s = vu_mod_getservice();
 		struct vunet *vunet = malloc(sizeof(struct vunet));
-		// check  vunet != NULL
-		vunet->dlhandle = dlhandle;
-		vunet->netops = netops;
-		vunet->mode = S_IFSTACK | 0777;
-		vunet->uid = 0;
-		vunet->gid = 0;
-		vunet->mounttime = vunet->atime = time(NULL);
-		vunet->private_data = NULL;
-		/* XXX return value */
-		if (vunet->netops->init != NULL)
-			vunet->netops->init(source, mountflags, data, &vunet->private_data);
-		if (vunet->netops->supported_ioctl)
-			vunet->ioctl_ht = vuht_add(CHECKIOCTL, NULL, 0, s, checkioctl, vunet, 0);
-		else
-			vunet->ioctl_ht = NULL;
-		vunet->socket_ht = vuht_add(CHECKSOCKET, NULL, 0, s, checksocket, vunet, 0);
-		vunet->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, vunet);
-		printkdebug(N, "mount \'%s\' \'%s\' %s -> %p", source, target, filesystemtype, vunet);
-		return 0;
+		int retvalue = 0;
+		if (vunet == NULL) {
+			errno = ENOMEM;
+			retvalue = -1;
+		} else {
+			vunet->dlhandle = dlhandle;
+			vunet->netops = netops;
+			vunet->mode = S_IFSTACK | 0777;
+			vunet->uid = 0;
+			vunet->gid = 0;
+			vunet->mounttime = vunet->atime = time(NULL);
+			vunet->private_data = NULL;
+			errno = 0;
+			if (vunet->netops->init != NULL)
+				retvalue = vunet->netops->init(source, mountflags, data, &vunet->private_data);
+			if (retvalue < 0) {
+				free(vunet);
+				if (errno == 0)
+					errno = EINVAL;
+				retvalue = -1;
+			} else {
+				if (vunet->netops->supported_ioctl)
+					vunet->ioctl_ht = vuht_add(CHECKIOCTL, NULL, 0, s, checkioctl, vunet, 0);
+				else
+					vunet->ioctl_ht = NULL;
+				vunet->socket_ht = vuht_add(CHECKSOCKET, NULL, 0, s, checksocket, vunet, 0);
+				vunet->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, vunet);
+				printkdebug(N, "mount \'%s\' \'%s\' %s -> %p", source, target, filesystemtype, vunet);
+			}
+		}
+		return retvalue;;
 	}
 }
 

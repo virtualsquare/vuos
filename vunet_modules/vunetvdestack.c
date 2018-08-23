@@ -219,8 +219,13 @@ static int vdestack_ioctl (int fd, unsigned long request, void *addr) {
 
 int vdestack_init(const char *source, unsigned long flags, const char *args, void **private_data) {
 	struct vdestack *vdestack = vde_addstack((char *) source, NULL);
-	*private_data = vdestack;
-	return 0;
+	if (vdestack != NULL) {
+		*private_data = vdestack;
+		return 0;
+	} else {
+		errno = EINVAL;
+		return -1;
+	}
 }
 
 int vdestack_fini(void *private_data) {
