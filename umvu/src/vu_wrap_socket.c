@@ -450,6 +450,7 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	vu_alloc_peek_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, bufsize, nested);
 	controladdr = (uintptr_t) msg->msg_control;
 	vu_alloc_peek_arg(controladdr, control, msg->msg_controllen, nested);
+	sd->action = SKIPIT;
 	ret_value = service_syscall(ht, __VU_sendto)(sfd, buf, bufsize, flags, 
 			dest_addr, msg->msg_namelen, control, msg->msg_controllen, private);
 	if (ret_value < 0)
@@ -581,6 +582,7 @@ void _wo_recvmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	vu_alloc_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, bufsize, nested);
 	controladdr = (uintptr_t) msg->msg_control;
 	vu_alloc_arg(controladdr, control, msg->msg_controllen, nested);
+	sd->action = SKIPIT;
 	ret_value = service_syscall(ht, __VU_recvfrom)(sfd, buf, bufsize, flags,
 			src_addr, &msg->msg_namelen, control, &msg->msg_controllen, private);
 	if (ret_value < 0)
