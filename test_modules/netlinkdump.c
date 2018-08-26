@@ -43,7 +43,7 @@ static struct vuht_entry_t *ht;
 static void dump(const char *title, const uint8_t *data, size_t bufsize, ssize_t len) {
 	ssize_t line, i;
 	/* out format:
-		 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+		 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
 		 01234567890123456789012345678901234567890123456789012345678901234 
 		 */
 	char hexbuf[48];
@@ -62,7 +62,7 @@ static void dump(const char *title, const uint8_t *data, size_t bufsize, ssize_t
 				}
 			}
 			charbuf[i] = 0;
-			printk("  %s%s\n", hexbuf, charbuf);
+			printk("  %s %s\n", hexbuf, charbuf);
 		}
 	}
 }
