@@ -66,3 +66,39 @@ long vunet_ioctl_parms(unsigned long request) {
       return 0;
 	}
 }
+
+int vunet_is_netdev_ioctl(unsigned long request) {
+  switch (request) {
+    case SIOCGIFCONF:
+    case SIOCGSTAMP:
+    case SIOCGIFNAME:
+    case SIOCGIFFLAGS:
+    case SIOCGIFADDR:
+    case SIOCGIFDSTADDR:
+    case SIOCGIFBRDADDR:
+    case SIOCGIFNETMASK:
+    case SIOCGIFMETRIC:
+    case SIOCGIFMEM:
+    case SIOCGIFMTU:
+    case SIOCGIFHWADDR:
+    case SIOCGIFINDEX:
+    case SIOCGIFTXQLEN:
+    case SIOCSIFNAME:
+    case SIOCSIFFLAGS:
+    case SIOCSIFADDR:
+    case SIOCSIFDSTADDR:
+    case SIOCSIFBRDADDR:
+    case SIOCSIFNETMASK:
+    case SIOCSIFMETRIC:
+    case SIOCSIFMEM:
+    case SIOCSIFMTU:
+    case SIOCSIFHWADDR:
+    case SIOCSIFTXQLEN:
+    case SIOCSIFHWBROADCAST:
+    case SIOCGIFMAP:
+    case SIOCSIFMAP:
+			return 1;
+		default:
+			return 0;
+	}
+}

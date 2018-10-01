@@ -186,7 +186,7 @@ static int supported_domain (int domain) {
 }
 
 static int supported_ioctl (unsigned long request) {
-	return vunet_ioctl_parms(request) != 0;
+	return vunet_is_netdev_ioctl(request);
 }
 
 static int vdestack_socket(int domain, int type, int protocol) {

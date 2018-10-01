@@ -516,7 +516,7 @@ int vu_vufuse_close(int fd, void *fdprivate) {
 
 		fuse_pop_context(ofc);
 		pthread_mutex_unlock(&(fc.fuse->mutex));
-		printkdebug(F,"CLOSE path:%s retvalue:%d", FILEPATH(ft),rv);
+		printkdebug(F,"CLOSE retvalue:%d", rv);
 
 		if (rv < 0) {
 			errno = -rv;
@@ -640,7 +640,7 @@ ssize_t vu_vufuse_write(int fd, const void *buf, size_t count, void *fdprivate) 
 				ft->pos += rv;
 			pthread_mutex_unlock(&(fc.fuse->mutex));
 
-			printkdebug(F,"WRITE path:%s count:%x retvalue:%d %d",FILEPATH(ft),count, rv, rv > 0);
+			printkdebug(F,"WRITE path:%s count:%x retvalue:%d",FILEPATH(ft),count, rv);
 			if (rv < 0) {
 				errno = -rv;
 				return -1;

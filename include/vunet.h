@@ -43,6 +43,7 @@ struct vunet_operations {
 	int (*fini) (void *private_data);
 };
 
+int vunet_is_netdev_ioctl(unsigned long request);
 long vunet_ioctl_parms(unsigned long request);
 
 #endif
