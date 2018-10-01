@@ -84,7 +84,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			struct vu_fnode_t *fnode;
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
 				service_syscall(ht, __VU_lstat)(sd->extra->mpath, &sd->extra->statbuf, AT_SYMLINK_NOFOLLOW, ret_value, private);
-			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private); 
+			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
 				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
@@ -134,7 +134,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			}
 			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
 				r_lstat(sd->extra->path, &sd->extra->statbuf);
-			fnode = vu_fnode_create(NULL, sd->extra->path, &sd->extra->statbuf, 0, -1, NULL); 
+			fnode = vu_fnode_create(NULL, sd->extra->path, &sd->extra->statbuf, 0, -1, NULL);
 			vu_fd_set_fnode(fd, nested, fnode, fdflags);
 		}
 	}
@@ -159,7 +159,7 @@ void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[0];
 	int ret_value = sd->orig_ret_value;
-	if (ret_value >= 0) 
+	if (ret_value >= 0)
 		vu_fd_close(fd, VU_NOT_NESTED);
 	sd->ret_value = sd->orig_ret_value;
 }
@@ -186,7 +186,7 @@ static void _file_wx_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *
 	if (sd->syscall_number == __NR_read) {
 		uintptr_t addr =  sd->syscall_args[1];
 		size_t bufsize = sd->syscall_args[2];
-		void *buf; 
+		void *buf;
 		ssize_t ret_value;
 		vu_alloc_arg(addr, buf, bufsize, nested);
 		ret_value = service_syscall(ht, __VU_read)(sfd, buf, bufsize, private);
@@ -278,7 +278,7 @@ static void _file_wx_write(struct vuht_entry_t *ht, struct syscall_descriptor_t 
 			ret_value = service_syscall(ht, __VU_write)(sfd, buf, bufsize, private);
 			if (ret_value < 0)
 				sd->ret_value = -errno;
-			else 
+			else
 				sd->ret_value = ret_value;
 			vu_free_arg(buf, nested);
 		} else { // writev
@@ -374,7 +374,7 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			int iovcnt = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
 #ifdef __NR_preadv2
-			if (sd->syscall_number == __NR_preadv2) 
+			if (sd->syscall_number == __NR_preadv2)
 				flags = sd->syscall_args[4];
 #endif
 			struct iovec *iov;
@@ -421,7 +421,7 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			int iovcnt = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
 #ifdef __NR_pwritev2
-			if (sd->syscall_number == __NR_pwritev2) 
+			if (sd->syscall_number == __NR_pwritev2)
 				flags = sd->syscall_args[4];
 #endif
 			struct iovec *iov;
@@ -534,7 +534,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				ret_value = service_syscall(ht, __VU_fcntl)(sfd, F_GETFL, 0, private);
 				if (ret_value < 0) {
 					sd->ret_value = -errno;
-					if (errno == ENOSYS) 
+					if (errno == ENOSYS)
 						sd->ret_value = vu_fd_get_flflags(fd, nested);
 				}
 				else
@@ -568,7 +568,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (nested) {
 		switch(cmd) {
 			case F_DUPFD:
-			case F_DUPFD_CLOEXEC: 
+			case F_DUPFD_CLOEXEC:
 				{
 					int newfd;
 					int arg = sd->syscall_args[2];
@@ -585,7 +585,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				}
 				return;
 		}
-	} else { 
+	} else {
 		switch(cmd) {
 			case F_DUPFD:
 			case F_DUPFD_CLOEXEC:
@@ -609,7 +609,7 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			{
 				int newfd = ret_value;
 				int flags = (cmd == F_DUPFD_CLOEXEC) ? FD_CLOEXEC : 0;
-				if (newfd >= 0 && fd != newfd)  
+				if (newfd >= 0 && fd != newfd)
 					vu_fd_dup(newfd, VU_NOT_NESTED, fd, flags);
 			}
 			break;
@@ -656,7 +656,7 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* call */
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_lseek)(sfd, offset, whence, private);
-		if (ret_value < 0) 
+		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;
