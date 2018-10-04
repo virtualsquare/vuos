@@ -143,6 +143,10 @@ struct binfmt_req_t {
 struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 unsigned int vu_mod_gettid();
+void vu_mod_peek_str(void *addr, void *buf, size_t datalen);
+char *vu_mod_peekdup_path(void *addr);
+void vu_mod_peek_data(void *addr, void *buf, size_t datalen);
+void vu_mod_poke_data(void *addr, void *buf, size_t datalen);
 
 mode_t vu_mod_getumask(void);
 mode_t vu_mod_getmode(void);

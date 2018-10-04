@@ -27,32 +27,79 @@
 #include <vumodule.h>
 
 unsigned int vu_mod_gettid() {
-  return umvu_gettid();
+	return umvu_gettid();
 }
 
 mode_t vu_mod_getumask(void) {
-  return vu_fs_get_umask();
+	return vu_fs_get_umask();
 }
 
 mode_t vu_mod_getmode() {
-	  struct syscall_descriptor_t *sd = get_thread_sd();
-  fatal(sd);
-  fatal(sd->extra);
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
 	return sd->extra->statbuf.st_mode;
 }
 
 struct vuht_entry_t *vu_mod_getht(void) {
 	struct syscall_descriptor_t *sd = get_thread_sd();
 	fatal(sd);
-	if (sd->extra == NULL)
-		printk("%p %p\n",sd,sd->extra);
 	fatal(sd->extra);
 	return sd->extra->ht;
 }
 
 void vu_mod_setht(struct vuht_entry_t *ht) {
-  struct syscall_descriptor_t *sd = get_thread_sd();
-  fatal(sd);
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
 	fatal(sd->extra);
-  sd->extra->ht = ht;
+	sd->extra->ht = ht;
+}
+
+void vu_mod_peek_str(void *addr, void *buf, size_t datalen) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	if (nested)
+		strncpy(buf, addr, datalen);
+	else
+		umvu_peek_str((uintptr_t) addr, buf, datalen);
+}
+
+char *vu_mod_peekdup_path(void *addr) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	if (nested)
+		return strdup(addr);
+	else {
+		char path[PATH_MAX];
+		if (umvu_peek_str((uintptr_t) addr, path,  PATH_MAX) == 0)
+			return strdup(path);
+		else
+			return NULL;
+	}
+}
+
+void vu_mod_peek_data(void *addr, void *buf, size_t datalen) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	if (nested)
+		memcpy(buf, addr, datalen);
+	else
+		umvu_peek_data((uintptr_t) addr, buf, datalen);
+}
+
+void vu_mod_poke_data(void *addr, void *buf, size_t datalen) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	if (nested)
+		memcpy(addr, buf, datalen);
+	else
+		umvu_poke_data((uintptr_t) addr, buf, datalen);
 }
