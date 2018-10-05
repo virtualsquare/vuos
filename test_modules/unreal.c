@@ -26,7 +26,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <attr/xattr.h>
+#include <sys/xattr.h>
 #include <vumodule.h>
 #include <errno.h>
 
