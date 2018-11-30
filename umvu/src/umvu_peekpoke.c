@@ -58,30 +58,37 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 		syscall_state_t sys_state)
 {
 	if (regs && syscall_desc) {
-		if (sys_state == IN_SYSCALL) {
-			if (regs->orig_rax == (unsigned) syscall_desc->syscall_number &&
-					regs->rdi == syscall_desc->syscall_args[0] &&
-					regs->rsi == syscall_desc->syscall_args[1] &&
-					regs->rdx == syscall_desc->syscall_args[2] &&
-					regs->r10 == syscall_desc->syscall_args[3] &&
-					regs->r8 == syscall_desc->syscall_args[4] &&
-					regs->r9 == syscall_desc->syscall_args[5] &&
-					//regs->rsp == syscall_desc->stack_pointer &&  /* stack pointer should not be modified */
-					regs->rip == syscall_desc->prog_counter)
-				return 0;
-			regs->orig_rax = regs->rax = syscall_desc->syscall_number;
-			regs->rdi = syscall_desc->syscall_args[0];
-			regs->rsi = syscall_desc->syscall_args[1];
-			regs->rdx = syscall_desc->syscall_args[2];
-			regs->r10 = syscall_desc->syscall_args[3];
-			regs->r8 = syscall_desc->syscall_args[4];
-			regs->r9 = syscall_desc->syscall_args[5];
-			//regs->rsp = syscall_desc->stack_pointer;
-			regs->rip = syscall_desc->prog_counter;
-		} else {
-			if (regs->rax == syscall_desc->ret_value)
-				return 0;
-			regs->rax = syscall_desc->ret_value;
+		switch (sys_state) {
+			case IN_SYSCALL:
+				if (regs->orig_rax == (unsigned) syscall_desc->syscall_number &&
+						regs->rdi == syscall_desc->syscall_args[0] &&
+						regs->rsi == syscall_desc->syscall_args[1] &&
+						regs->rdx == syscall_desc->syscall_args[2] &&
+						regs->r10 == syscall_desc->syscall_args[3] &&
+						regs->r8 == syscall_desc->syscall_args[4] &&
+						regs->r9 == syscall_desc->syscall_args[5] &&
+						//regs->rsp == syscall_desc->stack_pointer &&  /* stack pointer should not be modified */
+						regs->rip == syscall_desc->prog_counter)
+					return 0;
+				regs->orig_rax = regs->rax = syscall_desc->syscall_number;
+				regs->rdi = syscall_desc->syscall_args[0];
+				regs->rsi = syscall_desc->syscall_args[1];
+				regs->rdx = syscall_desc->syscall_args[2];
+				regs->r10 = syscall_desc->syscall_args[3];
+				regs->r8 = syscall_desc->syscall_args[4];
+				regs->r9 = syscall_desc->syscall_args[5];
+				//regs->rsp = syscall_desc->stack_pointer;
+				regs->rip = syscall_desc->prog_counter;
+				break;
+			case OUT_SYSCALL:
+				if (regs->rax == syscall_desc->ret_value)
+					return 0;
+				regs->rax = syscall_desc->ret_value;
+				break;
+			case DURING_SYSCALL:
+				regs->orig_rax = regs->rax = syscall_desc->syscall_number;
+				regs->rax = syscall_desc->ret_value;
+				break;
 		}
 		return 1;
 	} else
