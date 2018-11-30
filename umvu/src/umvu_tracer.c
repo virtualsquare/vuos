@@ -97,7 +97,6 @@ static void *spawn_tracer(void *arg)
 	unblock_tracee(tracee_tid, &(t_arg->regs));
 	free(t_arg);
 	umvu_trace(tracee_tid);
-	pthread_exit(NULL);
 	return NULL;
 }
 
