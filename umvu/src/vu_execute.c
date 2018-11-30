@@ -38,6 +38,7 @@
 #include <vu_fs.h>
 #include <xcommon.h>
 
+static char *action_strings[] = ACTION_STRINGS;
 struct vuht_entry_t *choice_NULL(struct syscall_descriptor_t *sd) {
 	return NULL;
 }
@@ -101,12 +102,14 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					if ((sd->action & UMVU_CB_AFTER) == 0)
 						execute_cleanup(ht,sd);
 				}
+				printkdebug(a,"IN %s", action_strings[sd->action % 0xf]);
 				break;
 			case DURING_SYSCALL:
 				ht = sd->extra->ht;
 				printkdebug(s, "DURING %d %s %s", umvu_gettid(), 
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapduringf(ht, sd);
+				printkdebug(a,"DURING %s", action_strings[sd->action % 0xf]);
 				if ((sd->action & UMVU_CB_AFTER) == 0)
 					execute_cleanup(ht,sd);
 				break;
@@ -124,6 +127,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 		if (vsysno < VVU_NR_SYSCALLS) {
 			struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
 			set_extra(&extra, sd, get_vsyspath);
+			printkdebug(s, "VIRSYSCALL %d (%d) %d %s %ld", umvu_gettid(), native_syscall(__NR_gettid),
+					vsysno, sd->extra->path, get_vepoch());
 			ht = sd->extra->ht = tab_entry->choicef(sd);
 			tab_entry->wrapf(ht, sd);
 		}
@@ -135,4 +140,5 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 __attribute__((constructor)) 
 	static void init(void) {
 		debug_set_name(s, "SYSCALL");
+		debug_set_name(a, "ACTION");
 	}

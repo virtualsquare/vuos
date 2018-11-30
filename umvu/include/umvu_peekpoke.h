@@ -40,6 +40,24 @@ typedef enum syscall_action_t {
 	DO_IT_AGAIN = UMVU_DO_IT_AGAIN
 } syscall_action_t;
 
+#define ACTION_STRINGS { \
+	/* 0 */ "DOIT", \
+	/* 1 */ "SKIPIT", \
+	/* 2 */ "DOIT_CB_AFTER", \
+	/* 3 */ "?", \
+	/* 4 */ "?", \
+	/* 5 */ "?", \
+	/* 6 */ "BLOCKIT", \
+	/* 7 */ "?", \
+	/* 8 */ "DO_IT_AGAIN" \
+	/* 9 */ "?", \
+	/* A */ "?", \
+	/* B */ "?", \
+	/* C */ "?", \
+	/* D */ "?", \
+	/* E */ "?", \
+	/* F */ "?"  }
+
 struct syscall_extra_t;
 
 struct syscall_descriptor_t {
