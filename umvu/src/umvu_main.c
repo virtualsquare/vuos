@@ -35,9 +35,10 @@
 #include <vu_execute.h>
 #include <vu_initfini.h>
 #include <umvu_tracer.h>
+#include <umvu_tracer_seccomp.h>
 
 static char *progname;
-static char *short_options = "+hxNl:s:f:V:o:d:D:";
+static char *short_options = "+hxNSl:s:f:V:o:d:D:";
 static struct option long_options[] = {
 	{"help",no_argument, 0, 'h'},
 	{"nonesting",no_argument, 0, 'x'},
@@ -49,6 +50,7 @@ static struct option long_options[] = {
 	{"vu_name",required_argument,0,'V'},
 	{"debugtags",required_argument,0,'d'},
 	{"debugcols",required_argument,0,'D'},
+	{"noseccomp",required_argument,0,'S'},
 	{0,0,0,0}};
 
 static void usage_n_exit(void) {
@@ -70,6 +72,7 @@ static void usage_n_exit(void) {
 			"       --debugtags tags  define the active debug tags (see vudebug)\n"
 			"    -D cols\n"
 			"       --debugcols cols  define the debug color string (see vudebug)\n"
+			"    -S --noseccomp      disable_seccomp_optimization\n"
 			"\n"
 			, progname);
 	r_exit(1);
@@ -118,6 +121,7 @@ int main(int argc, char *argv[])
 {
 	int c;
 	int norc = 0;
+	int seccomp = 1;
 	char *output_file = NULL;
 	char *rcfile = NULL;
 	char *vu_name = NULL;
@@ -153,6 +157,8 @@ int main(int argc, char *argv[])
 								break;
 			case 'N': norc = 1;
 								break;
+			case 'S': seccomp = 0;
+								break;
 		}
 	}
 
@@ -166,12 +172,15 @@ int main(int argc, char *argv[])
 		set_log_file(output_file);
 	}
 
-	if ((childpid = umvu_tracer_fork()) != 0) {
+	if ((childpid = seccomp ? umvu_tracer_fork_seccomp() : umvu_tracer_fork()) != 0) {
 		/* parent = tracer */
 		int wstatus;
 		vu_nesting_enable();
 		vu_init();
-		wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
+		if (seccomp)
+			wstatus = umvu_tracepid_seccomp(childpid, vu_syscall_execute, 1);
+		else
+			wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
 		vu_fini();
 		r_exit(WEXITSTATUS(wstatus));
 	} else {
