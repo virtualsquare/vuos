@@ -50,7 +50,7 @@ static struct option long_options[] = {
 	{"vu_name",required_argument,0,'V'},
 	{"debugtags",required_argument,0,'d'},
 	{"debugcols",required_argument,0,'D'},
-	{"noseccomp",required_argument,0,'S'},
+	{"noseccomp",no_argument,0,'S'},
 	{0,0,0,0}};
 
 static void usage_n_exit(void) {
