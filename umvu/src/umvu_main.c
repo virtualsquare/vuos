@@ -176,7 +176,6 @@ int main(int argc, char *argv[])
 		set_log_file(output_file);
 	}
 
-	printk(KERN_WARNING "iTest\n");
 	if (seccomp && umvu_tracer_test_seccomp() < 0) {
 		printk(KERN_WARNING "seccomp_filter unavailable, use legacy ptrace instead\n");
 		seccomp = 0;
