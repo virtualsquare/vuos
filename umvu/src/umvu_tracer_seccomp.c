@@ -296,7 +296,7 @@ int umvu_tracer_fork_seccomp(void) {
 			perror("prctl(PR_SET_NO_NEW_PRIVS)");
 			return -1;
 		}
-		if (r_prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &seccomp_prog) == -1) {
+		if (r_seccomp(SECCOMP_SET_MODE_FILTER, 0, &seccomp_prog) == -1) {
 			perror("when setting seccomp filter");
 			return -1;
 		}
