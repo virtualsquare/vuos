@@ -264,15 +264,18 @@ int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int mai
 int umvu_tracer_fork(void) {
 	pid_t childpid;
 
-	if (!(childpid = r_fork())) {
-		/*child*/
-		raise(SIGSTOP);
-		return 0;
-	} else {
-		/*parent*/
-		r_wait4(-1, NULL, WUNTRACED, NULL);
-
-		return childpid;
+	childpid = r_fork();
+	switch (childpid) {
+		case 0:
+			/* child */
+			raise(SIGSTOP);
+			return 0;
+		default:
+			/*parent*/
+			r_wait4(-1, NULL, WUNTRACED, NULL);
+			return childpid;
+		case -1:
+			return -1;
 	}
 }
 

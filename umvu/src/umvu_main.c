@@ -64,6 +64,8 @@ static void usage_n_exit(void) {
 			"    -f file\n"
 			"       --rc file         set initialization file\n"
 			"    -n --norc            do not load standard inizialization files\n"
+			"    -l --loglevel        set log level (*)\n"
+			"    -s --syslog          set syslog level (*)\n"
 			"    -V name\n"
 			"       --vu_name name    define the view name (see vuname)\n"
 			"    -o outfile\n"
@@ -73,6 +75,8 @@ static void usage_n_exit(void) {
 			"    -D cols\n"
 			"       --debugcols cols  define the debug color string (see vudebug)\n"
 			"    -S --noseccomp      disable_seccomp_optimization\n"
+			"\n"
+			"(*) 0:emerg 1:alert 2:crit 3:err 4-warning 5:notice 6:info 7:debug\n"
 			"\n"
 			, progname);
 	r_exit(1);
@@ -172,7 +176,17 @@ int main(int argc, char *argv[])
 		set_log_file(output_file);
 	}
 
-	if ((childpid = seccomp ? umvu_tracer_fork_seccomp() : umvu_tracer_fork()) != 0) {
+	printk(KERN_WARNING "iTest\n");
+	if (seccomp && umvu_tracer_test_seccomp() < 0) {
+		printk(KERN_WARNING "seccomp_filter unavailable, use legacy ptrace instead\n");
+		seccomp = 0;
+	}
+
+	childpid = seccomp ? umvu_tracer_fork_seccomp() : umvu_tracer_fork();
+
+	if (childpid < 0)
+		exit(1);
+	else if (childpid > 0) {
 		/* parent = tracer */
 		int wstatus;
 		vu_nesting_enable();

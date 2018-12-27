@@ -309,6 +309,38 @@ int umvu_tracer_fork_seccomp(void) {
 	}
 }
 
+int umvu_tracer_test_seccomp(void) {
+	pid_t childpid;
+	int status;
+	struct sock_filter filter[] = {
+		BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+	};
+	struct sock_fprog prog = {
+		.filter = filter,
+		.len = (unsigned short) (sizeof(filter)/sizeof(filter[0])),
+	};
+
+	childpid = r_fork();
+	switch (childpid) {
+	case 0:
+		/*child*/
+		if (r_prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
+			exit(errno);
+		if (r_seccomp(SECCOMP_SET_MODE_FILTER, 0, &prog) == -1)
+			exit(errno);
+		exit(0);
+	default:
+		waitpid(childpid, &status, 0);
+		if (WEXITSTATUS(status) != 0) {
+			errno = WEXITSTATUS(status);
+			return -1;
+		} else
+			return 0;
+	case -1:
+		return -1;
+	}
+}
+
 __attribute__((constructor))
 	static void init(void) {
 #pragma GCC diagnostic push
