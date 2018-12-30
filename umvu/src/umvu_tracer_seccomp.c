@@ -330,7 +330,7 @@ int umvu_tracer_test_seccomp(void) {
 			exit(errno);
 		exit(0);
 	default:
-		waitpid(childpid, &status, 0);
+		r_wait4(childpid, &status, 0, NULL);
 		if (WEXITSTATUS(status) != 0) {
 			errno = WEXITSTATUS(status);
 			return -1;

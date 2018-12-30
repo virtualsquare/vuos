@@ -114,7 +114,7 @@ static void runrc(const char *path)
       case -1: exit(2);
       case 0: execl(path,path,(char *)0);
               exit(2);
-      default: waitpid(pid,&status,0);
+      default: r_wait4(pid, &status, 0);
                if (!WIFEXITED(status))
                  exit(2);
     }
