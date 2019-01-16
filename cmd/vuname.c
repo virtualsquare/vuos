@@ -31,7 +31,7 @@ int quiet;
 struct vu_info vi;
 
 void version_exit(void) {
-	printf("umviewname (VU-OS project) 1.0\n"
+	printf("umviewname (VUOS project) 1.0\n"
 			"Copyright (C) 2017 Virtualsquare Team\n"
 			"This is free software.  You may redistribute copies of it under the terms of\n"
 			"the GNU General Public License <http://www.gnu.org/licenses/gpl.html>.\n"
@@ -46,7 +46,7 @@ void usage_exit(int exit_status)
 	if (!quiet) {
 		fprintf(stderr, 
 				"Usage: vuname [OPTION]...\n"
-				"Print certain View-OS system information.  With no OPTION, same as -s.\n"
+				"Print certain VUOS system information.  With no OPTION, same as -s.\n"
 				"\n"
 				" -a, --all                print all information, in the following order,\n"
 				" except omit -p and -i if unknown:\n"
@@ -63,7 +63,7 @@ void usage_exit(int exit_status)
 				"other options\n"
 				" -P, --prompt             print a string for user prompts\n"
 				" -q, --quiet              quiet mode: silent on errors\n"
-				" -x, --nouname            do not use uname when outside View-OS\n"
+				" -x, --nouname            do not use uname when outside VUOS\n"
 				"     --help     display this help and exit\n"
 				"     --version  output version information and exit\n"
 				"\n");
