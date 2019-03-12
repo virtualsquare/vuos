@@ -34,19 +34,22 @@
 /* canonstruct: this struct contains the values that must be shared during the
 	 whole recursive scan:
 	 .ebuf: source for the relative to absolute path translation.
-	 it is allocated on the stack.
-	 if the path to translate begins by '/':
-	 it contains the root dir followed by the path to translate,
-	 otherwise
-	 it contains the current working dir followed by the path to translate
+	   it is allocated on the stack.
+	   if the path to translate begins by '/':
+	   it contains the root dir followed by the path to translate,
+	   otherwise
+	   it contains the current working dir followed by the path to translate
 	 .start, .end: pointers on ebuf, the boundaries of the current component
 	 .resolved: the user provided buffer where the result must be stored
 	 .rootlen: the len of the root component (it is not possible to generate
-	 shorter pathnames to force the root cage. rootlen includes the '/')
+	   shorter pathnames to force the root cage. rootlen includes the '/')
 	 .num_links: counter of symlink to avoid infinite loops (ELOOP)
-	 .statbuf: lstat of the last component (of the file at the end)
-	 .flags: flags (see canonicalize.h), follow link (final component) and nonexisten leaves
-	 this flag is for l-system calls like lstat, lchmod, lchown etc...
+	 .mode: lstat's st_mode of the last component (of the file at the end)
+	   0 means non-existent -1 invalid (lstat must be called again).
+	 .flags: flags (see canonicalize.h), follow link (final component) 
+	   this flag is for l-system calls like lstat, lchmod, lchown etc...
+	   permit nonexistent leaves, etc.
+	 .private: opaque arg for user provided access functions (lmode, readlink, getcwd, getroot).
  */
 
 struct canonstruct {
@@ -66,6 +69,7 @@ static ssize_t default_readlink(const char *pathname, char *buf, size_t bufsiz, 
 static int default_getcwd(char *pathname, size_t size, void *private);
 static int default_getroot(char *pathname, size_t size, void *private);
 
+/* default access functions */
 static struct canon_ops operations = {
 	.lmode = default_lmode,
 	.readlink = default_readlink,
@@ -95,6 +99,7 @@ static int default_getroot(char *pathname, size_t size, void *private) {
 	return 0;
 }
 
+/* recursive generation of the canonicalized absolute path */
 static int rec_realpath(struct canonstruct *cdata, char *dest)
 {
 	char *newdest;
@@ -186,15 +191,24 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				cdata->mode = -1;
 				memmove(cdata->ebuf+n,cdata->end,len+1);
 				cdata->end = memcpy(cdata->ebuf,buf,n);
+				/* note that ebuf contains only the concatenation of the link target 
+					 and the reamining part of the original path.
+					 The heading part of the source path can be lost but this is not a problem
+					 as the recursion can invalidate part of the destination string;
+					 in no cases there is the need to read some of the previous components
+					 of the source path */	
 				/* if the symlink is absolute the scan must return
 					 back to the current root otherwise from the
 					 same dir of the symlink */
 				if (*buf == '/') {
 					cdata->start=cdata->ebuf;
+					/* if there is an absolute link in the main dir, do not return
+						 ROOT (as this is the first invocation of the recursive function),
+						 but just start the loop from the beginning */
 					if (dest > cdata->resolved+1)
 						return ROOT;
 					else
-						continue;
+						continue;  /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
 				} else {
 					cdata->start=cdata->end;
 					continue; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
