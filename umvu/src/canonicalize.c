@@ -75,6 +75,7 @@ static struct canon_ops operations = {
 
 static mode_t default_lmode(const char *pathname, void *private) {
 	struct stat buf[1];
+	//printf("LMODE %s\n", pathname);
 	if (lstat(pathname, buf) == 0)
 		return buf->st_mode;
 	else
@@ -125,6 +126,8 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 		}
 		/* nothing more to do */
 		if (lastlen == 0) {
+			if (cdata->mode == (unsigned) -1)
+				cdata->mode = operations.lmode(cdata->resolved, cdata->private);
 			errno = 0;
 			return 0;
 		}
@@ -154,7 +157,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 		{
 			/* root dir must be already canonicalized.
 				 symlinks navigating inside the root link are errors */
-			if (dest <= cdata->resolved+cdata->rootlen) {
+			if (dest < cdata->resolved+cdata->rootlen) {
 				errno = ENOENT;
 				return -1;
 			} else
@@ -180,6 +183,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				}
 				/* append symlink and remaining part of the path,
 					 the latter part is moved inside ebuf itself */
+				cdata->mode = -1;
 				memmove(cdata->ebuf+n,cdata->end,len+1);
 				cdata->end = memcpy(cdata->ebuf,buf,n);
 				/* if the symlink is absolute the scan must return
@@ -187,7 +191,10 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 					 same dir of the symlink */
 				if (*buf == '/') {
 					cdata->start=cdata->ebuf;
-					return ROOT;
+					if (dest > cdata->resolved+1)
+						return ROOT;
+					else
+						continue;
 				} else {
 					cdata->start=cdata->end;
 					continue; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
@@ -215,18 +222,18 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 			case 0 : return 0;
 							 /* DOTDOT: cycle at this layer */
 			case DOTDOT:
-							 break; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
+							 cdata->mode = -1;
+							 continue; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
 							 /* ROOT: close recursive calls up the root */
 			case ROOT:
+							 cdata->mode = -1;
 							 if (dest > cdata->resolved+cdata->rootlen)
 								 return ROOT;
 							 else
-								 break; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
+								 continue; /* CONTINUE: NEXT ITERATION OF THE LOOP (***) */
 							 /* Error */
 			default: return -1;
 		}
-		*dest = 0;
-		cdata->mode = operations.lmode(cdata->resolved, cdata->private);
 	}
 }
 
