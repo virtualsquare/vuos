@@ -50,7 +50,7 @@ static inline int o_is_unlink(int flags) {
 static int vufs_vdeleted(struct vufs_t *vufs, const char *path) {
   struct vu_stat buf;
   if (vufs->ddirfd >= 0) {
-		if (fstatat(vufs->ddirfd, path, &buf, AT_EMPTY_PATH) == 0) 
+		if (fstatat(vufs->ddirfd, path, &buf, AT_EMPTY_PATH) == 0)
 			return S_ISREG(buf.st_mode);
 		else
 			return errno == ENOTDIR; // a component in the path has been deleted
@@ -273,7 +273,7 @@ static vufsa_status vufsa_mincow_creat(vufsa_status status,
 			} else
 				return VUFSA_DOREAL;
 		case VUFSA_DOREAL:
-			if (rv < 0 && (errno == EPERM || errno == ENOENT))
+			if (rv < 0 && (errno == EACCES || errno == ENOENT))
 				return VUFSA_DOVIRT;
 			else
 				return VUFSA_FINAL;
@@ -306,7 +306,7 @@ static vufsa_status vufsa_mincow_unlink(vufsa_status status,
 				return VUFSA_ERR;
 			}
 		case VUFSA_DOREAL:
-			if (rv < 0 && errno == EPERM) 
+			if (rv < 0 && errno == EACCES)
 				return VUFSA_DOVIRT;
 			else
 				return VUFSA_FINAL;

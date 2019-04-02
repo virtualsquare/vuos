@@ -363,7 +363,7 @@ int vu_vufs_symlink (const char *target, const char *path) {
   int retval;
   path += 1;
   vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
-  while ((status = vufsa_next(status, vufs, target, retval)) != VUFSA_EXIT) {
+  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
     switch (status) {
       case VUFSA_DOREAL:
         retval = symlinkat(target, vufs->rdirfd, path);
