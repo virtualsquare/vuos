@@ -1,3 +1,3 @@
 #!/bin/sh
 
-echo "#include<sys/syscall.h>" | gcc -dN -E - | $1/r_table_gen.py
+echo "#include<sys/syscall.h>" | $1 -dN -E - | $2/r_table_gen.py

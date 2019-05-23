@@ -10,6 +10,9 @@ add_custom_command(OUTPUT ${VU_DYN_HEADER_PATH}
 add_custom_command(OUTPUT ${VU_DYN_SOURCE_PATH}
 		COMMAND mkdir ${VU_DYN_SOURCE_PATH})
 
+execute_process(COMMAND ${VU_SCRIPT_PATH}/syscall_deps.sh ${CMAKE_C_COMPILER}
+		OUTPUT_VARIABLE SYSCALL_DEPS)
+
 # syscall_defs.h
 add_custom_command(OUTPUT ${VU_SYSCALL_DEFS}
 		COMMAND ${VU_SCRIPT_PATH}/syscall_defs_gen.py ${VU_SYSCALL_CONF} > ${VU_SYSCALL_DEFS}
@@ -18,15 +21,15 @@ add_custom_command(OUTPUT ${VU_SYSCALL_DEFS}
 
 # r_table.h
 add_custom_command(OUTPUT ${R_TABLE_H}
-		COMMAND ${VU_SCRIPT_PATH}/r_table_gen.sh ${VU_SCRIPT_PATH} > ${R_TABLE_H}
+		COMMAND ${VU_SCRIPT_PATH}/r_table_gen.sh ${CMAKE_C_COMPILER} ${VU_SCRIPT_PATH} > ${R_TABLE_H}
 		COMMENT "Generating r_table"
-		DEPENDS ${VU_DYN_HEADER_PATH})
+		DEPENDS ${VU_DYN_HEADER_PATH} ${SYSCALL_DEPS})
 
 # syscall_names.c
 add_custom_command(OUTPUT ${VU_SYSNAMES}
-		COMMAND ${VU_SCRIPT_PATH}/syscall_names_gen.sh ${VU_SCRIPT_PATH} > ${VU_SYSNAMES}
+		COMMAND ${VU_SCRIPT_PATH}/syscall_names_gen.sh ${CMAKE_C_COMPILER} ${VU_SCRIPT_PATH} > ${VU_SYSNAMES}
 		COMMENT "Generating syscall names table"
-		DEPENDS ${VU_DYN_SOURCE_PATH})
+		DEPENDS ${VU_DYN_SOURCE_PATH} ${SYSCALL_DEPS})
 
 # arch_table.c
 add_custom_command(OUTPUT ${VU_ARCHTABLE}

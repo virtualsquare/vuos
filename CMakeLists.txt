@@ -21,12 +21,10 @@ set(VU_ARCHTABLE ${VU_DYN_SOURCE_PATH}/arch_table.c)
 set(VU_SYSTABLE ${VU_DYN_SOURCE_PATH}/syscall_table.c)
 set(VU_DYN_SOURCES ${VU_SYSNAMES} ${VU_ARCHTABLE} ${VU_SYSTABLE})
 
-set(VU_DYN_SOURCE_MKDIR mkdir -p ${VU_DYN_SOURCE_PATH})
-execute_process(COMMAND ${VU_DYN_SOURCE_MKDIR})
+execute_process(COMMAND mkdir -p ${VU_DYN_SOURCE_PATH})
 
 foreach(DYN ${VU_DYN_SOURCES})
-	set(VU_DYN_SOURCE_CREATE touch -d 20000101 ${DYN})
-	execute_process(COMMAND ${VU_DYN_SOURCE_CREATE})
+	execute_process(COMMAND touch -d 20000101 ${DYN})
 endforeach(DYN)
 
 configure_file( ${VU_HEADERS}/config.h.in ${VU_DYN_HEADER_PATH}/config.h )
