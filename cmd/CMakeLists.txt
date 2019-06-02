@@ -12,3 +12,5 @@ foreach(VU_CMD ${VU_CMDS})
     add_executable(${VU_CMD_TARGET} ${VU_CMD})
     install(TARGETS ${VU_CMD_TARGET} RUNTIME DESTINATION bin)
 endforeach(VU_CMD)
+
+target_link_libraries(vumount stropt)
