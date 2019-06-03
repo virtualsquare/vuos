@@ -163,7 +163,7 @@ It is possible to provide network partial virtualization using the `vunet` modul
     $$ # let us load vunet
     $$ vu_insmod vunet
     $$ # the following command #mounts# a vde network on /dev/net/myvde.
-    $$ # (see 
+    $$ # (see https://github.com/rd235/vdeplug4)
     $$ vumount -t vunetvdestack vxvde:// /dev/net/myvde
     $$ # vustack is the command to select the stack to use.
     $$ vustack /dev/net/myvde ip link
@@ -236,10 +236,12 @@ For the sake of compleness (and hopefully clarity), it is possible to install al
 as briefly explained in the following.
 
 First of all install the following packets:
+
     git python3 build-essential cmake make autogen autoconf libtool libcap-dev libattr1-dev libfuse-dev libexecs-dev
     libssl1.0-dev libmhash-dev libpam0g-dev libfuse-dev e2fsprogs comerr-dev e2fslibs-dev
 
-Then install libraries and tools from the followin list of git repositories:
+Then install libraries and tools from the following list of git repositories:
+
     https://github.com/virtualsquare/vde-2.git 
     https://github.com/rd235/vdeplug4.git
     https://github.com/virtualsquare/purelibc.git
@@ -253,5 +255,7 @@ Then install libraries and tools from the followin list of git repositories:
     https://github.com/rd235/vdeplug_agno.git
     https://github.com/rd235/vdens.git
     https://github.com/virtualsquare/vuos.git
+
 A symbolic link is required to make vufuseext2 reachable in the right dir
+
     ln -s  /usr/local/lib/umview/modules/umfuseext2.so /usr/local/lib/vu/modules/vufuseext2.so
