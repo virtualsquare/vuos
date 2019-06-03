@@ -27,8 +27,8 @@
 #include<stropt.h>
 
 #define DEFAULT_FILESYSTEMTYPE ""
-#define DEFAULT_OPTIONS "default"
 #define DEFAULT_MOUNTFLAGS (MS_SILENT)
+static char default_options[] = "defaults";
 
 struct mountopts_t {
 	char *opt;
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 	char *source = NULL;
 	char *target = NULL;
 	char *filesystemtype = DEFAULT_FILESYSTEMTYPE;
-	char *options = DEFAULT_OPTIONS;
+	char *options = default_options;
 	unsigned long mountflags = DEFAULT_MOUNTFLAGS;
 
 	int c;
