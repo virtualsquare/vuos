@@ -4,6 +4,20 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* canonicalize provides extended (and optimized) implementations of
+	 realpath(3) and canonicalize_file_name(3).
+
+	 canon_realpath can used in place of realpath, the argument named flags
+	 can configure the behavior as explained for the constants here below
+
+	 canon_realpath_dup provides the same extensions with respect to
+	 canonicalize_file_name.
+*/
+
+char *canon_realpath(const char *path, char *resolved_path, int flags, void *private);
+
+char *canon_realpath_dup(const char *path, int flags, void *private);
+
 /* if FOLLOWLINK == 0 and pathname is a symlink then it returns
 	 the realpath of the link itself instead of the realpath of
 	 the file it refers to */
@@ -21,10 +35,6 @@
 #define CHECK_S_IXALL_ON_DIRS 8
 
 #define S_IXALL (S_IXUSR | S_IXGRP | S_IXOTH)
-
-char *canon_realpath(const char *path, char *resolved_path, int flags, void *private);
-
-char *canon_realpath_dup(const char *path, int flags, void *private);
 
 /* canonicalize in virtual environments:
 	 virtual-world consistent re-definition of functions needed for canonicalize */

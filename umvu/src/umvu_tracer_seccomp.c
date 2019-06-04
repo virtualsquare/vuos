@@ -41,6 +41,18 @@
 #include <vu_inheritance.h>
 #include <umvu_peekpoke.h>
 
+/* This BPF filter:
+	 returns SECCOMP_RET_ALLOW if the syscall is restart_syscall or poll(1, _, _).
+	 it returns SECCOMP_RET_TRACE otherwise. */
+/* All syscalls are forwarded via ptrace to the hypervisor (but
+	 restart_syscall or the special case of poll to manage the
+	 hand-off between guardian angels) */
+/* The hypervisor:
+	 * changes the syscall number to -1 to skip the syscall
+	 * returns PTRACE_CONT if the syscall is real (the kernel must process it)
+	 * returns PTRACE_SYSCALL if the kernel must process it but post processing is needed
+ */
+
 static struct sock_filter seccomp_filter[] = {
 	BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, nr)),
 
