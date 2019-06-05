@@ -55,7 +55,7 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (service == NULL) {
 		int save_errno = errno;
 		printk(KERN_ERR "loading of module %s failed: %s\n", name, strerror(save_errno));
-		sd->ret_value = -errno;
+		sd->ret_value = -save_errno;
 		return;
 	}
 

@@ -38,6 +38,7 @@ typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht);
 
 /* add an element to the hashtable */
+/* confirmfun is a cleanup function for CHECKMODULE */
 struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *private_data, int permanent);
@@ -87,8 +88,7 @@ void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data);
 void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_fun);
 
 /* change the epoch of a hashtable entry to the current epoch (it this useful? )*/
-void vuht_renew(struct vuht_entry_t *hte);
-
+// void vuht_renew(struct vuht_entry_t *hte);
 //char *vuht_get_servicename(struct vuht_entry_t *hte);
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 unsigned long vuht_get_mountflags(struct vuht_entry_t *hte);

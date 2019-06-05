@@ -26,6 +26,8 @@
 #include <vu_thread_sd.h>
 #include <vumodule.h>
 
+/* helper functions for modules */
+
 unsigned int vu_mod_gettid() {
 	return umvu_gettid();
 }

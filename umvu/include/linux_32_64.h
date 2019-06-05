@@ -2,6 +2,10 @@
 #define LINUX_32_64_H
 #include <sys/stat.h>
 
+/* 32/64 compatibility issues.
+	 vuos always uses the 64bits system calls.
+	 vu_* and r_vu_* refer to the 64 bit implementation */
+
 /* blame glibc for this */
 #if __WORDSIZE == 32
 #define vu_stat	stat64
@@ -40,6 +44,7 @@
 #define r_vu_fstatat r_fstatat
 #endif
 
+/* for 32 bit hosts missing in standard include files */
 struct linux_dirent {
 	unsigned long  d_ino;     /* Inode number */
 	unsigned long  d_off;     /* Offset to next linux_dirent */

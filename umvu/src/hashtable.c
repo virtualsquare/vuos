@@ -619,32 +619,6 @@ void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_
 	}
 }
 
-#if 0
-struct vuht_entry_t *vuht_search(uint8_t type, void *arg, int objlen,
-		struct vu_service_t *service) {
-	struct vuht_entry_t *hte = vuht_pick(type, arg, NULL, 0);
-
-	if (hte && ((objlen > 0 && objlen != hte->objlen) ||
-				(service != NULL && service != hte->service)))
-		return NULL;
-	return hte;
-}
-#endif
-
-void vuht_renew(struct vuht_entry_t *hte) {
-	if (hte)
-		hte->timestamp = get_vepoch();
-}
-
-#if 0
-char *vuht_get_servicename(struct vuht_entry_t *hte) {
-	if (hte && hte->service)
-		return hte->service->name;
-	else
-		return NULL;
-}
-#endif
-
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte) {
 	if (hte)
 		return hte->service;
