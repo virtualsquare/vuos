@@ -27,8 +27,16 @@
 #include <ptrace_defs.h>
 #include <umvu_peekpoke.h>
 
+/* pagesize/pagemask are useful to compute the page boundaries.
+	 data tranfer operations are splitted in chunks, all the addresses
+	 of a chunk belong to the same page */
+/* pagesize/pagemask values are cached here at startup for performance
+	 (these values cannnot change during the life of the hypervisor */
 static unsigned long page_size;
 static unsigned long page_mask;
+
+/* tid of the "protected" process (each guardian angel controls
+	 the virtualization of a user process/thread) */
 static __thread unsigned int tracee_tid;
 
 #if defined(__x86_64__)
@@ -48,7 +56,7 @@ void umvu_peek_syscall(struct user_regs_struct *regs,
 			syscall_desc->syscall_args[5] = regs->r9;
 			syscall_desc->prog_counter = regs->rip;
 			syscall_desc->stack_pointer = regs->rsp;
-	} else
+		} else
 			syscall_desc->orig_ret_value = regs->rax;
 	}
 }
@@ -60,6 +68,7 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 	if (regs && syscall_desc) {
 		switch (sys_state) {
 			case IN_SYSCALL:
+				/* regs->rsp is missing as stack pointer should not be modified */
 				if (regs->orig_rax == (unsigned) syscall_desc->syscall_number &&
 						regs->rdi == syscall_desc->syscall_args[0] &&
 						regs->rsi == syscall_desc->syscall_args[1] &&
@@ -67,7 +76,6 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 						regs->r10 == syscall_desc->syscall_args[3] &&
 						regs->r8 == syscall_desc->syscall_args[4] &&
 						regs->r9 == syscall_desc->syscall_args[5] &&
-						//regs->rsp == syscall_desc->stack_pointer &&  /* stack pointer should not be modified */
 						regs->rip == syscall_desc->prog_counter)
 					return 0;
 				regs->orig_rax = regs->rax = syscall_desc->syscall_number;
@@ -77,7 +85,6 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 				regs->r10 = syscall_desc->syscall_args[3];
 				regs->r8 = syscall_desc->syscall_args[4];
 				regs->r9 = syscall_desc->syscall_args[5];
-				//regs->rsp = syscall_desc->stack_pointer;
 				regs->rip = syscall_desc->prog_counter;
 				break;
 			case OUT_SYSCALL:
@@ -86,7 +93,7 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 				regs->rax = syscall_desc->ret_value;
 				break;
 			case DURING_SYSCALL:
-				regs->orig_rax = regs->rax = syscall_desc->syscall_number;
+				regs->orig_rax = syscall_desc->syscall_number;
 				regs->rax = syscall_desc->ret_value;
 				break;
 		}
@@ -116,11 +123,13 @@ void umvu_unblock(void) {
 
 void umvu_block(struct syscall_descriptor_t *sd) {
 	sd->syscall_number = __NR_poll;
-  sd->syscall_args[0] = 0;
-  sd->syscall_args[1] = 0;
-  sd->syscall_args[2] = -1;
+	sd->syscall_args[0] = 0;
+	sd->syscall_args[1] = 0;
+	sd->syscall_args[2] = -1;
 }
 
+/* return len or the offset ofthe next page boundary, whatever
+	 is nearer to addr */
 static inline long compute_chunk_len(uintptr_t addr, size_t len) {
 	unsigned long chunk_len = len > page_size ? page_size : len;
 	unsigned long end_in_page = ((uintptr_t)(addr + chunk_len) & page_mask);
@@ -133,6 +142,7 @@ int umvu_peek_str(uintptr_t addr, void *buf, size_t datalen)
 	char *cbuf = buf;
 
 	if (addr && cbuf) {
+		/* transfer data, chunk by chunk */
 		while (datalen > 0) {
 			unsigned long chunk_len = compute_chunk_len(addr, datalen);
 			struct iovec local_iov = {cbuf, chunk_len};
@@ -142,6 +152,7 @@ int umvu_peek_str(uintptr_t addr, void *buf, size_t datalen)
 				return -1;
 			else {
 				unsigned int r;
+				/* it is a string, when there is a NULL byte, the transfer is completed */
 				for (r = 0; r < chunk_len; r++)
 					if (cbuf[r] == 0)
 						return 0;
@@ -168,6 +179,7 @@ int umvu_peek_data(uintptr_t addr, void *buf, size_t datalen)
 	char *cbuf = buf;
 
 	if (addr && cbuf) {
+		/* transfer data, chunk by chunk */
 		while (datalen > 0) {
 			unsigned long chunk_len = compute_chunk_len(addr, datalen);
 			struct iovec local_iov = {cbuf, chunk_len};

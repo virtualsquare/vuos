@@ -1,6 +1,8 @@
 #ifndef UMVU_PEEKPOKE_H
 #define UMVU_PEEKPOKE_H
 
+/* umvu_peekpoke: exchange data with the traced/virtualized process */
+
 /*Architecture dependent part*/
 #if defined(__x86_64__) || defined(__i386__)
 
@@ -22,16 +24,31 @@ typedef unsigned long int syscall_arg_t;
 #define SYSARG(type, sd, i) (type) sd->syscall_args[i]
 #define SET_SYSARG(sd, i, val) sd->syscall_args[i] = (syscall_arg_t)val;
 
-typedef enum syscall_state_t { 
-	IN_SYSCALL, 
+/* STATES of syscall processing.
+ * A syscall request process begins in IN_SYSCALL state.
+ * The hypervisor pre-processes the request and can decide:
+ * 	to ask the kernel to skip the request (the processing completes in IN_SYSCALL state)
+ *		(this is the case of fully virtualized calls)
+ *	to ask the kernel to process the request (the processing completes in IN_SYSCALL state)
+ *		(this is the case of non virtualized calls)
+ *	to ask the kernel to process the request and call again when the system call has completed
+ *		in this case the syscall request next state is DURING_SYSCALL and then when
+ *		the kernel has completed the final state becomes OUT_SYSCALL */
+
+typedef enum syscall_state_t {
+	IN_SYSCALL,
 	DURING_SYSCALL,
 	OUT_SYSCALL } syscall_state_t;
+
 
 #define UMVU_SKIP 0x1
 #define UMVU_CB_AFTER 0x2
 #define UMVU_BLOCKIT 0x4
 #define UMVU_DO_IT_AGAIN 0x8
 
+/* return codes for syscall_hadlers
+	 (mapped as bitmaps of requests enabled  by that return code)
+	 e.g. BLOCKIT implies UMVU_CB_AFTER */
 typedef enum syscall_action_t {
 	DOIT = 0,
 	SKIPIT = UMVU_SKIP,
@@ -60,35 +77,92 @@ typedef enum syscall_action_t {
 
 struct syscall_extra_t;
 
+/* system call descriptor --
+	 all what a syscall handler need to know about a system call */
+/* this structure is architecture independent */
 struct syscall_descriptor_t {
+	/* the action: default value = DOIT */
 	syscall_action_t action;
+	/* orig_syscall_number is the syscall requested by the user process.
+		 syscall_number has a different value if the hypervisor requires the kernel
+		 to process a different system call */
 	int syscall_number;
 	int orig_syscall_number;
+	/* syscall arguments */
 	syscall_arg_t syscall_args[SYSCALL_ARG_NR];
+	/* the return value from the kernel */
 	syscall_arg_t orig_ret_value;
+	/* the return value returned to the user process */
 	syscall_arg_t ret_value;
+	/* instruction pointer/program counter of the syscall request */
 	uintptr_t prog_counter;
+	/* stack pointer */
 	uintptr_t stack_pointer;
+	/* pid of the watchdog process, to manage blocking calls
+		 it is 0 when the watchdog process is not active */
 	pid_t waiting_pid;
+	/* pointer to further data required by the upper layers */
 	struct syscall_extra_t *extra;
+	/* opaque pointer used to exchange data between the phases of
+		 syscall processing (IN_SYSCALL, DURING_SYSCALL, OUT_SYSCALL) */
 	void *inout;
 };
 
+/* set/get the tid of the user process/thread controlled
+	 by the current hypervisor thread.
+	 (i.e. the "guarded"/"protected" thread of the current "guardian angel") */
 void umvu_settid(int tid);
 unsigned int umvu_gettid();
+
+/* block the user process: it changes the syscall to poll(0, 0, -1) */
 void umvu_block(struct syscall_descriptor_t *sd);
+/* unblock the user process (using TRACE_INTERRUPT,
+	 poll(0, 0, -1) returns -1/EINTR */
 void umvu_unblock(void);
 
+/* get the syscall info from PTRACE_GETREGS
+	 this call is architecture dependent.
+	 if sys_state == IN_SYSCALL:
+	 get syscall_number, args, prog_counter, stack_pointer
+	 otherwise (OUT_SYSCALL)
+	 get orig_ret_value
+ */
 void umvu_peek_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		syscall_state_t sys_state);
+/* store the syscall into (prepaare it for PTRACE_SETREGS)
+	 this call is architecture dependent.
+	 The return value is > 0 if PTRACE_SETREGS is required
+	 (some values changed). If teh return value is
+	 0, PTRACE_SETREGS can be safely skipped.
+
+	 if sys_state == IN_SYSCALL:
+	 store syscall_number, args, prog_counter.
+	 if sys_state == DURING_SYSCALL:
+	 store syscall_number and return value
+	 else (OUT_SYSCALL)
+	 store just the return value.
+ */
 int umvu_poke_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		syscall_state_t sys_state);
 
+/* in all the following functions:
+ * the identity of the user process is implicit as
+ these functions are for guardian angels, each angel is
+ assigned exactly one "protected" thread.
+ * addr is the address in the user process memory area
+ * buf is the local buffer
+ */
+/* get a string from a user process, i.e. get data up to the first
+	 NULL byte (datalen is the max string length) */
 int umvu_peek_str(uintptr_t addr, void *buf, size_t datalen);
+/* get a string from a user process, the max length is PATH_MAX.
+	 return a dynamic allocated copy of the string */
 char *umvu_peekdup_path(uintptr_t addr);
+/* get exactly datalen bytes from the user process memory */
 int umvu_peek_data(uintptr_t addr, void *buf, size_t datalen);
+/* store exactly datalen bytes from the user process memory */
 int umvu_poke_data(uintptr_t addr, void *buf, size_t datalen);
 
 unsigned long umvu_get_pagesize(void);

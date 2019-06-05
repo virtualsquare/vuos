@@ -18,29 +18,29 @@
 extern uint16_t vu_arch_table[];
 
 /* vu_arch_args defines for each system call provided by the architecure:
-	 i) the number of arguments
-	 ii) if the syscall has a pathname arg, and which is the index of the path arg
-	 iii) it if is a l- symbolic link opaque call (like lchown lstat)
-	 iv) if it is a -at system call (including a dirfd arg, e.g. openat, fstatat)
-
-	 all this information is stored in a single byte:
-	 +-+-+-+-+-+-+-+-+
-	 |typ|path |nargs|
-	 +-+-+-+-+-+-+-+-+
-
-	 typ = 01 l-call
-	       02 -at call
-				 03 *special* cases e.g. -at calls supporting AT_SYMLINK_NOFOLLOW
-	 path = index of the path arg (of dirfd if this is a -at call)
-	 nargs = numebr of args.
-
-	 Writing this value in octal the first digit is typ, the second is path and the third is nargs.
-	 vu_arch_table[__NR_write] = 03; // 3 args, no path
-	 vu_arch_table[__NR_stat] = 012; // 2 args, the first is the path
-	 vu_arch_table[__NR_lstat] = 0112; // 2 args, the first is the path, do not follow links
-	 vu_arch_table[__NR_mkdirat] = 0212; // 2 args, at-type, the first is the dirfd, so the second is the path
-	 vu_arch_table[__NR_faccessat] = 314; // 2 args, at-type, the first is dirfd,
-	                                         AT_SYMLINK_NOFOLLOW is a supported flag
+ * i) the number of arguments
+ * ii) if the syscall has a pathname arg, and which is the index of the path arg
+ * iii) it if is a l- symbolic link opaque call (like lchown lstat)
+ * iv) if it is a -at system call (including a dirfd arg, e.g. openat, fstatat)
+ *
+ * all this information is stored in a single byte:
+ * +-+-+-+-+-+-+-+-+
+ * |typ|path |nargs|
+ * +-+-+-+-+-+-+-+-+
+ *
+ *	 typ = 01 l-call
+ *	       02 -at call
+ *				 03 *special* cases e.g. -at calls supporting AT_SYMLINK_NOFOLLOW
+ * path = index of the path arg (of dirfd if this is a -at call)
+ * nargs = numebr of args.
+ *
+ * Writing this value in octal the first digit is typ, the second is path and the third is nargs.
+ * vu_arch_table[__NR_write] = 03; // 3 args, no path
+ * vu_arch_table[__NR_stat] = 012; // 2 args, the first is the path
+ * vu_arch_table[__NR_lstat] = 0112; // 2 args, the first is the path, do not follow links
+ * vu_arch_table[__NR_mkdirat] = 0212; // 2 args, at-type, the first is the dirfd, so the second is the path
+ * vu_arch_table[__NR_faccessat] = 314; // 2 args, at-type, the first is dirfd,
+ *                                      AT_SYMLINK_NOFOLLOW is a supported flag
  */
 
 extern uint8_t vu_arch_args[];
@@ -54,6 +54,8 @@ extern uint8_t vvu_arch_args[];
 #define ARCH_TYPE_SYMLINK_NOFOLLOW 1
 #define ARCH_TYPE_IS_AT 2
 #define ARCH_TYPE_IS_EXCEPTION 3
+
+/* utility functions to read the (bit)fields of vu_arch_args and vvu_arch_args elements */
 
 static inline int vu_arch_table_nargs(int syscall_number) {
 	int argstag = vu_arch_args[syscall_number];

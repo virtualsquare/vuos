@@ -12,7 +12,7 @@
 
 	 canon_realpath_dup provides the same extensions with respect to
 	 canonicalize_file_name.
-*/
+ */
 
 char *canon_realpath(const char *path, char *resolved_path, int flags, void *private);
 
