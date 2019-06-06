@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.7)
+project("vuos")
+
+include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS
 		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
@@ -43,3 +46,4 @@ add_subdirectory(vubinfmt)
 add_subdirectory(vunet_modules)
 add_subdirectory(vufuse_modules)
 add_subdirectory(vudev_modules)
+add_subdirectory(man)
