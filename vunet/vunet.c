@@ -114,11 +114,13 @@ static void set_defstack(int domain, struct vunet *vunet) {
 	}
 }
 
+/* confirmation function for sockets */
 static int checksocket(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht) {
 	struct vunet *vunet = vuht_get_private_data(ht);
 	int *domain = arg;
 	struct vunet *defvunet = get_defstack(*domain);
+	/* if the default stack for this process is this, then ok else skip */
 	if (vunet == defvunet) {
 		return 1;
 	} else {
@@ -126,11 +128,14 @@ static int checksocket(uint8_t type, void *arg, int arglen,
 	}
 }
 
+/* confirmation function for ioctl */
 static int checkioctl(uint8_t type, void *arg, int arglen,
     struct vuht_entry_t *ht) {
 	unsigned long *request = arg;
 	struct vunet *vunet = vuht_get_private_data(ht);
 	struct vunet *defvunet = get_defstack(PF_NETLINK);
+	/* if the default stack for this process is this AND
+		 the request is supported, then ok else skip */
 	if (vunet->netops->supported_ioctl != NULL &&
 			vunet->netops->supported_ioctl(*request) &&
 			vunet == defvunet)
