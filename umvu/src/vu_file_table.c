@@ -60,7 +60,7 @@ struct vu_fnode_t *vu_fnode_create(
 		int sfd,
 		void *private) {
 	struct vu_fnode_t *fnode = malloc(sizeof(struct vu_fnode_t));
-	fatal(fnode)
+	fatal(fnode);
 	fnode->ht = ht;
 	fnode->path = xstrdup(path);
 	if (stat != NULL) {

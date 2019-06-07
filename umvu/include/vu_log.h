@@ -28,23 +28,29 @@
 
 #define MAX_DEBUG_LEVEL 10
 
-#define STRERROR_BUF_SIZE 256
-#define warning(cond) { \
+#define STRERROR_BUF_SIZE 1024 // see NOTES in strerror_r(3) man page
+#define warning(cond) do { \
 	if (!cond) { \
 		char buf[STRERROR_BUF_SIZE]; \
 		printk(KERN_WARNING "warning %s:%d %s\n", basename(__FILE__), __LINE__,\
 				strerror_r(errno, buf, STRERROR_BUF_SIZE)); \
 	} \
-}
+} while(0)
 
-#define fatal(cond) { \
+#define fatal(cond) do { \
 	if (!cond) { \
 		char buf[STRERROR_BUF_SIZE]; \
 		printk(KERN_WARNING "fatal %s:%d %s\n", basename(__FILE__), __LINE__,\
 				strerror_r(errno, buf, STRERROR_BUF_SIZE)); \
 		pthread_exit(NULL); \
 	} \
-}
+} while(0)
+
+#define warning_msg(msg) do { \
+	char buf[STRERROR_BUF_SIZE]; \
+	printk(KERN_WARNING "warning %s:%d %s\n", basename(__FILE__), __LINE__,\
+			strerror_r(errno, buf, STRERROR_BUF_SIZE)); \
+} while(0)
 
 int vprintk(const char *fmt, va_list ap);
 int printk(const char *fmt, ...);
@@ -72,8 +78,8 @@ extern __thread uint64_t tdebugmask;
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
 	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-	_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
-			basename(__FILE__), __LINE__, ##__VA_ARGS__)
+		_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
+		basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_ALLTAGS " ABCDEFGHIJKLMNOPQRSTUVWXYZ_01234abcdefghijklmnopqrstuvwxyz56789"
 #define DEBUG_NTAGS sizeof(DEBUG_ALLTAGS)

@@ -3,23 +3,24 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <vu_log.h>
 
 #include <sys/ptrace.h>
 #include <r_table.h>
 
+/* helpers for ptrace:
+	P_* produce an error messsage if ptrace fails, and terminates the thread
+	P_*_NODIE produce an error messsage if ptrace fails (and continue) */
+
 #define PTRACE(action, tracee_tid, data)                                   \
 	if (r_ptrace(action, tracee_tid, 0L, data) == -1) {                      \
-		char errmsg[80];                                                       \
-		sprintf(errmsg, "%s line %d, ptrace", __FILE__, __LINE__);             \
-		perror(errmsg);                                                        \
+		warning_msg("PTRACE");                                                 \
 		pthread_exit(NULL);                                                    \
 	}
 
 #define PTRACE_NODIE(action, tracee_tid, data)                             \
 	if (r_ptrace(action, tracee_tid, 0L, data) == -1) {                      \
-		char errmsg[80];                                                       \
-		sprintf(errmsg, "%s line %d, ptrace", __FILE__, __LINE__);             \
-		perror(errmsg);                                                        \
+		warning_msg("PTRACE");                                                 \
 	}
 
 #define P_GETREGS(tracee_tid, regs) PTRACE(PTRACE_GETREGS, tracee_tid, regs)
@@ -56,6 +57,8 @@
 	PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK |         \
 	PTRACE_O_TRACEEXIT | PTRACE_O_TRACESECCOMP
 
+#ifndef PTRACE_EVENT_STOP
 #define PTRACE_EVENT_STOP 128
+#endif
 
 #endif

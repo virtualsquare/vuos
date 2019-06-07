@@ -1,6 +1,8 @@
 #ifndef MOUNTFLAGS_H
 #define MOUNTFLAGS_H
 
+/* translate all mount flags into options so that modules can parse options only */
+
 /* opts == NULL: return the length of the char array required
 else: translate  mountflags as a comma separated string of options in opts */
 
