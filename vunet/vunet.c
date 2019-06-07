@@ -177,9 +177,9 @@ int vu_vunet_lchown(const char *pathname, uid_t owner, gid_t group, int fd, void
 
 int vu_vunet_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event, void *fdprivate) {
 	current_vnetfd = fdprivate;
-	if (current_vnetfd->vunet->netops->epoll_ctl == NULL) {
-    errno = ENOSYS; return -1;
-  } else
+	if (current_vnetfd->vunet->netops->epoll_ctl == NULL)
+    return errno = ENOSYS, -1;
+  else
 		return current_vnetfd->vunet->netops->epoll_ctl(epfd, op, fd, event);
 }
 
@@ -187,25 +187,24 @@ int vu_vunet_socket(int domain, int type, int protocol, void **fdprivate) {
 	struct vunet *vunet = vu_get_ht_private_data();
 	if (vunet == NULL)
 		vunet = get_defstack(domain);
-	if (vunet == NULL) {
-		errno = EAFNOSUPPORT; return -1;
-	}
+	if (vunet == NULL)
+		return errno = EAFNOSUPPORT, -1;
 	printkdebug(N, "socket stack %p domain 0x%x type 0x%x protocol 0x%x",
 			vunet, domain, type, protocol);
 	if (type == SOCK_DEFAULT) {
 		set_defstack(domain, vunet);
 		return 0;
 	} else {
-		if (vunet->netops->socket == NULL) {
-			errno = ENOSYS; return -1;
-		} else if (vunet->netops->supported_domain != NULL &&
-				! vunet->netops->supported_domain(domain)) {
-			errno = EAFNOSUPPORT; return -1;
-		} else{
+		if (vunet->netops->socket == NULL)
+			return errno = ENOSYS, -1;
+		else if (vunet->netops->supported_domain != NULL &&
+				! vunet->netops->supported_domain(domain))
+			return errno = EAFNOSUPPORT, -1;
+		else {
 			current_vnetfd = malloc(sizeof(struct vunetfd));
-			if (current_vnetfd == NULL) {
-				errno = ENOMEM; return -1;
-			} else {
+			if (current_vnetfd == NULL)
+				return errno = ENOMEM, -1;
+			else {
 				int retval;
 				current_vnetfd->vunet = vunet;
 				current_vnetfd->netfdprivate = NULL;
@@ -227,55 +226,54 @@ int vu_vunet_socket(int domain, int type, int protocol, void **fdprivate) {
 int vu_vunet_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "bind %p %d", current_vnetfd, sockfd);
-	if (current_vnetfd->vunet->netops->bind == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->bind == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->bind(sockfd, addr, addrlen);
 }
 
 int vu_vunet_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "connect %p %d", current_vnetfd, sockfd);
-	if (current_vnetfd->vunet->netops->connect == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->connect == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->connect(sockfd, addr, addrlen);
 }
 
 int vu_vunet_listen(int sockfd, int backlog, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "listen %p %d %d", sockfd, current_vnetfd, backlog);
-	if (current_vnetfd->vunet->netops->listen == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->listen == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->listen(sockfd, backlog);
-	errno = ENOSYS; return -1;
 }
 
 int vu_vunet_accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "accept4 %p %d", current_vnetfd, sockfd);
-	if (current_vnetfd->vunet->netops->accept4 == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->accept4 == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->accept4(sockfd, addr, addrlen, flags);
 }
 
 int vu_vunet_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "getsockname %p %d", current_vnetfd, sockfd);
-	if (current_vnetfd->vunet->netops->getsockname == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->getsockname == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->getsockname(sockfd, addr, addrlen);
 }
 
 int vu_vunet_getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "getpeername %p %d", current_vnetfd, sockfd);
-	if (current_vnetfd->vunet->netops->getpeername == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->getpeername == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->getpeername(sockfd, addr, addrlen);
 }
 
@@ -284,9 +282,9 @@ ssize_t vu_vunet_sendto(int sockfd, const void *buf, size_t len, int flags,
 		void *msg_control, size_t msg_controllen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "sendto %p %d %p %d", current_vnetfd, sockfd, buf, len);
-	if (current_vnetfd->vunet->netops->sendmsg == NULL) {
-    errno = ENOSYS; return -1;
-  } else {
+	if (current_vnetfd->vunet->netops->sendmsg == NULL)
+    return errno = ENOSYS, -1;
+  else {
 		struct iovec iov[] = {{(void *) buf, len}};
 		struct msghdr msgh = {(void *) dest_addr, addrlen, iov, 1, msg_control, msg_controllen, 0};
     return current_vnetfd->vunet->netops->sendmsg(sockfd, &msgh, flags);
@@ -298,9 +296,9 @@ ssize_t vu_vunet_recvfrom(int sockfd, void *buf, size_t len, int flags,
 		void *msg_control, size_t *msg_controllen, void *fdprivate) {
 	  current_vnetfd = fdprivate;
 	printkdebug(N, "recvfrom %p %d %p %d", current_vnetfd, sockfd, buf, len);
-  if (current_vnetfd->vunet->netops->recvmsg == NULL) {
-    errno = ENOSYS; return -1;
-  } else {
+  if (current_vnetfd->vunet->netops->recvmsg == NULL)
+    return errno = ENOSYS, -1;
+  else {
 		struct iovec iov[] = {{buf, len}};
 		struct msghdr msgh = {(void *) src_addr, *addrlen, iov, 1, msg_control, 0, 0};
 		if (msg_controllen != NULL)
@@ -320,9 +318,9 @@ int vu_vunet_getsockopt(int sockfd, int level, int optname,
 		void *optval, socklen_t *optlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "getsockopt %p %d %d %d", current_vnetfd, sockfd, level, optname);
-	if (current_vnetfd->vunet->netops->getsockopt == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->getsockopt == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->getsockopt(sockfd, level, optname, optval, optlen);
 }
 
@@ -330,9 +328,9 @@ int vu_vunet_setsockopt(int sockfd, int level, int optname,
 		const void *optval, socklen_t optlen, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "setsockopt %p %d %d %d", current_vnetfd, sockfd, level, optname);
-	if (current_vnetfd->vunet->netops->setsockopt == NULL) {
-		errno = ENOSYS; return -1;
-	} else
+	if (current_vnetfd->vunet->netops->setsockopt == NULL)
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->setsockopt(sockfd, level, optname, optval, optlen);
 }
 
@@ -341,14 +339,14 @@ int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr,
 	printkdebug(N, "ioctl %p %d 0x%x %p %d", current_vnetfd, sockfd, request, buf, addr);
 	if (current_vnetfd == NULL) {
 		struct vunet *vunet = vu_get_ht_private_data();
-		if (vunet->netops->ioctl == NULL) {
-			errno = ENOSYS; return -1;
-		} else
+		if (vunet->netops->ioctl == NULL)
+			return errno = ENOSYS, -1;
+		else
 			return vunet->netops->ioctl(sockfd, request, buf);
 	} else {
-		if (current_vnetfd->vunet->netops->ioctl == NULL) {
-			errno = ENOSYS; return -1;
-		} else
+		if (current_vnetfd->vunet->netops->ioctl == NULL)
+			return errno = ENOSYS, -1;
+		else
 			return current_vnetfd->vunet->netops->ioctl(sockfd, request, buf);
 	}
 }
@@ -356,9 +354,9 @@ int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr,
 int vu_vunet_close(int sockfd, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "close %p %d", current_vnetfd, sockfd);
-  if (current_vnetfd->vunet->netops->close == NULL) {
-    errno = ENOSYS; return -1;
-  } else
+  if (current_vnetfd->vunet->netops->close == NULL)
+    return errno = ENOSYS, -1;
+  else
     return current_vnetfd->vunet->netops->close(sockfd);
 }
 
@@ -371,15 +369,13 @@ int vu_vunet_mount(const char *source, const char *target,
 	if (dlhandle == NULL || (netops = dlsym(dlhandle, "vunet_ops")) == NULL) {
 		if (dlhandle != NULL)
 			dlclose(dlhandle);
-		errno = ENODEV;
-		return -1;
+		return errno = ENODEV, -1;
 	} else {
 		struct vu_service_t *s = vu_mod_getservice();
 		struct vunet *vunet = malloc(sizeof(struct vunet));
 		int retvalue = 0;
 		if (vunet == NULL) {
-			errno = ENOMEM;
-			retvalue = -1;
+			return errno = ENOMEM, -1;
 		} else {
 			vunet->dlhandle = dlhandle;
 			vunet->netops = netops;
@@ -419,10 +415,8 @@ int vu_vunet_umount2(const char *target, int flags) {
 	vuht_del(vunet->socket_ht, flags);
 	if (vunet->ioctl_ht)
 		vuht_del(vunet->ioctl_ht, flags);
-  if ((ret_value = vuht_del(ht, flags)) < 0) {
-    errno = -ret_value;
-    return -1;
-  }
+  if ((ret_value = vuht_del(ht, flags)) < 0)
+    return errno = -ret_value, -1;
   return 0;
 }
 
