@@ -33,23 +33,33 @@ NB: VUOS is much much more than this, and it is under active developmemnt.
 This example uses **umvu**: a user-mode implementation of the VUOS concepts based on ptrace. In the future VUOS
 could be re-implemented on other tracing/virtualizing supports.
 
-    $ # start the hypervisor, and run a bash *inside* the partial virtual machine
+start the hypervisor, and run a bash *inside* the partial virtual machine
+
     $ umvu bash
-    $ # This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
+This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
     $ PS1='\$\$ '
-    $$ # let us load vufuse: a user-mode implementation of FUSE (source compatible with FUSE modules)
+
+let us load vufuse: a user-mode implementation of FUSE (source compatible with FUSE modules)
+
     $$ vu_insmod vufuse
-    $$ # nothing is currently mounted on /mnt
+
+nothing is currently mounted on /mnt
+
     $$ ls /mnt
-    $$ # the following command mounts the filesystem image /tmp/linux.img
+    the following command mounts the filesystem image /tmp/linux.img
     $$ vumount -t vufuseext2 -o ro /tmp/linux.img /mnt
-    $$ # now the image has been mounted:
+
+now the image has been mounted:
+
     $$ ls /mnt
     bin  boot  dev  etc  lib  lost+found  mnt  proc  sbin  tmp  usr
     $$ vuumount /mnt
     $$ ls /mnt
     $$ exit
-    $ # We have left the partial virtual machine
+
+We have left the partial virtual machine
 
 Comments: user can *mount* any filesystem they like, on any directory. The linux kernel is not involved
 for all the system calls related to files in the mounted filesystem. The effects of this *mount* is just *perceived* by the processes running in the partial virtual machine. `vumount` is just a wrapper to the `mount(1)` system call (the command `mount(8)` does much much more, it is setuid root and requires real uid to be root to
@@ -57,20 +67,31 @@ permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gi
 
 ### create a disk image, partition it, create a filesystem and mount it ###
 
-    $ # start the hypervisor, and run a bash *inside* the partial virtual machine
+start the hypervisor, and run a bash *inside* the partial virtual machine
+
     $ umvu bash
-    $ # This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
+This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
     $ PS1='\$\$ '
-    $$ # let us load vudev and vufuse: vudev to virtualize devices and vufuse as in the previous example
+
+let us load vudev and vufuse: vudev to virtualize devices and vufuse as in the previous example
+
     $$ vu_insmod vudev vufuse
-    $$ # create a 1 GiB large empty file
+
+create a 1 GiB large empty file
+
     $$ truncate -s 1G /tmp/disk
     $$ ls -l /tmp/disk
     -rw-r--r-- 1 renzo renzo 1073741824 Jun  3 11:55 /tmp/disk
-    $$ # let us mount the empty file as a partitioned virtual disk:
+
+let us mount the empty file as a partitioned virtual disk:
+
     $$ vumount -t vudevpartx /tmp/disk /dev/hda
     Bad MBR signature 0 0
-    $$ # clearly if not a partitioned disk, yet. Let us add a partitioning scheme:
+
+clearly if not a partitioned disk, yet. Let us add a partitioning scheme:
+
     $$  /sbin/gdisk /dev/hda
     GPT fdisk (gdisk) version 1.0.3
     
@@ -120,12 +141,16 @@ permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gi
     Do you want to proceed? (Y/N): Y
     OK; writing new GUID partition table (GPT) to /dev/hda.
     The operation has completed successfully.
-    $$ # The disk has been partitioned:
+
+The disk has been partitioned:
+
     $$  ls -l /dev/hda1
     brw------- 0 renzo renzo 0, 1 Jan  1  1970 /dev/hda1
     $$ ls -l /dev/hda2
     brw------- 0 renzo renzo 0, 2 Jan  1  1970 /dev/hda2
-    $$ # Now it is possible to create an ext4 partition on /dev/hda1
+
+Now it is possible to create an ext4 partition on /dev/hda1
+
     $$ /sbin/mkfs.ext4 /dev/hda1
     mke2fs 1.45.1 (12-May-2019)
     warning: Unable to get device geometry for /dev/hda1
@@ -139,9 +164,12 @@ permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gi
     Creating journal (4096 blocks): done
     Writing superblocks and filesystem accounting information: done
 
-    $$ # now the file system on /dev/hda1 can be mounted on /mnt
+now the file system on /dev/hda1 can be mounted on /mnt
+
     $$ vumount -t vufuseext2 -o rw+ /dev/hda1 /mnt
-    $$ # add a significative file on /mnt
+
+add a significative file on /mnt
+
     $$ echo ciao > /mnt/hello
     $$ ls -l /mnt
     total 13
@@ -156,31 +184,46 @@ permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gi
 
 It is possible to provide network partial virtualization using the `vunet` module
 
-    $ # start the hypervisor, and run a bash *inside* the partial virtual machine
+start the hypervisor, and run a bash *inside* the partial virtual machine
+
     $ umvu bash
-    $ # This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
+This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
     $ PS1='\$\$ '
-    $$ # let us load vunet
+
+let us load vunet
+
     $$ vu_insmod vunet
-    $$ # the following command #mounts# a vde network on /dev/net/myvde.
-    $$ # (see https://github.com/rd235/vdeplug4)
+
+the following command #mounts# a vde network on /dev/net/myvde.
+(see https://github.com/rd235/vdeplug4)
+
     $$ vumount -t vunetvdestack vxvde:// /dev/net/myvde
-    $$ # vustack is the command to select the stack to use.
+
+vustack is the command to select the stack to use.
+
     $$ vustack /dev/net/myvde ip link
     1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
         link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     2: vde0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
         link/ether 7e:76:c0:d7:3b:37 brd ff:ff:ff:ff:ff:ff
-    $$ # without vustack I can still access the stack provided by the linux kernel
+
+without vustack I can still access the stack provided by the linux kernel
+
     $$ ip link
     1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
         link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP mode DEFAULT group default qlen 1000
         link/ether 80:aa:bb:cc:dd:ee brd ff:ff:ff:ff:ff:ff
-    $$ # let us start a bash using /dev/net/myvde as itsdfault net
+
+let us start a bash using /dev/net/myvde as itsdfault net
+
     $$ vustack /dev/net/myvde bash
     $ PS1='\$N\$ '
-    $N$ # let us configure the net
+
+let us configure the net
+
     $N$ ip addr add 192.168.250.250/24 dev vde0
     $N$ ip link set vde0 up
     $N$ ip route add default via 192.168.250.1
