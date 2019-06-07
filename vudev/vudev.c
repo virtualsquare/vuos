@@ -377,6 +377,7 @@ int vu_vudev_mount(const char *source, const char *target,
 		new->stat.st_mode = S_IFCHR | 0600;
 		new->stat.st_uid = getuid();
 		new->stat.st_gid = getgid();
+		new->stat.st_atime = new->stat.st_ctime = new->stat.st_mtime = time(NULL);
 		if (vu_stat(target, &tstat) == 0) {
 			new->stat.st_rdev = tstat.st_rdev;
 			if (S_ISCHR(tstat.st_mode) | S_ISBLK (tstat.st_mode))
