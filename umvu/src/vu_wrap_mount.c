@@ -29,16 +29,11 @@
 #include <umvu_peekpoke.h>
 #include <hashtable.h>
 #include <xcommon.h>
-//#include <linux_32_64.h>
 #include <arch_table.h>
 #include <syscall_defs.h>
 #include <vu_execute.h>
 #include <service.h>
-//#include <vu_tmpdir.h>
-//#include <vu_fs.h>
 #include <path_utils.h>
-//#include <vu_file_table.h>
-//#include <vu_fd_table.h>
 
 void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
