@@ -46,7 +46,9 @@ void usage_exit(int exit_status)
 	if (!quiet) {
 		fprintf(stderr, 
 				"Usage: vuname [OPTION]...\n"
-				"Print certain VUOS system information.  With no OPTION, same as -s.\n"
+				" Print certain VUOS system information.  With no OPTION, same as -s.\n"
+				"Usage: vuname newname\n"
+				" Set the VUOS view name\n"
 				"\n"
 				" -a, --all                print all information, in the following order,\n"
 				" except omit -p and -i if unknown:\n"
@@ -59,7 +61,7 @@ void usage_exit(int exit_status)
 				" -i, --hardware-platform  print the hardware platform or \"unknown\"\n"
 				" -o, --operating-system   print the operating system\n"
 				" -U, --serverid           print the server id\n"
-				" -N, --viewname           print the view name\n"
+				" -V, --viewname           print the view name\n"
 				"other options\n"
 				" -P, --prompt             print a string for user prompts\n"
 				" -q, --quiet              quiet mode: silent on errors\n"
@@ -150,6 +152,15 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (argc - optind != 0) {
+		/* with one argument and nooptions it sets the viewname */
+		if (argc - optind == 1 && optind == 1) {
+			if (vu_setname(argv[optind]) == 0)
+				exit(0);
+			else {
+				if (!quiet) perror(progname);
+				exit (1);
+			}
+		}
 		usage_exit(1);
 	}
 	ret_value = vu_getinfo(&vi);

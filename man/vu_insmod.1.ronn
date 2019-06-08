@@ -1,3 +1,6 @@
+vu_insmod(1) -- user-mode implementation of VUOS
+====
+
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -22,9 +25,6 @@
 .\" MA 02110-1301 USA.
 .\"
 -->
-
-vu_insmod(1) -- user-mode implementation of VUOS
-====
 
 ## SYNOPSIS
 

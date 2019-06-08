@@ -1,3 +1,6 @@
+vudebug(1) -- debug utility for umvu
+====
+
 !--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -22,9 +25,6 @@
 .\" MA 02110-1301 USA.
 .\"
 -->
-
-vudebug(1) -- debug utility for umvu
-====
 
 ## SYNOPSIS
 

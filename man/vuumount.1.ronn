@@ -1,3 +1,6 @@
+vuumount(1) -- unmount a filesystem or a resource
+====
+
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -22,9 +25,6 @@
 .\" MA 02110-1301 USA.
 .\"
 -->
-
-vuumount(1) -- unmount a filesystem or a resource
-====
 
 ## SYNOPSIS
 
