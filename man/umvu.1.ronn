@@ -1,4 +1,4 @@
-!--
+<!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
 .\" This is free documentation; you can redistribute it and/or
@@ -33,7 +33,7 @@ umvu(1) -- user-mode implementation of VUOS
 ## DESCRIPTION
 
 VUOS: view based operating system.
-VUOS gives processes their own view of the system resources. 
+VUOS gives processes their own view of the system resources.
 VUOS is a different perspective on namespaces, anykernels and
 related concepts. The main idea behind VUOS is that it is possible to give
 processes their own *view* using partial virtual machines.
@@ -69,7 +69,7 @@ processes, it does not widen the attack surface of the kernel.
     of the modules can refer to virtual resource. (for example it is possible to mount
     a file system stored on a virtual device).
     The `-x` or `--nonesting` option disables this feature.
-  
+
   * `-S`, `--noseccomp`:
     `umvu` uses a seccomp filter to speed-up the virtualization.
     The `-S` or `--noseccomp` option disables this feature.
@@ -83,7 +83,32 @@ processes, it does not widen the attack surface of the kernel.
     */etc/vurc* and the standard personal initialization file *~/.vurc*
 
   * `-V` <name>, `--vu_name` <name>:
-    set the name of the view. This name can be read and set using *vuname*(1)
+    set the name of the view. This name can be read and set using `vuname`(1)
+
+  * `-d` <debugtags>, `--debugtags` <debugtags>:
+    set the debug tags enabled from the beginning. e.g. `-d s` enables
+    log messages of system call requests. (see `vudebug`(1) for a detailed
+    description)
+
+  * `-D` <colorspec>, `--debugcols` <colorspec>:
+    set color and font effects for log messages. e.g. `-D p:r -D c:g#`
+    means that path resolution messages will be displayed in red while
+    module choice log will be in reverse green. Color definition can refer to
+    enable and disabled categories (the option defines the colors for
+    a successive activation). (see `vudebug`(1) for a detailed
+    description)
+
+  * `-l` <level>, `--loglevel` <level>:
+    set the debug level. Only messages having level less or equal of
+    the parameter of this option will be displayed.
+    (0 = emergency, 1 = alert, 2 = critical, 3 = error, 4 = warning, 5 = notice, 6 = info, 7 = debug).
+    The default level is 4.
+
+  * `-s` <level>, `--syslog` <level>:
+    use `syslog`(2) for logging and log messages having level less or equal of
+    the parameter of this option.
+    (0 = emergency, 1 = alert, 2 = critical, 3 = error, 4 = warning, 5 = notice, 6 = info, 7 = debug).
+    This option is disabled by default.
 
 ## EXAMPLES
 
@@ -122,8 +147,8 @@ processes, it does not widen the attack surface of the kernel.
   We have left the partial virtual machine
 
 Comments: user can *mount* any filesystem they like, on any directory. The linux kernel is not involved
-for all the system calls related to files in the mounted filesystem. The effects of this *mount* is just *perceived* by the processes running in the partial virtual machine. `vumount` is just a wrapper to the `mount(1)` system call (the command `mount(8)` does much much more, it is setuid root and requires real uid to be root to
-permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gid virtualization).
+for all the system calls related to files in the mounted filesystem. The effects of this *mount* is just *perceived* by the processes running in the partial virtual machine. `vumount` is just a wrapper to the `mount`(1) system call (the command `mount(8)` does much much more, it is setuid root and requires real uid to be root to
+permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gid virtualization).
 
 ### create a disk image, partition it, create a filesystem and mount it ###
 
@@ -308,7 +333,7 @@ let us configure the net
     $N$
 
 ## SEE ALSO
-vu_insmod(1), vu_lsmod(1), vu_delmod(1), vumount(1), vuumount(1)
+vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vumount(1), vuumount(1), vudebug(1)
 
 ## AUTHOR
 

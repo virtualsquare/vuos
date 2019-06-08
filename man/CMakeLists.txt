@@ -17,7 +17,7 @@ else(NOT RONN)
 		get_filename_component(VU_RONNPAGE ${VU_RONN_PATH} NAME)
 # VU_MANPAGE: VU_RONNPAGE without the suffix
 		string(REPLACE ".ronn" "" VU_MANPAGE ${VU_RONNPAGE})
-# VU_BUILD_NAMEPAGE path of the manpage in the build hierarchy 
+# VU_BUILD_NAMEPAGE path of the manpage in the build hierarchy
 		set(VU_BUILD_NAMEPAGE ${CMAKE_BINARY_DIR}/man/${VU_MANPAGE})
 # create the man page (prepend comments: include licence)
 		add_custom_command(OUTPUT ${VU_BUILD_NAMEPAGE}

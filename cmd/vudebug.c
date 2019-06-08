@@ -26,19 +26,19 @@
 #include <getopt.h>
 #include <vulib.h>
 
-#define ALLTAGS "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\n"
+#define ALLTAGS "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 static char *progname;
 void usage()
 {
   fprintf(stderr, 
-			"Usage: %s [ARG] [ARG] ..."
+			"Usage: %s [ARG] [ARG] ... [ -- cmd args ]\n"
 			"  ARG = --help | DEBUGSPEC\n"
 			"  DEBUGSPEC = [+|-]TAG[TAG]...[:COLORSPEC]\n"
 			"  +: add, -: delete ?:ls\n"
 			"  TAG one of: " ALLTAGS "\n"
 			"  COLORSPEC: nwrgbcmyNWRGBCMY+-_*#\n"
-			"  nwrgbcmy = black white red green blue cyan magenta yellow"
-			"  smallcase: foreground, capital: background"
+			"  nwrgbcmy = black white red green blue cyan magenta yellow\n"
+			"  smallcase: foreground, capital: background\n"
 			"  +:,bright, -: dim, _: underlined, *: blinking,  #: reverse\n\n",
 			progname);
 
