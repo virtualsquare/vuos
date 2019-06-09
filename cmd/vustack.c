@@ -89,6 +89,13 @@ static char *pf_names[] = { \
 
 static unsigned char vustack_proto[PF_EXTRA_SIZE] = { [PF_UNSPEC] = 1 };
 
+static char *pf_num2nname(int family) {
+	if (family >= 0 && family < PF_NAMES_SIZE - 1)
+		return pf_names[family];
+	else
+		return "unknown";
+}
+
 static int pf_name2num(char *pf_name) {
 	int i;
 	for (i = 0; i < PF_NAMES_SIZE; i++)
@@ -102,8 +109,7 @@ static void process_families(const char *input) {
   if(tagc > 0) {
     char buf[strlen(input)+1];
     char *tags[tagc];
-    char *args[tagc];
-    stropt(input, tags, args, buf);
+    stropt(input, tags, NULL, buf);
 		vustack_proto[PF_UNSPEC] = 0;
     for (int i=0; i < tagc - 1; i++) {
 			switch(strcase_tolower(tags[i])) {
@@ -115,12 +121,10 @@ static void process_families(const char *input) {
 					break;
 				case STRCASE(i,p,v,4):
 				case STRCASE(i,p,4):
-				case STRCASE(4):
 					vustack_proto[PF_INET] = 1;
 					break;
 				case STRCASE(i,p,v,6):
 				case STRCASE(i,p,6):
-				case STRCASE(6):
 					vustack_proto[PF_INET6] = 1;
 					break;
 				case STRCASE(b,t):
@@ -130,8 +134,8 @@ static void process_families(const char *input) {
 					vustack_proto[PF_IRDA] = 1;
 					break;
 				default:
-					if (tags[i][0] == '#') {
-						int family = strtol(&(tags[i][1]), NULL, 0);
+					if (isdigit(tags[i][0])) {
+						int family = strtol(tags[i], NULL, 0);
 						if (family > 0 && family < PF_EXTRA_SIZE)
 							vustack_proto[family] = 1;
 						else {
@@ -152,20 +156,26 @@ static void process_families(const char *input) {
   }
 }
 
-static char *short_options = "hf:";
+static char *short_options = "hvf:";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
+	{"verbose", no_argument, 0, 'v'},
 	{"family", required_argument, 0, 'f'},
 	{"families", required_argument, 0, 'f'},
 	{0, 0, 0, 0}
 };
 
-void usage(char *argv0)
+void usage(char *progname)
 {
-  char *name=basename(argv0);
   fprintf(stderr,
-      "Usage: %s [options] stack cmd [args]\n",
-			name);
+			"%s: set the default netowrking stack\n\n"
+      "Usage: %s [options] stack cmd [args]\n\n"
+			"    -h --help            print this short usage message\n"
+			"    -f list\n"
+			"      -family list\n"
+			"      -families list     set the list of address families\n"
+			"    -v                   verbose mode\n\n",
+			progname, progname);
 
 	exit(1);
 }
@@ -173,6 +183,7 @@ void usage(char *argv0)
 int main(int argc, char *argv[])
 {
 	int c;
+	int verbose = 0;
 	progname = basename(argv[0]);
 	
 	if (vu_getinfo(NULL) < 0) {
@@ -190,6 +201,9 @@ int main(int argc, char *argv[])
 			case 'f':
 				process_families(optarg);
 				break;
+			case 'v':
+				verbose = 1;
+				break;
 			case 'h':
 			default:
 				usage(argv[0]);
@@ -203,12 +217,23 @@ int main(int argc, char *argv[])
 		char **newargv = argv + (optind + 1);
 		
 		if (vustack_proto[PF_UNSPEC] == 1) {
+			if (verbose)
+				fprintf(stderr, "Using %s for ALL address families\n", stack);
 			if (msocket(stack, 0, SOCK_DEFAULT, 0) < 0) {
 				perror("vustack: msocket");
 				exit(1);
 			}
 		} else {
 			int family;
+			if (verbose) {
+				fprintf(stderr, "Using %s for the following address families:\n   ", stack);
+				for(family = 1; family < PF_EXTRA_SIZE; family++) {
+					if (vustack_proto[family] == 1) {
+						fprintf(stderr," %s(%d)", pf_num2nname(family), family);
+					}
+				}
+				fprintf(stderr,"\n");
+			}
 			for(family = 1; family < PF_EXTRA_SIZE; family++) {
 				if (vustack_proto[family] == 1) {
 					if (msocket(stack, family, SOCK_DEFAULT, 0) < 0) {
