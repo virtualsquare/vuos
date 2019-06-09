@@ -14,3 +14,4 @@ foreach(VU_CMD ${VU_CMDS})
 endforeach(VU_CMD)
 
 target_link_libraries(vumount stropt)
+target_link_libraries(vustack stropt)
