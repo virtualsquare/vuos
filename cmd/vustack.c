@@ -192,7 +192,7 @@ static struct option long_options[] = {
 	{0, 0, 0, 0}
 };
 
-void usage(char *progname)
+void usage(char *progname, int verbose)
 {
   fprintf(stderr,
 			"%s: set the default networking stack\n\n"
@@ -205,6 +205,17 @@ void usage(char *progname)
 			"    -v --verbose         verbose mode\n\n",
 			progname, progname);
 
+	if (verbose) {
+		int family;
+		fprintf(stderr, "List address family names and numbers:\n");
+		for (family = 1; family < PF_NAMES_SIZE; family++)
+			if (pf_names[family] != NULL)
+				fprintf(stderr, "%5d: %s\n", family, pf_names[family]);
+		fprintf(stderr, "\nMax family number %d\n", PF_EXTRA_SIZE - 1);
+		fprintf(stderr, "\nAliases:\n"
+				"  ip: inet,inet6,netlink,packet\n"
+				"  ipv4: inet, ip4: inet, ipv6: inet6, ip6: inet6, bt: bluetooth, ir: irda\n\n");
+	}
 	exit(1);
 }
 
@@ -238,7 +249,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'h':
 			default:
-				usage(argv[0]);
+				usage(argv[0], verbose);
 				break;
 		}
 	}
@@ -286,6 +297,6 @@ int main(int argc, char *argv[])
 
 		execvp(cmd, newargv);
 	} else
-		usage(progname);
+		usage(progname, verbose);
 	return 1;
 }
