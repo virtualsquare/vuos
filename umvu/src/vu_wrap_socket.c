@@ -127,8 +127,10 @@ void wo_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void vw_msocket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht)
 		wi_socket(ht, sd);
+	else if (sd->extra->statbuf.st_mode == 0)
+		sd->ret_value = -ENOENT;
 	else
-		sd->ret_value = -EINVAL;
+		sd->ret_value = -ENOTSUP;
 }
 
 static int socket_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {

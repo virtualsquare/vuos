@@ -18,16 +18,19 @@
  *
  */
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<libgen.h>
-#include<getopt.h>
-#include<string.h>
-#include<sys/socket.h>
-#include<stropt.h>
-#include<strcase.h>
-#include<vulib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <getopt.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stropt.h>
+#include <strcase.h>
+#include <vulib.h>
 
 static char *progname;
 
@@ -97,11 +100,34 @@ static char *pf_num2nname(int family) {
 }
 
 static int pf_name2num(char *pf_name) {
-	int i;
-	for (i = 0; i < PF_NAMES_SIZE; i++)
-		if (pf_names[i] != NULL && strcmp(pf_name, pf_names[i]) == 0)
-			return i;
+	int family;
+	for (family = 0; family < PF_NAMES_SIZE; family++)
+		if (pf_names[family] != NULL && strcmp(pf_name, pf_names[family]) == 0)
+			return family;
 	return -1;
+}
+
+static int is_a_stack(char *stack) {
+	struct stat buf;
+	int rv = stat(stack, &buf);
+	if (rv < 0)
+		return rv;
+	else if ((buf.st_mode & S_IFMT) != S_IFSTACK)
+		return errno=ENOTSUP, -1;
+	else
+		return 0;
+}
+
+static void add_supported_families(char *stack) {
+	int family;
+	vustack_proto[PF_UNSPEC] = 0;
+	for (family = 1; family < PF_EXTRA_SIZE; family++) {
+		int fd = msocket(stack, family, -1, 0);
+		if (fd >= 0 || errno == EINVAL)
+				vustack_proto[family] = 1;
+		if (fd >= 0)
+			close(fd);
+	}
 }
 
 static void process_families(const char *input) {
@@ -156,10 +182,11 @@ static void process_families(const char *input) {
   }
 }
 
-static char *short_options = "hvf:";
+static char *short_options = "hvsf:";
 static struct option long_options[] = {
 	{"help", no_argument, 0, 'h'},
 	{"verbose", no_argument, 0, 'v'},
+	{"supported", no_argument, 0, 's'},
 	{"family", required_argument, 0, 'f'},
 	{"families", required_argument, 0, 'f'},
 	{0, 0, 0, 0}
@@ -168,13 +195,14 @@ static struct option long_options[] = {
 void usage(char *progname)
 {
   fprintf(stderr,
-			"%s: set the default netowrking stack\n\n"
+			"%s: set the default networking stack\n\n"
       "Usage: %s [options] stack cmd [args]\n\n"
 			"    -h --help            print this short usage message\n"
 			"    -f list\n"
 			"      -family list\n"
 			"      -families list     set the list of address families\n"
-			"    -v                   verbose mode\n\n",
+			"    -s --supported       all families supported by the stack\n\n"
+			"    -v --verbose         verbose mode\n\n",
 			progname, progname);
 
 	exit(1);
@@ -184,6 +212,7 @@ int main(int argc, char *argv[])
 {
 	int c;
 	int verbose = 0;
+	int supported = 0;
 	progname = basename(argv[0]);
 	
 	if (vu_getinfo(NULL) < 0) {
@@ -204,6 +233,9 @@ int main(int argc, char *argv[])
 			case 'v':
 				verbose = 1;
 				break;
+			case 's':
+				supported = 1;
+				break;
 			case 'h':
 			default:
 				usage(argv[0]);
@@ -216,6 +248,14 @@ int main(int argc, char *argv[])
 		char *cmd = argv[optind + 1];
 		char **newargv = argv + (optind + 1);
 		
+		if (is_a_stack(stack) < 0) {
+			perror(stack);
+			exit(1);
+		}
+
+		if (supported)
+			add_supported_families(stack);
+
 		if (vustack_proto[PF_UNSPEC] == 1) {
 			if (verbose)
 				fprintf(stderr, "Using %s for ALL address families\n", stack);

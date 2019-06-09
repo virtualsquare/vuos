@@ -23,7 +23,12 @@
 #define VUCTL_GET_DEBUGTAGNAME 6
 #define VUCTL_SET_DEBUGCOLOR 7
 
+#ifndef S_IFSTACK
+#define S_IFSTACK 0160000
+#endif
+#ifndef SOCK_DEFAULT
 #define SOCK_DEFAULT 0
+#endif
 
 #if 0
 /* not yet implemented */
