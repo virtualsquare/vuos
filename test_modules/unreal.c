@@ -18,6 +18,30 @@
  *
  */
 
+/* this is a test module:
+	 when loaded the entire file system "appears" as /unreal and /unreal/unreal.
+
+	 $ vu_insmod unreal
+	 $ ls /etc/passwd
+	 /etc/passwd
+	 $ ls /unreal/etc/passwd
+	 /unreal/etc/passwd
+	 $ ls /unreal/unreal/etc/passwd
+	 /unreal/unreal/etc/passwd
+	 $ ls /unreal/unreal/unreal/etc/passwd
+	 /unreal/unreal/unreal/etc/passwd': No such file or directory
+
+	 It is possible in this way to test (some of) the correctness of vuos implementation:
+	 the operation on file or dir X must have the same result when testing the same operation
+	 on /unreal/X or /unreal/unreal/X.
+
+	 X -> VUOS force processes to forward the syscall requests to the kernel
+	 /unreal/X -> VUOS itself forwards the requests to the kernel
+	 /unreal/unreal/X -> VUOS forwards the requests to VUOS and then to the kernel
+	 (this latter case uses process self-virtualization)
+
+	 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

@@ -14,6 +14,20 @@
 
 /* header file for VUOS module implementation */
 
+/* a module must define a struct vu_module_t global non static variable
+	 named vu_module*/
+/* if the name of the module (vu_module.name) is xxx:
+ *   the module constructor is:
+ *       void *vu_xxx_init(void)
+ *   the destructor is:
+ *       int vu_xxx_fini(void *private_data);
+ *   system call handlers can be defined in two ways:
+ *       by defining a function whose name has the prefix vu_xxx_ (like vu_xxx_open, vu_xxx_write)
+ *       using the macro vu_syscall_handler in the constructor
+ *       (the former way is used to define an implementation of the system call, the latter way
+ *        is preferred to use an existing function (e.g. the system call implementation by glibc) */
+
+/* when a module is loaded, it defines a service. A service can be seen as a descriptor for a module. */
 struct vu_service_t;
 struct vuht_entry_t;
 
@@ -34,6 +48,13 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #else
 #define vu_stat stat
 #endif
+
+/* the macro VU_PROTOTYPES gets the name of the module as its argument. VU_PROTOTYPES
+	 defines the signature of all possible module define functions that VUOS core can call.
+	 VU_PROTOTYPES is for type checking */
+
+/* deallocation of data-structures must be in the cleanup function.
+	 umount should only delete the entry/entries from the hash table (vuht_del) */
 
 #define VU_SYSNAME(name, syscall) vu_ ## name ## _ ## syscall
 #define VU_PROTOTYPES(name) \
@@ -101,6 +122,8 @@ int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
 \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
     struct vuht_entry_t *ht); \
+
+/* HASH TABLE management functions */
 
 #define CHECKMODULE 0        // Module name
 #define CHECKPATH 1          // Path
@@ -202,6 +225,9 @@ typedef void *(*mod_inheritance_upcall_t)(mod_inheritance_state_t, void *);
 void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
 void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 
+/* stat must be implemented using 64bit data structures
+	 even if VUOS is running on a 32bit architecture.
+	 always use vu_stat/vu_lstat when writing module code */
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64
 #define vu_stat stat64
@@ -211,6 +237,7 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 #define vu_lstat lstat
 #endif
 
+/* log/debug facilities */
 #define KERN_SOH  "\001"    /* ASCII Start Of Header */
 #define KERN_EMERG KERN_SOH "0"  /* system is unusable */
 #define KERN_ALERT KERN_SOH "1"  /* action must be taken immediately */
