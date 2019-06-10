@@ -49,9 +49,9 @@ struct vudev_operations_t {
 	/* management of poll/select/blocking requests */
   int (*epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event, struct vudevfd_t *vudevfd);
 	/* constructor/destructor of the driver.
-		 the return value of init:
-		 * can be retrieved by vudev_get_private_data()
-		 * is the private_data argument of fini */
+	 * the return value of init:
+	 *   - can be retrieved by vudev_get_private_data()
+	 *   - is the private_data argument of fini */
   void * (*init) (const char *source, unsigned long flags, const char *args, struct vudev_t *vudev);
   int (*fini) (void *private_data);
 };
