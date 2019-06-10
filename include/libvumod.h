@@ -28,7 +28,7 @@ typedef int (* pseudo_upcall)(int tag, FILE *f, int openflags, void *pseudopriva
 /* helper function: convert struct stat's st_mode to struct dirent's d_type */
 int pseudofile_mode2type(mode_t mode);
 
-/* delper function: use path to fill in the buf of bufsiz bytes for readlink.
+/* helper function: use path to fill in the buf of bufsiz bytes for readlink.
 	 it returns -1/EINVAL if path is NULL */
 ssize_t pseudofile_readlink_fill(char *path, char *buf, size_t bufsiz);
 

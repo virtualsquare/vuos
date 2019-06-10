@@ -12,6 +12,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+/* header file for VUOS module implementation */
+
 struct vu_service_t;
 struct vuht_entry_t;
 
