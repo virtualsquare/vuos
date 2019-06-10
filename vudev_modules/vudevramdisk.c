@@ -107,10 +107,9 @@ int vuramdisk_open(const char *pathname, mode_t mode,  struct vudevfd_t *vudevfd
 }
 
 int vuramdisk_close(int fd, struct vudevfd_t *vudevfd) {
-  struct vuramdiskfd_t *ramdiskfd = vudevfd->fdprivate;
-  free(ramdiskfd);
   return 0;
 }
+
 ssize_t vuramdisk_pread(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vudevfd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vudevfd->vudev);
 	count = _ck_size(ramdisk, count, offset);
