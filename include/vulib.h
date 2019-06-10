@@ -3,6 +3,12 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
+/* header file of libvulib.
+	 This library is for programs running in VUOS virtual machines.
+	 it provides access to the syscalls added by VUOS,
+	 if defines constants and structs for the syscalls */
+
+/* Virtual System call numbers */
 #define __VVU_insmod -1
 #define __VVU_rmmod -2
 #define __VVU_lsmod -3
@@ -15,6 +21,7 @@
 #define __NR_vuctl __VVU_vuctl
 #define __NR_msocket __VVU_msocket
 
+/* constants for vuctl */
 #define VUCTL_GETINFO 1
 #define VUCTL_SETNAME 2
 #define VUCTL_GET_DEBUGTAGS 3
@@ -22,27 +29,34 @@
 #define VUCTL_DEL_DEBUGTAGS 5
 #define VUCTL_GET_DEBUGTAGNAME 6
 #define VUCTL_SET_DEBUGCOLOR 7
-
-#ifndef S_IFSTACK
-#define S_IFSTACK 0160000
-#endif
-#ifndef SOCK_DEFAULT
-#define SOCK_DEFAULT 0
-#endif
-
 #if 0
 /* not yet implemented */
 #define VUCTL_ATTACH
 #endif
+
+/* in VUOS network stacks can be "mounted" in the file system.
+	 S_IFSTACK is the file type of a network stack */
+#ifndef S_IFSTACK
+#define S_IFSTACK 0160000
+#endif
+/* 0 is not a valid socket type, it is used by msocket
+	 to define the default stack for a give family:
+	 msocket("/dev/net/mystack", AF_INET, SOCK_DEFAULT, 0);
+	 sets the default stack for ipv4 socket to "/dev/net/mystack" */
+#ifndef SOCK_DEFAULT
+#define SOCK_DEFAULT 0
+#endif
+
+/* debug tags for vuctl VUCTL_*_DEBUGTAGS */
 #define DEBUG_ALLTAGS " ABCDEFGHIJKLMNOPQRSTUVWXYZ_01234abcdefghijklmnopqrstuvwxyz56789"
 #define DEBUG_NTAGS sizeof(DEBUG_ALLTAGS)
 
+/* struct for vuctl VUCTL_GETINFO */
 struct vu_info {
   struct utsname uname;
   char vu_serverid[_UTSNAME_LENGTH];
   char vu_name[_UTSNAME_LENGTH];
 };
-
 
 #ifndef _VU_HYPERVISOR
 
