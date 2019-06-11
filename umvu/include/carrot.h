@@ -3,6 +3,18 @@
 
 #include <epoch.h>
 
+/* this is a helper module for hashtable.
+	 Hashtable try to match incrementally the right module/service.
+	 a match can be more specific (e.g. a subdirectory)
+	 can have a more recent epoch and may have exceptions.
+	 Checking for exceptions can be computationally expensive.
+	 It is useless if the match is then overridden by a more specific,
+	 more recent match.
+	 So, the incremental matching process stores in a "carrot" the list of matches
+	 that can have exceptions.
+	 When the incremental matching process completes, the carrot contains all
+	 the possible matches if the exceptions are confirmed or not. */
+
 struct vuht_entry_t;
 struct carrot_t;
 

@@ -1,6 +1,9 @@
 #ifndef VU_LOG_H
 #define VU_LOG_H
 
+/* VUOS logging facility.
+ *
+ */
 #include <syslog.h>
 #include <stdarg.h>
 #include <pthread.h>
@@ -9,10 +12,12 @@
 #include <errno.h>
 #include <stdint.h>
 
+/* printk log level encoding (inspired by the linux kernel */
 #define KERN_SOH  "\001"    /* ASCII Start Of Header */
 
 #define PRINTK_STANDARD_LEVEL 0
 
+/* Prefix strings for printk encoding the message log level */
 #define KERN_EMERG KERN_SOH "0"  /* system is unusable */
 #define KERN_ALERT KERN_SOH "1"  /* action must be taken immediately */
 #define KERN_CRIT KERN_SOH "2"  /* critical conditions */
@@ -29,6 +34,8 @@
 #define MAX_DEBUG_LEVEL 10
 
 #define STRERROR_BUF_SIZE 1024 // see NOTES in strerror_r(3) man page
+
+/* helper macros */
 #define warning(cond) do { \
 	if (!cond) { \
 		char buf[STRERROR_BUF_SIZE]; \
@@ -59,21 +66,42 @@ void set_console_log_level(int level);
 void set_syslog_log_level(int level);
 void set_log_file(char *logfile_path);
 
-void debug_add_tags(char *tags, int local); 
-void debug_del_tags(char *tags, int local); 
+/* tagged logging. it is possible to enable/disable each log tag
+	 globally or thread by thread.
+	 active logging tag set is the union of those globally and locally aptivated.
+	 63 tags are supported (see DEBUG_ALLTAGS) */
+
+/* add or delete tags (tag is a string, each char is a tag to
+	 be added/deleted. */
+void debug_add_tags(char *tags, int local);
+void debug_del_tags(char *tags, int local);
+/* get the map of active tags */
 void debug_get_tags(char *tags, size_t size, int local);
 
+/* set the color of a tag (see vudebug(1) */
 void debug_set_color(char *tags, const char *s);
+/* parse a color mapping string */
 void debug_set_color_string(const char *s);
 
+/* debug tags may have descriptions, get/set the description */
 void _debug_set_name(int index, const char *s);
 void debug_get_name(char tag, char *buf, size_t bufsize);
 
 #define debug_set_name(tag, s) \
 	_debug_set_name(DEBUG_TAG2INDEX_##tag, "" s)
 
+/* logging must be fast... if disabled.
+	 printkdebug macro calls _printkdebug if tag is active.
+	 the overall cost of the choice is reading two vars + one or operation + a conditinal branch */
 extern uint64_t debugmask;
 extern __thread uint64_t tdebugmask;
+
+/* printk uses preprocessor magic to pprocess the first argument:
+	 printkdebug(x, "message %d", intarg);
+	 will be printed if tag x is active.
+	 x is converted to an integer by the macros/constants here below.
+	 The mapping has complexity O(1)
+ */
 
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \

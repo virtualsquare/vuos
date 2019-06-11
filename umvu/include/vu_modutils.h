@@ -1,6 +1,10 @@
 #ifndef VU_MODUTILS_H
 #define VU_MODUTILS_H
 
+/* loading/unloading of modules */
+/* vu_syscall_handler_pointer is used in vumodule.h
+	 by "vu_syscall_handler" macro */
+
 typedef void (* voidfun)(void);
 
 struct vu_service_t;
