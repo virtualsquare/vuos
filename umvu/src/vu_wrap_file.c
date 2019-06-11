@@ -675,14 +675,10 @@ __attribute__((constructor))
 		vu_fnode_set_close_upcall(S_IFCHR, file_close_upcall);
 		vu_fnode_set_close_upcall(S_IFBLK, file_close_upcall);
 		vu_fnode_set_close_upcall(S_IFLNK, file_close_upcall);
-		set_wi_read(S_IFREG, file_wi_read);
-		set_wi_read(S_IFBLK, file_wi_read);
-		set_wi_write(S_IFREG, file_wi_write);
-		set_wi_write(S_IFBLK, file_wi_write);
-		set_wi_read(S_IFCHR, slow_wi_read);
-		set_wd_read(S_IFCHR, slow_wd_read);
-		set_wo_read(S_IFCHR, slow_wo_read);
-		set_wi_write(S_IFCHR, slow_wi_write);
-		set_wd_write(S_IFCHR, slow_wd_write);
-		set_wo_write(S_IFCHR, slow_wo_write);
+		multiplex_read_wrappers(S_IFREG, file_wi_read, NULL, NULL);
+		multiplex_read_wrappers(S_IFBLK, file_wi_read, NULL, NULL);
+		multiplex_read_wrappers(S_IFCHR, slow_wi_read, slow_wd_read, slow_wo_read);
+		multiplex_write_wrappers(S_IFREG, file_wi_write, NULL, NULL);
+		multiplex_write_wrappers(S_IFBLK, file_wi_write, NULL, NULL);
+		multiplex_write_wrappers(S_IFCHR, slow_wi_write, slow_wd_write, slow_wo_write);
 	}

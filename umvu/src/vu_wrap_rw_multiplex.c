@@ -41,28 +41,44 @@ static void wi_einval(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 	}
 }
 
-void set_wi_read(mode_t mode, wrapf_t *handler) {
-	x_wi_read[S_MODE2TYPE(mode)] = handler;
+void multiplex_read_wrappers(mode_t mode,
+    wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
+	int modeindex = S_MODE2TYPE(mode);
+
+	if (wrapin == NULL)
+		x_wi_read[modeindex] = wi_einval;
+	else
+		x_wi_read[modeindex] = wrapin;
+
+	if (wrapduring == NULL)
+		x_wd_read[modeindex] = wd_NULL;
+	else
+		x_wd_read[modeindex] = wrapduring;
+
+	if (wrapout == NULL)
+		x_wo_read[modeindex] = wo_NULL;
+	else
+		x_wo_read[modeindex] = wrapduring;
 }
 
-void set_wd_read(mode_t mode, wrapf_t *handler) {
-	x_wd_read[S_MODE2TYPE(mode)] = handler;
-}
+void multiplex_write_wrappers(mode_t mode,
+    wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
+	int modeindex = S_MODE2TYPE(mode);
 
-void set_wo_read(mode_t mode, wrapf_t *handler) {
-	x_wo_read[S_MODE2TYPE(mode)] = handler;
-}
+	if (wrapin == NULL)
+		x_wi_write[modeindex] = wi_einval;
+	else
+		x_wi_write[modeindex] = wrapin;
 
-void set_wi_write(mode_t mode, wrapf_t *handler) {
-	x_wi_write[S_MODE2TYPE(mode)] = handler;
-}
+	if (wrapduring == NULL)
+		x_wd_write[modeindex] = wd_NULL;
+	else
+		x_wd_write[modeindex] = wrapduring;
 
-void set_wd_write(mode_t mode, wrapf_t *handler) {
-	x_wd_write[S_MODE2TYPE(mode)] = handler;
-}
-
-void set_wo_write(mode_t mode, wrapf_t *handler) {
-	x_wo_write[S_MODE2TYPE(mode)] = handler;
+	if (wrapout == NULL)
+		x_wo_write[modeindex] = wo_NULL;
+	else
+		x_wo_write[modeindex] = wrapduring;
 }
 
 void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
