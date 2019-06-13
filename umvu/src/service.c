@@ -57,6 +57,8 @@ void vu_mod_setht(struct vuht_entry_t *ht) {
 	sd->extra->ht = ht;
 }
 
+/* modules are not aware of direct or nested calls */
+
 void vu_mod_peek_str(void *addr, void *buf, size_t datalen) {
 	struct syscall_descriptor_t *sd = get_thread_sd();
 	fatal(sd);

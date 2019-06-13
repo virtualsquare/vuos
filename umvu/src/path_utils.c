@@ -54,6 +54,7 @@ static inline int realpath_flags(int flags) {
 		(flags & (FOLLOWLINK | PERMIT_EMPTY_PATH));
 }
 
+/* get a pathname from a user space process and canonicalize it */
 char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, uint8_t *need_rewrite, int nested) {
 	char pathbuf[nested ? 0 : PATH_MAX];
 	char *path;
@@ -79,6 +80,8 @@ char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, ui
 	return ret_value;
 }
 
+/* special case (type == 3) in vu_arch_table.
+ * ARCH_TYPE_SYMLINK_NOFOLLOW can be set on or off depending on a specific flag */
 int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
 	switch (syscall_number) {
@@ -96,6 +99,8 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	}
 }
 
+/* Some at- syscalls support AT_EMPTY_PATH flags.
+	 If the path is empty these system calls operate on the dirfd file */
 static inline int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
   switch (syscall_number) {
@@ -110,6 +115,8 @@ static inline int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
   }
 }
 
+/* get the pathname argument of a system call, canonicalize it. The return value is
+	 a dynamically allocated string */
 char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int syscall_number = sd->syscall_number;
 	int patharg = vu_arch_table_patharg(syscall_number);
@@ -135,6 +142,8 @@ char *get_syspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t 
 	}
 }
 
+/* get the pathname argument of a *nested* system call, canonicalize it. The return value is
+	 a dynamically allocated string */
 char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int patharg = vu_arch_table_patharg(syscall_number);
 	int dirfd = AT_FDCWD;
@@ -158,6 +167,8 @@ char *get_nested_syspath(int syscall_number, syscall_arg_t *args, struct vu_stat
 	}
 }
 
+/* get the pathname argument of a *virtual* system call, canonicalize it. The return value is
+	 a dynamically allocated string */
 char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t *need_rewrite) {
 	int syscall_number = -sd->syscall_number;
 	int patharg = vvu_arch_table_patharg(syscall_number);
@@ -174,6 +185,8 @@ char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t
 	}
 }
 
+/* rewrite the pathname argument of a system call.
+	 newpath must be an absolute pathname */
 void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
   int syscall_number = sd->syscall_number;
   int patharg = vu_arch_table_patharg(syscall_number);

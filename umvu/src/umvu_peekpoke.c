@@ -128,7 +128,7 @@ void umvu_block(struct syscall_descriptor_t *sd) {
 	sd->syscall_args[2] = -1;
 }
 
-/* return len or the offset ofthe next page boundary, whatever
+/* return len or the offset of the next page boundary, whatever
 	 is nearer to addr */
 static inline long compute_chunk_len(uintptr_t addr, size_t len) {
 	unsigned long chunk_len = len > page_size ? page_size : len;

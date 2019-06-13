@@ -26,6 +26,8 @@
 #include <errno.h>
 #include <sys/mount.h>
 
+/* translate all mount flags into options so that modules can parse options only */
+
 char *mountflag_strings[32] = {
 	"ro", // 1
 	"nosuid", // 2
@@ -60,7 +62,6 @@ char *mountflag_strings[32] = {
 	NULL, // 1 << 30 (MS_ACTIVE)
 	"nouser", // 1 << 31 (MS_NOUSER)
 };
-
 
 static char *strlcpy(char *dst, char *src, char *limit) {
 	while (*src && dst < limit - 1)

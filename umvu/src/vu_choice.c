@@ -18,6 +18,11 @@
  *
  */
 
+/* choice functions.
+	 A choice function chooses which module have to process a system call.
+	 The mapping between the system call type and the choice function to use
+	 is defined in vu_syscalls.conf (used to generate the array vu_syscall_table
+	 in the file syscall_table.c) */
 #include <string.h>
 #include <limits.h>
 #include <hashtable.h>
@@ -28,6 +33,7 @@
 #include <vu_log.h>
 #include <epoch.h>
 
+/* The module choice depends on a pathname */
 struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int nested = extra->nested;
@@ -49,6 +55,7 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+/* The module choice depends on a file descriptor */
 struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int fd = sd->syscall_args[0];
@@ -68,6 +75,9 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+/* The module choice of an ioctl:
+ * can use a file descriptor
+ * can use the request number as a parameter */
 struct vuht_entry_t *choice_ioctl(struct syscall_descriptor_t *sd) {
   struct syscall_extra_t *extra = sd->extra;
   int fd = sd->syscall_args[0];
@@ -88,6 +98,8 @@ struct vuht_entry_t *choice_ioctl(struct syscall_descriptor_t *sd) {
   return ht;
 }
 
+/* standard choice function: if there is a path it uses the path
+	 otherwise the file descriptor */
 struct vuht_entry_t *choice_std(struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	int patharg = vu_arch_table_patharg(syscall_number);
@@ -105,7 +117,7 @@ struct vuht_entry_t *choice_std_nonest(struct syscall_descriptor_t *sd) {
 		return choice_std(sd);
 }
 
-
+/* utimensat uses fd if path is NULL */
 struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	switch (syscall_number) {
@@ -123,6 +135,7 @@ struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* mount uses filesystem type */
 struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
   int nested = sd->extra->nested;
 	if (nested)
@@ -139,6 +152,7 @@ struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* mount pathname must match exactly the mountpoint */
 struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
   int nested = sd->extra->nested;
 	if (nested)
@@ -163,6 +177,7 @@ struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* mmap uses fd (fifth argument) */
 struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
   int fd = sd->syscall_args[4];
@@ -182,6 +197,8 @@ struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
   return ht;
 }
 
+/* some system calls need to use the file descriptor passed
+	 as second argument (e.g. epoll_ctl) */
 struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
   struct syscall_extra_t *extra = sd->extra;
   int fd = sd->syscall_args[2];
@@ -201,6 +218,7 @@ struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
   return ht;
 }
 
+/* socket uses the protocol family */
 struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int domain = sd->syscall_args[0];
@@ -210,6 +228,7 @@ struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+/* msocket uses the protocol family if the pathname is NULL, the pathname otherwise */
 struct vuht_entry_t *choice_msocket(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	uintptr_t path = sd->syscall_args[0];
@@ -224,6 +243,7 @@ struct vuht_entry_t *choice_msocket(struct syscall_descriptor_t *sd) {
 		return choice_path(sd);
 }
 
+/* some system calls use tier own number to chose the module */
 struct vuht_entry_t *choice_sc(struct syscall_descriptor_t *sd) {
 	int vu_syscall_number = vu_arch_table[sd->syscall_number];
 	struct vuht_entry_t *ht = vuht_pick(CHECKSC, &vu_syscall_number, NULL, SET_EPOCH);

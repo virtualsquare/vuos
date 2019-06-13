@@ -23,12 +23,19 @@
 #include <vu_log.h>
 #include <linux_32_64.h>
 
+/* convert dirent64 to dirent:
+	 VUOS modules handle 64bit dirents, this conversion is needed to
+	 support 32bit dirent (on 32bit architectures) */
 void dirent64_to_dirent(void* buf, int count){
   struct linux_dirent *dirp=buf;
   struct dirent64 *dirp64=buf;
   int counter=0;
   unsigned short int buf_len;
 
+	/* Actually the conversion is a bit tricky.
+	 * dirent is always shorter then dirent64.
+	 * copy the corresponding fields
+	 * keep the record length (there will be some unused bytes) */
   for( counter=0; counter<count ; ){
     char tmptype;
     dirp->d_ino = (unsigned long) dirp64->d_ino;

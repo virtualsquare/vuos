@@ -43,6 +43,7 @@ struct vuht_entry_t *choice_NULL(struct syscall_descriptor_t *sd) {
 	return NULL;
 }
 
+/* default (dummy) wrappers */
 void wi_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	//printk("UNMANAGED %s\n", syscallname(sd->syscall_number));
 }
@@ -50,13 +51,16 @@ void wi_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wd_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
+/* a dummy output wrappermust copy the return value */
 void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
+/* default wrapper for virtual system calls */
 void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
+/* set the syscall_extra_t sturcture fields */
 static inline void set_extra (
 		struct syscall_extra_t *extra,
 		struct syscall_descriptor_t *sd,
@@ -76,6 +80,7 @@ static inline void execute_cleanup (struct vuht_entry_t *ht, struct syscall_desc
 	xfree(sd->extra->path);
 }
 
+/* vu_syscall_execute dispatches the syscall requests to the modules */
 void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) {
 	static __thread struct syscall_extra_t extra;
 	struct vuht_entry_t *ht;

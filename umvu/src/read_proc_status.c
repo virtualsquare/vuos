@@ -5,7 +5,10 @@
 
 #define STATUS_PATH_FORMAT "/proc/%d/status"
 #define STATUS_PATH_SIZE sizeof(STATUS_PATH_FORMAT) + sizeof(pid_t) * 3
-char *getlinetag(pid_t tid, char *tag) {
+
+/* open /proc/#proc/status and return the line labelled by the tag.
+	 the reured string is dynamically allocated, the file is closed */
+static char *getlinetag(pid_t tid, char *tag) {
 	char path[STATUS_PATH_SIZE];
 	size_t taglen = strlen(tag);
 	snprintf(path, STATUS_PATH_SIZE, STATUS_PATH_FORMAT, tid);
@@ -26,6 +29,7 @@ char *getlinetag(pid_t tid, char *tag) {
 	return NULL;
 }
 
+/* get uids: real, effective, saved and file system */
 void status_getresfuid(pid_t tid, uid_t *ruid, uid_t *euid, uid_t *suid, uid_t *fsuid) {
 	char *uidline = getlinetag(tid, "Uid");
 	if (uidline) {
@@ -39,6 +43,7 @@ void status_getresfuid(pid_t tid, uid_t *ruid, uid_t *euid, uid_t *suid, uid_t *
 		*ruid = *euid = *suid = *fsuid = (uid_t) -1;
 }
 
+/* get gids: real, effective, saved and file system */
 void status_getresfgid(pid_t tid, gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *fsgid) {
 	char *gidline = getlinetag(tid, "Gid");
 	if (gidline) {
@@ -52,6 +57,7 @@ void status_getresfgid(pid_t tid, gid_t *rgid, gid_t *egid, gid_t *sgid, gid_t *
 		*rgid = *egid = *sgid = *fsgid = (gid_t) -1;
 }
 
+/* get the list of supplementary group */
 int status_getgroups(pid_t tid, int size, gid_t list[]) {
 	char *groupsline = getlinetag(tid, "Groups");
 	if (groupsline) {

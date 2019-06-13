@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <vu_log.h>
 
+/* CARROT_FREE_LIST: recycle previously allocated struct carrot_t elements. */
 #define CARROT_FREE_LIST
 
 struct carrot_t {
@@ -84,6 +85,11 @@ void carrot_free(struct carrot_t *old) {
 }
 #endif
 
+/* insert an element in the carrot.
+ *   If the element is "newer":
+ *      if there are exception: add an element as first element of the carrot.
+ *      otherwise: then new carrot has only one element (eventual existing carrot is deleted */
+
 struct carrot_t *carrot_insert(struct carrot_t *head, struct vuht_entry_t *elem, epoch_t time,
 		    int (*has_exception)(struct vuht_entry_t *)) {
 	if (head == NULL ||      /* empty carrot */
@@ -109,6 +115,7 @@ struct carrot_t *carrot_insert(struct carrot_t *head, struct vuht_entry_t *elem,
 	}
 }
 
+/* delete the carrot */
 struct carrot_t *carrot_delete(struct carrot_t *head, struct vuht_entry_t *elem) {
 	if (head == NULL)
 		return NULL;
@@ -125,6 +132,9 @@ struct carrot_t *carrot_delete(struct carrot_t *head, struct vuht_entry_t *elem)
 	}
 }
 
+/* return the first element in carrot
+ * which has no exceptions *OR*
+ * whose exception function return false */
 struct vuht_entry_t *carrot_check(struct carrot_t *head,
 		int (*confirm)(struct vuht_entry_t *elem, void *opaque), void *opaque) {
 	struct vuht_entry_t *ht = NULL;
