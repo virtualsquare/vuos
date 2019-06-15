@@ -39,6 +39,9 @@
 #define _VU_HYPERVISOR
 #include <vulib.h>  // to check consistecy with user libraries
 
+
+/* implementation of virtual syscalls.
+	 user processes can generate these requests using vulib */
 void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct vuht_entry_t *sht;
 	struct vu_service_t *service;

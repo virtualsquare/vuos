@@ -48,6 +48,9 @@
 #include <vu_mod_inheritance.h>
 #include <vu_fnode_copy.h>
 
+/* management of execve */
+/* struct binfmt_req_t is defined in include vumodule.h */
+
 static __thread struct vu_fnode_t *tmp_fnode;
 
 static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path, struct vu_stat *statbuf) {
@@ -58,6 +61,8 @@ static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_desc
 	rewrite_syspath(sd, tmp_path);
 }
 
+/* read the header of the executable to test if an interpreter is required.
+	 (e.g. using #! or binfmt_misc) */
 static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 	int ret_value;
 	int fd;
@@ -79,6 +84,8 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 	return ret_value;
 }
 
+/* the confirm function re-assigns the filehead field of the struct binfmt_req to
+ "!%" + path of the interpreter */
 static void check_binfmt_misc(struct binfmt_req_t *req) {
 	struct vuht_entry_t *binfmt_ht;
 	if ((binfmt_ht = vuht_pick(CHECKBINFMT, req, NULL, 0)) != NULL)
@@ -95,6 +102,7 @@ static int need_interpreter(struct binfmt_req_t *req) {
 	return 1; /* XXX unknown => script ?? */  
 }
 
+/* get args in the interpreter #! line */
 int interpreter_fill_args(struct binfmt_req_t *req, char *argv[2]) {
 	char *interpreter = req->filehead + 2;
 	char *extra_arg;
@@ -230,6 +238,8 @@ static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, c
 		return 0;
 }
 
+/* stuid/setgid must be forwarded to vu_mod_inheritance.c.
+	 uid/gid managing modules must be informed that the starting program is set[ug]id */
 static void exec_setuid_setgid(struct vu_stat *statbuf) {
 	if (statbuf->st_mode & S_ISUID)
 		vu_exec_setuid(statbuf->st_uid);
@@ -237,6 +247,8 @@ static void exec_setuid_setgid(struct vu_stat *statbuf) {
 		vu_exec_setgid(statbuf->st_gid);
 }
 
+/* The interpreter itself may need an interpreter...
+	 this function processes this recursion up to EXECVE_MAX_DEPTH levels */
 #define EXECVE_MAX_DEPTH 4
 
 static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descriptor_t *sd, struct argv_list *argv_list, int depth) {
@@ -324,6 +336,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 		vuht_drop(interpreter_ht);
 }
 
+/* Wrapin for execve */
 void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested) {
@@ -363,12 +376,17 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* use inheritance to clean the temporary node */
+
 static void clean_tmp_fnode(void) {
 	if (tmp_fnode != NULL) {
 		vu_fnode_close(tmp_fnode);
 		tmp_fnode = NULL;
 	}
 }
+
+/* if execve causes the "output" filter to run (after the syscall) it means
+	 that execve failed */
 
 void wo_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	clean_tmp_fnode();

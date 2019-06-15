@@ -277,6 +277,8 @@ static void wi_setfsgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd
 	}
 }
 
+/* in this way modules can provide only setresfuid and setresfgid */
+
 void wi_setresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int syscall_number = sd->syscall_number;
 	if (syscall_number == __NR_setfsuid)

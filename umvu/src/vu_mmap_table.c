@@ -30,6 +30,7 @@
 #include <vu_log.h>
 #include <vu_inheritance.h>
 
+/* mmap-ped area: address, length, fnode and offset in the file */
 struct vu_mmap_area_t {
 	uintptr_t addr;
 	size_t length;
@@ -38,14 +39,19 @@ struct vu_mmap_area_t {
 	struct vu_mmap_area_t *next;
 };
 
+/* user processes/threads sharing the same memory view, share the mmap table element in VUOS.
+	 count is the number of processes/threads using the map and area_list_head
+	 is the list of mmapped areas, in increasing address sorting */
 struct vu_mmap_t {
 	pthread_rwlock_t lock;
 	size_t count;
 	struct vu_mmap_area_t *area_list_head;
 };
 
+/* Each guardian angel has here the pointer to its mmap table element */
 static __thread struct vu_mmap_t *vu_mmap = NULL;
 
+/* add a new mmapped area */
 void vu_mmap_mmap(uintptr_t addr, size_t length, struct vu_fnode_t *fnode, off_t offset) {
 	struct vu_mmap_area_t *new = malloc(sizeof(*new));
 	struct vu_mmap_area_t **scan;
@@ -55,14 +61,17 @@ void vu_mmap_mmap(uintptr_t addr, size_t length, struct vu_fnode_t *fnode, off_t
 	new->fnode = fnode;
 	new->offset = offset;
 	fatal(vu_mmap);
+	/* find the inserting position */
 	for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < addr;
 			scan = &((*scan)->next))
 		;
+	/* each mmap area increases the counterof vnode usage */
 	vu_fnode_dup(fnode);
 	new->next = *scan;
 	*scan = new;
 }
 
+/* delete a mmapped area */
 void vu_mmap_munmap(uintptr_t addr, size_t length) {
 	struct vu_mmap_area_t **scan;
 	struct vu_mmap_area_t **next;
@@ -74,19 +83,36 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 	for (scan = &vu_mmap->area_list_head; *scan != NULL; scan = next) {
 		struct vu_mmap_area_t *this = *scan;
 		next = &((*scan)->next);
+		/* area interval:  +----+
+			 unmap interval:        +----+
+			 go ahead to the next element */
 		if (addr + length <= this->addr)
 			continue;
+		/* area interval:         +----+
+			 unmap interval:  +----+
+			 no more matches are possible */
 		if (this->addr + this->length <= addr)
 			break;
 		if (addr <= this->addr) {
+
 			if (addr + length >= this->addr + this->length) {
-				/* entirely in the interval */
-				/* unload this->addr,this->length */
+				/* case 1:
+					 area interval:          +-----------+
+					 unmap interval: +--------------------------------------+
+					 including the case
+					 area interval:  +---------+
+					 unmap interval: +---------+
+					 this area element iscompletely unmapped: decrement vnote usage count */
 				*scan = this->next;
 				vu_fnode_close(this->fnode);
 				free(this);
 				next = scan;
 			} else {
+				/* case 2:
+					 area interval:  +-----------+
+					 unmap interval: +-------+
+					 new area:               +---+
+					 same  number of areas */
 				/* partial unmapping (heading) */
 				/* unload this->addr, addr + length - this->addr */
 				this->length = this->addr + this->length - (addr + length);
@@ -96,10 +122,20 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 			}
 		} else {
 			if (addr + length >= this->addr + this->length) {
+				/* case 3:
+					 area interval:  +-----------+
+					 unmap interval:     +-------+
+					 new area:       +---+
+					 same  number of areas */
 				/* partial unmapping (trailing)*/
 				/* unload  addr, this->addr + this->length - addr */
 				this->length = addr + length - this->addr;
 			} else {
+				/* case 3:
+					 area interval:  +-----------+
+					 unmap interval:     +---+
+					 new areas:      +---+   +---+
+					 one more area element: increment vnote usage count */
 				/* partial **nested** interval */
 				/* unload addr, length */
 				struct vu_mmap_area_t *new = malloc(sizeof(*new));
@@ -120,17 +156,23 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 	}
 }
 
+/* remap a mmap interval */
 void vu_mmap_mremap(uintptr_t addr, size_t length, uintptr_t newaddr, size_t newlength) {
 	struct vu_mmap_area_t **scan;
 	struct vu_mmap_area_t *this;
 	fatal(vu_mmap);
+	/* search the old position */
 	for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < addr;
 			scan = &((*scan)->next))
 		;
 	this = *scan;
 	if (this && this->addr == addr && this->length == length) {
+		/* found! extract from the list */
+		*scan = this->next;
+		/* change new addr and length */
 		this->addr = newaddr;
 		this->length = newlength;
+		/* reinsert the element in its new position */
 		for (scan = &vu_mmap->area_list_head; *scan != NULL && (*scan)->addr < newaddr;
 				scan = &((*scan)->next))
 			;
@@ -138,6 +180,8 @@ void vu_mmap_mremap(uintptr_t addr, size_t length, uintptr_t newaddr, size_t new
 		*scan = this;
 	}
 }
+
+/* manage inheritance of mmap tables */
 
 static void vu_mmap_create(void) {
 	struct vu_mmap_t *newmmap;

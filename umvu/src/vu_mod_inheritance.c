@@ -16,6 +16,8 @@ static int mod_inheritance_upcall_list_count;
 
 static __thread struct mod_inheritance_exec_arg mod_exec_arg = {-1, -1};
 
+/* setuid/setgid are passed to modules:
+	 mod_exec_arg is an arg of MOD_INH_EXEC */
 void vu_exec_setuid(uid_t uid) {
   mod_exec_arg.exec_uid = uid;
 }
@@ -90,8 +92,11 @@ static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
 			break;
 		case INH_EXEC:
 			pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
-			if (mod_inheritance_upcall_list_count > 0) 
+			if (mod_inheritance_upcall_list_count > 0) {
 				mod_inheritance_call(MOD_INH_EXEC, NULL, &mod_exec_arg);
+				mod_exec_arg.exec_uid = -1;
+				mod_exec_arg.exec_gid = -1;
+			}
 			pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
 			break;
 		case INH_TERMINATE:

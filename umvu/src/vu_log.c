@@ -130,7 +130,7 @@ void set_log_file(char *logfile_path) {
 }
 
 static const char *debug_alltags = DEBUG_ALLTAGS;
-/* always succeeds, may produce random results on unexpected inputs */
+/* always succeeds, returns 0 if the tag does not exist */
 static int debug_tag2index(int tag) {
 	char *tagp = strchr(debug_alltags, tag);
 	if (tagp == NULL)
@@ -190,11 +190,13 @@ static void _debug_set_tag_color(int tag, const char *s) {
 	struct debugcolor color = stdcolor;
 	for (; s && *s; s++) {
 		switch (*s) {
+			/* set the modifiers */
 			case '+': color.valid = 1; color.bright = 1; break;
 			case '-': color.valid = 1; color.dim = 1; break;
 			case '_': color.valid = 1; color.underscore = 1; break;
 			case '*': color.valid = 1; color.blink = 1; break;
 			case '#': color.valid = 1; color.reverse = 1; break;
+								/* set the foreground color */
 			case 'n': color.valid = 1; color.set_foreground = 1; color.foreground = BLACK; break;
 			case 'r': color.valid = 1; color.set_foreground = 1; color.foreground = RED; break;
 			case 'g': color.valid = 1; color.set_foreground = 1; color.foreground = GREEN; break;
@@ -203,6 +205,7 @@ static void _debug_set_tag_color(int tag, const char *s) {
 			case 'm': color.valid = 1; color.set_foreground = 1; color.foreground = MAGENTA; break;
 			case 'c': color.valid = 1; color.set_foreground = 1; color.foreground = CYAN; break;
 			case 'w': color.valid = 1; color.set_foreground = 1; color.foreground = WHITE; break;
+								/* set the background color */
 			case 'N': color.valid = 1; color.set_background = 1; color.background = BLACK; break;
 			case 'R': color.valid = 1; color.set_background = 1; color.background = RED; break;
 			case 'G': color.valid = 1; color.set_background = 1; color.background = GREEN; break;
@@ -296,6 +299,7 @@ int _printkdebug(int index, const char *fmt, ...) {
 	int save_errno = errno;
 	va_start(ap,fmt);
 	if (color.valid && isatty(debugfd)) {
+		/* color printing is supported and requested */
 		int fmtlen = strlen(fmt);
 		int seqlen = color_esc_sequence_len(color);
 		int prefixlen = strcspn(fmt, " \n");
@@ -310,12 +314,22 @@ int _printkdebug(int index, const char *fmt, ...) {
 			fmtlen--;
 		postfixlen = fmtlen - prefixlen;
 		generate_color_esc_sequence(color, color_esc_sequence);
+		/* newfmt is a copy of fmt with the tag name added at the first space +
+			 heading and trailing escape sequences to display the message in the requested color */
+		/* printkdebug(a, "log message with %s %d etc", string, number)
+			 becomes for the definition in vu_log.h:
+			 _printkdebug(33, "%s:%d log message with %s %d etc\n", basename(__FILE__), __LINE__, string, number)
+			 newfmt is:
+			 "(color_set_seq)%s:%d NAME_OF_A log message with %s %d etc(color_reset_seq)\n"
+			 where (color_set_sequence) and (color_reset_seq) are escapesequence to change the font color.
+			 and then newfmt is the format for _vprintk using the va_list ap (containing all the parameters)/ */
 		snprintf(newfmt, newfmtlen, "%s%*.*s%s%s%*.*s%s\n",color_esc_sequence,
 				prefixlen, prefixlen, fmt,
 				tag_string_sep, tag_string,
 				postfixlen, postfixlen, fmt+prefixlen, esc_reset_color_sequence);
 		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	} else {
+		/* monochrome printing */
 		int fmtlen = strlen(fmt);
 		int prefixlen = strcspn(fmt, " \n");
 		int postfixlen = fmtlen - prefixlen;
@@ -324,9 +338,16 @@ int _printkdebug(int index, const char *fmt, ...) {
 		int tagstringlen = strlen(tag_string) + strlen(tag_string_sep);
 		int newfmtlen = fmtlen + tagstringlen + 2;
 		char newfmt[newfmtlen];
+		/* newfmt is a copy of fmt with the tag name added at the first space */
+		/* printkdebug(a, "log message with %s %d etc", string, number)
+			 becomes for the definition in vu_log.h:
+			 _printkdebug(33, "%s:%d log message with %s %d etc\n", basename(__FILE__), __LINE__, string, number)
+			 newfmt is:
+			 "%s:%d NAME_OF_A log message with %s %d etc\n"
+			 and then newfmt is the format for _vprintk using the va_list ap (containing all the parameters)/ */
 		snprintf(newfmt, newfmtlen, "%*.*s%s%s%*.*s",
-				prefixlen, prefixlen, fmt,
-				tag_string_sep, tag_string,
+				prefixlen, prefixlen, fmt, // %*.*s copy prefix (minlen=maxlen=prefixlen)
+				tag_string_sep, tag_string, // tag (with a space if
 				postfixlen, postfixlen, fmt+prefixlen);
 		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	}

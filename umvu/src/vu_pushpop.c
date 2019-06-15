@@ -21,16 +21,17 @@
 #include <umvu_peekpoke.h>
 #include <vu_pushpop.h>
 
-#define __WORDMASK = __WORDSIZE - 1
-#define WORDALIGN(X) = (((X) + __WORDMASK) & ~__WORDMASK)
+/* push and pop data on the user process stack */
+#define __WORDMASK ((__WORDSIZE / 8) - 1)
+#define WORDALIGN(X) (((X) + __WORDMASK) & ~__WORDMASK)
 
 syscall_arg_t vu_push(struct syscall_descriptor_t *sd, void *buf, size_t datalen) {
-	sd->stack_pointer -= datalen;
+	sd->stack_pointer -= WORDALIGN(datalen);
 	umvu_poke_data(sd->stack_pointer, buf, datalen);
 	return sd->stack_pointer;
 }
 
 void vu_pop(struct syscall_descriptor_t *sd, void *buf, size_t datalen) {
 	umvu_peek_data(sd->stack_pointer, buf, datalen);
-	sd->stack_pointer -= datalen;
+	sd->stack_pointer += WORDALIGN(datalen);
 }

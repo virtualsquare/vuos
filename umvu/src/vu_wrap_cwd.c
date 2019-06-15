@@ -18,6 +18,7 @@
  *
  */
 
+/* management of current workinng directory */
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>

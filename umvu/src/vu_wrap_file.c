@@ -46,6 +46,15 @@
 #include <vu_slow_calls.h>
 
 /* open, creat, openat */
+/* all open files are registered in the file tables.
+ * if the file is virtualized:
+ *    wi_open creates the f-node and then wo_open registers it in the fdtable.
+ *    the path of the real opensystem call is diverted to the tmpfile (see vnode.c)
+ * otherwise:
+ *    if the real syscall request succeeds: wo_open creates an fnode and
+ *    registers it in the fdtable
+ */
+
 void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
