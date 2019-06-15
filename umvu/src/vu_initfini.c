@@ -30,25 +30,36 @@ struct voidfun_elem_t {
   struct voidfun_elem_t *next;
 };
 
+/* constructor and destructor list head/tail pointers */
 static struct voidfun_elem_t *constructor_list_h = NULL;
+static struct voidfun_elem_t *constructor_list_t = NULL;
 static struct voidfun_elem_t *destructor_list_h = NULL;
+static struct voidfun_elem_t *destructor_list_t = NULL;
 
-static void umvu_voidfun_list_add(struct voidfun_elem_t **listp, voidfun_t upcall) {
-  struct voidfun_elem_t **scan;
-  for (scan = listp; *scan != NULL; scan = &((*scan) -> next))
-    ;
-  *scan = malloc(sizeof(struct voidfun_elem_t));
-  fatal(*scan);
-  (*scan)->upcall = upcall;
-  (*scan)->next = NULL;
+static struct voidfun_elem_t *umvu_voidfun_list_new(voidfun_t upcall) {
+	struct voidfun_elem_t *new = malloc(sizeof(struct voidfun_elem_t));
+	fatal(new);
+	new->upcall = upcall;
+	new->next = NULL;
+	return new;
 }
 
 void vu_constructor_register(voidfun_t upcall) {
-  umvu_voidfun_list_add(&constructor_list_h, upcall);
+	struct voidfun_elem_t *new = umvu_voidfun_list_new(upcall);
+	if (constructor_list_t == NULL)
+		constructor_list_h = new;
+	else
+		constructor_list_t->next = new;
+	constructor_list_t = new;
 }
 
 void vu_destructor_register(voidfun_t upcall) {
-  umvu_voidfun_list_add(&destructor_list_h, upcall);
+	struct voidfun_elem_t *new = umvu_voidfun_list_new(upcall);
+	if (destructor_list_t == NULL)
+		destructor_list_h = new;
+	else
+		destructor_list_t->next = new;
+  destructor_list_t = new;
 }
 
 static void umvu_voidfun_list_run(struct voidfun_elem_t *list) {

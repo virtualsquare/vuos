@@ -28,18 +28,21 @@ struct inheritance_elem_t {
 };
 
 static struct inheritance_elem_t *inheritance_upcall_list_h = NULL;
+static struct inheritance_elem_t *inheritance_upcall_list_t = NULL;
 static int inheritance_upcall_list_count;
 
 void vu_inheritance_upcall_register(inheritance_upcall_t upcall) {
-	struct inheritance_elem_t **scan;
- for (scan = &inheritance_upcall_list_h; *scan != NULL;
-		 scan = &((*scan) -> next))
-	 ;
- *scan = malloc(sizeof(struct inheritance_elem_t));
- fatal(*scan);
- (*scan)->upcall = upcall;
- (*scan)->next = NULL;
- inheritance_upcall_list_count++;
+	struct inheritance_elem_t *new;
+	new = malloc(sizeof(struct inheritance_elem_t));
+	fatal(new);
+	new->upcall = upcall;
+	new->next = NULL;
+	if (inheritance_upcall_list_t == NULL)
+		inheritance_upcall_list_h = new;
+	else
+		inheritance_upcall_list_t->next = new;
+	inheritance_upcall_list_t = new;
+	inheritance_upcall_list_count++;
 }
 
 void vu_inheritance_call(inheritance_state_t state, void **inout, void *arg) {
