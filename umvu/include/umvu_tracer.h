@@ -9,6 +9,9 @@
 
 typedef void (*syscall_handler_t)(syscall_state_t, struct syscall_descriptor_t *);
 
+/* test if seccomp is available on the hosting system */
+int umvu_tracer_test_seccomp(void);
+
 /* the tracer must be used as follows:
  *      int wstatus;
  *      switch(childpid = umvu_tracer_fork()) {
@@ -21,6 +24,6 @@ typedef void (*syscall_handler_t)(syscall_state_t, struct syscall_descriptor_t *
  *         case -1:
  *                 .... error management
  */
-int umvu_tracer_fork(void);
+int umvu_tracer_fork(int seccomp);
 int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int main);
 #endif

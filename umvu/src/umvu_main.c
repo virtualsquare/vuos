@@ -35,7 +35,6 @@
 #include <vu_execute.h>
 #include <vu_initfini.h>
 #include <umvu_tracer.h>
-#include <umvu_tracer_seccomp.h>
 
 static char *progname;
 static char *short_options = "+hxNSl:s:f:V:o:d:D:";
@@ -181,7 +180,7 @@ int main(int argc, char *argv[])
 		seccomp = 0;
 	}
 
-	childpid = seccomp ? umvu_tracer_fork_seccomp() : umvu_tracer_fork();
+	childpid = umvu_tracer_fork(seccomp);
 
 	if (childpid < 0)
 		exit(1);
@@ -190,10 +189,7 @@ int main(int argc, char *argv[])
 		int wstatus;
 		vu_nesting_enable();
 		vu_init();
-		if (seccomp)
-			wstatus = umvu_tracepid_seccomp(childpid, vu_syscall_execute, 1);
-		else
-			wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
+		wstatus = umvu_tracepid(childpid, vu_syscall_execute, 1);
 		vu_fini();
 		r_exit(WEXITSTATUS(wstatus));
 	} else {
