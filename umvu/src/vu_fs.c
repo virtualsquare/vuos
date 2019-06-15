@@ -30,13 +30,14 @@
 #include <vu_log.h>
 #include <vu_inheritance.h>
 
+/* file system entry */
 struct vu_fs_t {
 	pthread_rwlock_t lock;
-	char *cwd;
-	char *rootdir;
-	mode_t umask;
-	size_t count;
-	int path_rewrite;
+	char *cwd;      // current working directory
+	char *rootdir;  // current root directory (absolute canonicalized path) */
+	mode_t umask;   // current umask
+	size_t count;   // number of threads sharing this entry
+	int path_rewrite; // true if patnames must be rewritten 
 };
 
 static __thread struct vu_fs_t *vu_fs = NULL;

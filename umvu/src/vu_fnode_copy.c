@@ -32,6 +32,7 @@
 #include <service.h>
 #include <r_table.h>
 
+/* create a temporary copy of a virtual file */
 static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
   int fdin, fdout;
 	ssize_t n;
@@ -66,6 +67,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	return 0;
 }
 
+/* restore a temporary copy to a virtual file */
 static int copyfile_out(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	int fdin, fdout, n;
 	char *buf[BUFSIZ];

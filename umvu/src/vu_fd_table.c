@@ -40,11 +40,11 @@
 
 struct vu_fd_table_t {
 	pthread_rwlock_t lock;
-	size_t count;
+	size_t count;              // number of threads sharing this element
 
-	int table_size;
-	struct vu_fnode_t **fnode;
-	uint8_t *flags; /* close_on_exec */
+	int table_size;            // size of fnode and flags arrays
+	struct vu_fnode_t **fnode; // fd (as seen by the user proc) is the index here
+	uint8_t *flags;            // as above. the only flag handled at this level is close_on_exec
 };
 
 /* global fd table for nested virtualization */
@@ -125,7 +125,7 @@ static void vu_fd_close_on_exec(void) {
 	int i;
 	pthread_rwlock_wrlock(&vu_fd->lock);
 	for (i = 0; i < vu_fd->table_size ; i++) {
-		if (vu_fd->fnode[i] != NULL && 
+		if (vu_fd->fnode[i] != NULL &&
 				(vu_fd->flags[i] & FD_CLOEXEC)) {
 			vu_fnode_close(vu_fd->fnode[i]);
 			vu_fd->fnode[i] = NULL;
@@ -172,7 +172,7 @@ int vu_fd_close(int fd, int nested) {
 		fd_table->flags[fd] = 0;
 		pthread_rwlock_unlock(&fd_table->lock);
 		/* fd table must be unlocked for recursion */
-		if (oldfnode != NULL) 
+		if (oldfnode != NULL)
 			ret_value = vu_fnode_close(oldfnode);
 		else {
 			ret_value = -1;
@@ -245,7 +245,7 @@ struct vuht_entry_t *vu_fd_get_ht(int fd, int nested) {
 void vu_fd_get_path(int fd, int nested, char *dest,  size_t n) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
 	if (dest) {
-		struct vu_fnode_t *fnode; 
+		struct vu_fnode_t *fnode;
 		pthread_rwlock_rdlock(&fd_table->lock);
 		fnode = get_fnode_nolock(fd_table, fd);
 		if (fnode)
@@ -283,7 +283,7 @@ void vu_fd_set_fdflags(int fd, int nested, int flags) {
 	uint8_t *flags_addr;
 	pthread_rwlock_wrlock(&fd_table->lock);
 	flags_addr = get_flags_addr_nolock(fd_table, fd);
-	if (flags_addr) 
+	if (flags_addr)
 		*flags_addr = flags & FDFLAGS_MASK;
 	pthread_rwlock_unlock(&fd_table->lock);
 }
