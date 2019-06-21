@@ -150,10 +150,15 @@ static void *vu_uidgid_tracer_upcall(inheritance_state_t state, void *arg) {
 		case INH_CLONE:
 			ret_value = vu_uidgid_clone(*(int *)arg);
 			break;
+		case INH_PTHREAD_CLONE:
+			ret_value = vu_uidgid_clone(0);
+			break;
 		case INH_START:
+		case INH_PTHREAD_START:
 			vu_uidgid = arg;
 			break;
 		case INH_TERMINATE:
+		case INH_PTHREAD_TERMINATE:
 			vu_uidgid_terminate();
 			break;
 		default:
