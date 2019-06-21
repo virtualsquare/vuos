@@ -40,6 +40,17 @@ typedef enum syscall_state_t {
 	DURING_SYSCALL,
 	OUT_SYSCALL } syscall_state_t;
 
+/* syscall peekpoke operations:
+ * PEEKPOKE_ARGS: peek or poke all the syscall args
+ *                syscall# args program_counter stack_pointer
+ * PEEKPOKE_RETVALUE: peek or poke retvalue (or error)
+ * SKIP_SETRETVALUE: skip the syscall and set the retvalue (seccomp only) */
+typedef enum peekpokeop_t {
+	PEEK_ARGS,
+	POKE_ARGS=PEEK_ARGS,
+	PEEK_RETVALUE,
+	POKE_RETVALUE=PEEK_RETVALUE,
+	SKIP_SETRETVALUE } peekpokeop_t;
 
 #define UMVU_SKIP 0x1
 #define UMVU_CB_AFTER 0x2
@@ -122,30 +133,31 @@ void umvu_unblock(void);
 
 /* get the syscall info from PTRACE_GETREGS
 	 this call is architecture dependent.
-	 if sys_state == IN_SYSCALL:
+	 if op == PEEKPOKE_ARGS
 	 get syscall_number, args, prog_counter, stack_pointer
-	 otherwise (OUT_SYSCALL)
+	 otherwise (PEEKPOKE_RETVALUE)
 	 get orig_ret_value
  */
 void umvu_peek_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
-		syscall_state_t sys_state);
+		peekpokeop_t op);
+
 /* store the syscall into (prepaare it for PTRACE_SETREGS)
 	 this call is architecture dependent.
 	 The return value is > 0 if PTRACE_SETREGS is required
 	 (some values changed). If teh return value is
 	 0, PTRACE_SETREGS can be safely skipped.
 
-	 if sys_state == IN_SYSCALL:
+	 if op == PEEKPOKE_ARGS:
 	 store syscall_number, args, prog_counter.
-	 if sys_state == DURING_SYSCALL:
+	 if op == SKIP_SETRETVALUE:
 	 store syscall_number and return value
-	 else (OUT_SYSCALL)
+	 else (PEEKPOKE_RETVALUE)
 	 store just the return value.
  */
 int umvu_poke_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
-		syscall_state_t sys_state);
+		peekpokeop_t op);
 
 /* in all the following functions:
  * the identity of the user process is implicit as

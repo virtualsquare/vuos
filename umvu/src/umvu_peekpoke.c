@@ -42,10 +42,10 @@ static __thread unsigned int tracee_tid;
 #if defined(__x86_64__)
 void umvu_peek_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
-		syscall_state_t sys_state)
+		peekpokeop_t op)
 {
 	if (regs && syscall_desc) {
-		if (sys_state == IN_SYSCALL) {
+		if (op == PEEK_ARGS) {
 			syscall_desc->orig_syscall_number = 
 				syscall_desc->syscall_number = regs->orig_rax;
 			syscall_desc->syscall_args[0] = regs->rdi;
@@ -63,11 +63,11 @@ void umvu_peek_syscall(struct user_regs_struct *regs,
 
 int umvu_poke_syscall(struct user_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
-		syscall_state_t sys_state)
+		peekpokeop_t op)
 {
 	if (regs && syscall_desc) {
-		switch (sys_state) {
-			case IN_SYSCALL:
+		switch (op) {
+			case POKE_ARGS:
 				/* regs->rsp is missing as stack pointer should not be modified */
 				if (regs->orig_rax == (unsigned) syscall_desc->syscall_number &&
 						regs->rdi == syscall_desc->syscall_args[0] &&
@@ -87,13 +87,13 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 				regs->r9 = syscall_desc->syscall_args[5];
 				regs->rip = syscall_desc->prog_counter;
 				break;
-			case OUT_SYSCALL:
+			case POKE_RETVALUE:
 				if (regs->rax == syscall_desc->ret_value)
 					return 0;
 				regs->rax = syscall_desc->ret_value;
 				break;
-			case DURING_SYSCALL:
-				regs->orig_rax = syscall_desc->syscall_number;
+			case SKIP_SETRETVALUE:
+				regs->orig_rax = -1;
 				regs->rax = syscall_desc->ret_value;
 				break;
 		}
