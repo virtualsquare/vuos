@@ -33,7 +33,7 @@
 #include <umvu_peekpoke.h>
 #include <vu_wrapper_utils.h>
 #include <vu_execute.h>
-#include <read_proc_status.h>
+#include <vu_uidgid.h>
 
 void wi_getresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -42,7 +42,7 @@ void wi_getresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		service_syscall(ht, __VU_getresfuid)(&current_ruid, &current_euid, &current_suid, &current_fsuid, vuht_get_private_data(ht));
 	} else {
-		status_getresfuid(umvu_gettid(),&current_ruid, &current_euid, &current_suid, &current_fsuid);
+		vu_uidgid_getresfuid(&current_ruid, &current_euid, &current_suid, &current_fsuid);
 	}
 	switch (syscall_number) {
 		case __NR_getuid:
@@ -88,7 +88,7 @@ void wi_getresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		service_syscall(ht, __VU_getresfgid)(&current_rgid, &current_egid, &current_sgid, &current_fsgid, vuht_get_private_data(ht));
 	} else {
-		status_getresfgid(umvu_gettid(),&current_rgid, &current_egid, &current_sgid, &current_fsgid);
+		vu_uidgid_getresfgid(&current_rgid, &current_egid, &current_sgid, &current_fsgid);
 	}
 	switch (syscall_number) {
 		case __NR_getgid:
@@ -125,7 +125,30 @@ void wi_getresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			break;
 	}
 	sd->action = SKIPIT;
+}
 
+void wi_getgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int ret_value;
+	int nested = sd->extra->nested;
+	int size = sd->syscall_args[0];
+	uintptr_t listaddr =  sd->syscall_args[1];
+	gid_t *list;
+	vu_alloc_arg(listaddr, list, size * sizeof(gid_t), nested);
+	if (ht) {
+		ret_value = service_syscall(ht, __VU_getgroups)(size, list, vuht_get_private_data(ht));
+	} else {
+		ret_value = vu_uidgid_getgroups(size, list);
+		if (ret_value < 0)
+			errno = EINVAL;
+	}
+	if (ret_value > 0)
+		vu_poke_arg(listaddr, list, ret_value * sizeof(gid_t), nested);
+	vu_free_arg(list, nested);
+	sd->action = SKIPIT;
+	if (ret_value < 0)
+		sd->ret_value = -errno;
+	else
+		sd->ret_value = ret_value;
 }
 
 static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -169,7 +192,7 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 		if (syscall_number == __NR_setresuid)
 			fsuid = euid;
 		ret_value = service_syscall(ht, __VU_setresfuid)(ruid, euid, suid, fsuid, vuht_get_private_data(ht));
-		if (ret_value < 0) 
+		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;
@@ -177,6 +200,8 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 	} else if (nested) {
 		sd->ret_value = -ENOSYS;
 		sd->action = SKIPIT;
+	} else { // !ht && !nested
+		sd->action = DOIT_CB_AFTER;
 	}
 }
 
@@ -184,16 +209,18 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 	int nested = sd->extra->nested;
 	if (ht) {
 		int syscall_number = sd->syscall_number;
+		uid_t euid;
 		gid_t rgid, egid, sgid, fsgid;
 		gid_t new_rgid, new_egid, new_sgid;
 		int ret_value = -1;
+		service_syscall(ht, __VU_getresfuid) (NULL, &euid, NULL, NULL, vuht_get_private_data(ht));
 		service_syscall(ht, __VU_getresfgid) (&rgid, &egid, &sgid, &fsgid, vuht_get_private_data(ht));
 		switch (syscall_number) {
 			case __NR_setgid:
 				new_rgid = -1;
 				new_egid = sd->syscall_args[0];
 				new_sgid = -1;
-				if (new_egid != (gid_t) -1 && egid == 0)
+				if (new_egid != (gid_t) -1 && euid == 0)
 					new_rgid = new_sgid = new_egid;
 				break;
 			case __NR_setregid:
@@ -229,6 +256,8 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 	} else if (nested) {
 		sd->ret_value = -ENOSYS;
 		sd->action = SKIPIT;
+	} else { // !ht && !nested
+		sd->action = DOIT_CB_AFTER;
 	}
 }
 
@@ -239,7 +268,7 @@ static void wi_setfsuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd
 		uid_t ruid, euid, suid, fsuid;
 		service_syscall(ht, __VU_getresfuid)(&ruid, &euid, &suid, &fsuid, vuht_get_private_data(ht));
 		sd->ret_value = fsuid;
-		if (new_fsuid != (uid_t ) -1) 
+		if (new_fsuid != (uid_t ) -1)
 			service_syscall(ht, __VU_setresfuid)(ruid, euid, suid, new_fsuid, vuht_get_private_data(ht));
 		sd->action = SKIPIT;
 	} else if (nested) {
@@ -248,9 +277,11 @@ static void wi_setfsuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd
 			sd->action = SKIPIT;
 		} else {
 			uid_t ruid, euid, suid, fsuid;
-			status_getresfuid(umvu_gettid(),&ruid, &euid, &suid, &fsuid);
+			vu_uidgid_getresfuid(&ruid, &euid, &suid, &fsuid);
 			sd->ret_value = fsuid;
 		}
+	} else { // !ht && !nested
+		sd->action = DOIT_CB_AFTER;
 	}
 }
 
@@ -271,9 +302,11 @@ static void wi_setfsgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd
 			sd->action = SKIPIT;
 		} else {
 			gid_t rgid, egid, sgid, fsgid;
-			status_getresfgid(umvu_gettid(),&rgid, &egid, &sgid, &fsgid);
+			vu_uidgid_getresfgid(&rgid, &egid, &sgid, &fsgid);
 			sd->ret_value = fsgid;
 		}
+	} else { // !ht && !nested
+		sd->action = DOIT_CB_AFTER;
 	}
 }
 
@@ -295,6 +328,76 @@ void wi_setresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		wi_setresgid(ht, sd);
 }
 
+void wo_setresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->ret_value = sd->orig_ret_value;
+	if (sd->ret_value == 0) {
+		/* if the real system call succeeded, update vu_uidgid */
+		int syscall_number = sd->syscall_number;
+		uid_t ruid, euid, suid, fsuid, newfsuid;
+		vu_uidgid_getresfuid(&ruid, &euid, &suid, &fsuid);
+		switch (syscall_number) {
+			case __NR_setuid:
+				if (euid == 0)
+					euid = ruid = suid = fsuid = sd->syscall_args[0];
+				else
+					euid = sd->syscall_args[0];
+			break;
+		case __NR_setreuid:
+			ruid = sd->syscall_args[0];
+			euid = sd->syscall_args[1];
+			break;
+		case __NR_setresuid:
+			ruid = sd->syscall_args[0];
+			euid = sd->syscall_args[1];
+			suid = sd->syscall_args[2];
+			break;
+		case __NR_setfsuid:
+			newfsuid = sd->syscall_args[0];
+			if (euid == 0 || newfsuid == ruid || newfsuid == euid
+					|| newfsuid == suid || newfsuid == fsuid)
+				fsuid = newfsuid;
+			break;
+		}
+		vu_uidgid_setresfuid(ruid, euid, suid, fsuid);
+	}
+}
+
+void wo_setresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+  sd->ret_value = sd->orig_ret_value;
+  if (sd->ret_value == 0) {
+		/* if the real system call succeeded, update vu_uidgid */
+		int syscall_number = sd->syscall_number;
+		uid_t euid;
+		gid_t rgid, egid, sgid, fsgid, newfsgid;
+		vu_uidgid_getresfuid(NULL, &euid, NULL, NULL);
+		vu_uidgid_getresfgid(&rgid, &egid, &sgid, &fsgid);
+    switch (syscall_number) {
+      case __NR_setgid:
+        if (euid == 0)
+          egid = rgid = sgid = fsgid = sd->syscall_args[0];
+        else
+          egid = sd->syscall_args[0];
+      break;
+    case __NR_setregid:
+      rgid = sd->syscall_args[0];
+      egid = sd->syscall_args[1];
+      break;
+    case __NR_setresgid:
+      rgid = sd->syscall_args[0];
+      egid = sd->syscall_args[1];
+      sgid = sd->syscall_args[2];
+      break;
+    case __NR_setfsgid:
+      newfsgid = sd->syscall_args[0];
+      if (egid == 0 || newfsgid == rgid || newfsgid == egid
+          || newfsgid == sgid || newfsgid == fsgid)
+        fsgid = newfsgid;
+      break;
+    }
+    vu_uidgid_setresfgid(rgid, egid, sgid, fsgid);
+  }
+}
+
 void wi_setgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
@@ -312,30 +415,21 @@ void wi_setgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	} else if (nested) {
 		sd->ret_value = -ENOSYS;
     sd->action = SKIPIT;
+	} else { // !ht && !nested
+		sd->action = DOIT_CB_AFTER;
 	}
 }
 
-void wi_getgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int ret_value;
-	int nested = sd->extra->nested;
-	int size = sd->syscall_args[0];
-	uintptr_t listaddr =  sd->syscall_args[1];
-	gid_t *list;
-	vu_alloc_arg(listaddr, list, size * sizeof(gid_t), nested);
-	if (ht) {
-		ret_value = service_syscall(ht, __VU_getgroups)(size, list, vuht_get_private_data(ht));
-	} else {
-		ret_value = status_getgroups(umvu_gettid(), size, list);
-		if (ret_value < 0)
-			errno = EINVAL;
-	} 
-	if (ret_value > 0) 
-		vu_poke_arg(listaddr, list, ret_value * sizeof(gid_t), nested);
-	vu_free_arg(list, nested);
-	sd->action = SKIPIT;
-	if (ret_value < 0)
-		sd->ret_value = -errno;
-	else
-		sd->ret_value = ret_value;
+void wo_setgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->ret_value = sd->orig_ret_value;
+	if (sd->ret_value == 0) {
+		/* if the real system call succeeded, update vu_uidgid */
+		int size = sd->syscall_args[0];
+    uintptr_t listaddr =  sd->syscall_args[1];
+    gid_t *list;
+    vu_alloc_peek_arg(listaddr, list, size * sizeof(gid_t), VU_NOT_NESTED);
+		vu_uidgid_setgroups(size, list);
+		vu_free_arg(list, VU_NOT_NESTED);
+	}
 }
 
