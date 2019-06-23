@@ -108,11 +108,11 @@ int umvu_poke_syscall(struct user_regs_struct *regs,
 
 #endif
 
-void umvu_settid(int tid) {
+void umvu_settid(pid_t tid) {
 	tracee_tid = tid;
 }
 
-unsigned int umvu_gettid()
+pid_t umvu_gettid()
 {
 	return tracee_tid;
 }

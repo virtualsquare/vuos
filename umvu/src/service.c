@@ -28,7 +28,7 @@
 
 /* helper functions for modules */
 
-unsigned int vu_mod_gettid() {
+pid_t vu_mod_gettid() {
 	return umvu_gettid();
 }
 

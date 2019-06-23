@@ -11,6 +11,7 @@
 #include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/capability.h>
 
 /* header file for VUOS module implementation */
 
@@ -119,6 +120,8 @@ int VU_SYSNAME(name, getsockopt) (int sockfd, int level, int optname, \
 		void *optval, socklen_t *optlen, void *fdprivate); \
 int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
 		const void *optval, socklen_t optlen, void *fdprivate); \
+int VU_SYSNAME(name, capget) (cap_user_header_t hdrp, cap_user_data_t datap); \
+int VU_SYSNAME(name, capset) (cap_user_header_t hdrp, const cap_user_data_t datap); \
 \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
     struct vuht_entry_t *ht); \
@@ -167,7 +170,7 @@ struct binfmt_req_t {
 /* mainly for modules' threads */
 struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
-unsigned int vu_mod_gettid();
+pid_t vu_mod_gettid();
 void vu_mod_peek_str(void *addr, void *buf, size_t datalen);
 char *vu_mod_peekdup_path(void *addr);
 void vu_mod_peek_data(void *addr, void *buf, size_t datalen);

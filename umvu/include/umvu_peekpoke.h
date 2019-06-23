@@ -122,8 +122,8 @@ struct syscall_descriptor_t {
 /* set/get the tid of the user process/thread controlled
 	 by the current hypervisor thread.
 	 (i.e. the "guarded"/"protected" thread of the current "guardian angel") */
-void umvu_settid(int tid);
-unsigned int umvu_gettid();
+void umvu_settid(pid_t tid);
+pid_t umvu_gettid();
 
 /* block the user process: it changes the syscall to poll(0, 0, -1) */
 void umvu_block(struct syscall_descriptor_t *sd);
