@@ -44,13 +44,12 @@
 void wi_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[4];
 	int nested = sd->extra->nested;
-	if (ht && fd >= 0) { // nothing to do if the file is real or is not on a file
+	if (ht && fd >= 0) { // nothing to do if the file is real or is not a mmap on a file
 		struct vu_fnode_t *fnode = vu_fd_get_fnode(fd, nested);
 		vu_fnode_copyin(fnode);
 		sd->inout = fnode;
 		sd->action = DOIT_CB_AFTER;
-	} else
-		sd->inout = NULL;
+	}
 }
 
 void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {

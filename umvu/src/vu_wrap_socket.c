@@ -374,7 +374,6 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	sd->inout = NULL;
 	if (ht) {
 		if (!nested) {
 			int fd = sd->syscall_args[0];
@@ -385,7 +384,6 @@ void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
-		sd->inout = NULL;
 		wo_sendto(ht, sd);
 	}
 }
@@ -500,7 +498,6 @@ void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	sd->inout = NULL;
 	if (ht) {
 		if (!nested) {
 			int fd = sd->syscall_args[0];
@@ -511,7 +508,6 @@ void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
-		sd->inout = NULL;
 		wo_recvfrom(ht, sd);
 	}
 }

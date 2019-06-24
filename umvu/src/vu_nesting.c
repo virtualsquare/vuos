@@ -46,7 +46,7 @@
 static long int capture_nested_syscall(long int syscall_number, ...) {
 	va_list ap;
 	struct syscall_extra_t extra;
-	struct syscall_descriptor_t sd = {.extra = &extra};
+	struct syscall_descriptor_t sd = {.extra = &extra, .inout = NULL};
 	struct vuht_entry_t *ht;
 	int sysno = vu_arch_table[syscall_number];
 	struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];

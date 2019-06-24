@@ -190,7 +190,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 	int wstatus, sig_tid;
 	syscall_state_t syscall_state = IN_SYSCALL;
 	struct user_regs_struct regs;
-	struct syscall_descriptor_t syscall_desc;
+	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
 	//printk("new thread for %d\n", tracee_tid);
 	while (1) {
@@ -273,8 +273,11 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 								umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS);
 								P_SETREGS(sig_tid, &regs);
 						}
-						else if (umvu_poke_syscall(&regs, &syscall_desc, POKE_RETVALUE))
-							P_SETREGS(sig_tid, &regs);
+						else {
+							syscall_desc.inout = NULL;
+							if (umvu_poke_syscall(&regs, &syscall_desc, POKE_RETVALUE))
+								P_SETREGS(sig_tid, &regs);
+						}
 					}
 					syscall_state = IN_SYSCALL;
 					syscall_desc.waiting_pid = 0;
@@ -298,7 +301,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 {
 	int wstatus, sig_tid;
 	struct user_regs_struct regs;
-	struct syscall_descriptor_t syscall_desc;
+	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
 	//printk("new seccomp thread for %d\n", tracee_tid);
 	while (1) {
@@ -374,8 +377,11 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					syscall_desc.prog_counter -= SYSCALL_INSTRUCTION_LEN;
 					umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS);
 					P_SETREGS(sig_tid, &regs);
-				} else if (umvu_poke_syscall(&regs, &syscall_desc, POKE_RETVALUE))
-					P_SETREGS(sig_tid, &regs);
+				} else {
+					if (umvu_poke_syscall(&regs, &syscall_desc, POKE_RETVALUE))
+						P_SETREGS(sig_tid, &regs);
+					syscall_desc.inout = NULL;
+				}
 				syscall_desc.waiting_pid = 0;
 				P_CONT(sig_tid, 0L);
 			} else {

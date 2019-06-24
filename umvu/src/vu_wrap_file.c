@@ -245,7 +245,6 @@ void slow_wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
-		sd->inout = NULL;
 		_file_wx_read(ht, sd);
 		sd->action = SKIPIT;
 	}
@@ -328,7 +327,6 @@ void slow_wi_write(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
-		sd->inout = NULL;
 		_file_wx_write(ht, sd);
 		sd->action = SKIPIT;
 	}

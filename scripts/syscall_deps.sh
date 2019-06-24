@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# compute and prin on stdout all the (nested_ dependencies of "#include<sys/syscall.h>"
+# compute and print on stdout all the (nested_ dependencies of "#include<sys/syscall.h>"
 
 echo "#include<sys/syscall.h>" | gcc -M -E - | \
 	sed ':a; N; s/\n/ /; ta' | sed 's/^-: *//;s/ *$//;s/\\//g;s/  */;/g'
