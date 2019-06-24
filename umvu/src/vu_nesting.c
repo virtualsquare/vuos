@@ -90,6 +90,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 			tab_entry->wrapoutf(ht, &sd);
 		else
 			sd.ret_value = sd.orig_ret_value;
+		sd.inout = NULL;
 	}
 	ret_value = sd.ret_value;
 	if (ht != NULL)
