@@ -1,6 +1,6 @@
 /*
  *   VUOS: view OS project
- *   Copyright (C) 2017,2018,2019 Renzo Davoli <renzo@cs.unibo.it>, 
+ *   Copyright (C) 2017,2018,2019 Renzo Davoli <renzo@cs.unibo.it>,
  *                                Antonio Cardace <anto.cardace@gmail.com>
  *   VirtualSquare team.
  *
@@ -91,7 +91,7 @@ static void default_syscall_handler(syscall_state_t state, struct syscall_descri
 #if 0
 	printf("trace %d - SCNO %d\n", state, sd->syscall_number);
 	sd->action = DOIT_CB_AFTER;
-	if (state == OUT_SYSCALL) 
+	if (state == OUT_SYSCALL)
 		sd->ret_value = sd->orig_ret_value;
 #endif
 }
@@ -124,7 +124,7 @@ static void unblock_tracee(pid_t tid, struct user_regs_struct *regs)
 	r_wait4(tid, NULL, __WALL, NULL);
 	P_SETREGS(tid, regs);
 	// P_SYSCALL if legacy, P_CONT if SECCOMP
-	PTRACE(ptrace_next_syscall, tid, 0L); 
+	PTRACE(ptrace_next_syscall, tid, 0L);
 }
 
 static void *spawn_tracer(void *arg)
@@ -148,8 +148,8 @@ static void block_tracee(pid_t tid, struct user_regs_struct *regs)
 	P_GETREGS_NODIE(tid, regs);
 	umvu_peek_syscall(regs, &sys_orig, PEEK_ARGS);
 	sys_modified = sys_orig;
-	/* change syscall to poll(NULL, 0, -1); 
-	 * actually it uses poll((struct pollfd *)1, 0, -1): 
+	/* change syscall to poll(NULL, 0, -1);
+	 * actually it uses poll((struct pollfd *)1, 0, -1):
 	 *        the first arg is ignored as the second is zero.
 	 *        the first arg is a tag for the BPF program */
 	sys_modified.syscall_number = __NR_poll;
@@ -364,7 +364,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					/* the tracee is doing a clone */
 					clone_flags = syscall_desc.syscall_args[0];
 					P_CONT(sig_tid, 0L);
-				} else 
+				} else
 					P_CONT(sig_tid, 0L);
 			} else if (WSTOPSIG(wstatus) == (SIGTRAP | 0x80)) {
 				if (syscall_desc.waiting_pid != 0)
@@ -403,7 +403,7 @@ int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int mai
 	nproc_update(1);
 	P_SEIZE(childpid, PTRACE_STD_OPTS);
 	// P_SYSCALL if legacy, P_CONT if SECCOMP
-	PTRACE(ptrace_next_syscall, childpid, 0L); 
+	PTRACE(ptrace_next_syscall, childpid, 0L);
 	if (syscall_handler_arg != NULL)
 		syscall_handler = syscall_handler_arg;
 	umvu_settid(childpid);

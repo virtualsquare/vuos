@@ -56,7 +56,7 @@ void wi_lgetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		void *private = NULL;
 		/* fetch args */
 		switch (syscall_number) {
-			case __NR_fgetxattr: 
+			case __NR_fgetxattr:
 				sfd = vu_fd_get_sfd(sfd, &private, nested);
 				break;
 		}
@@ -102,7 +102,7 @@ void wi_lsetxattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		ret_value = service_syscall(ht, __VU_lsetxattr)(sd->extra->mpath, name, value, size, flags, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
-		else 
+		else
 			sd->ret_value = ret_value;
 		vu_free_arg(value, nested);
 	}
@@ -162,7 +162,7 @@ void wi_lremovexattr(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		ret_value = service_syscall(ht, __VU_lremovexattr)(sd->extra->mpath, name, sfd, private);
 		if (ret_value < 0)
 			sd->ret_value = (errno == ENOSYS) ? -ENOTSUP : -errno;
-		else 
+		else
 			sd->ret_value = ret_value;
 	}
 }

@@ -34,7 +34,7 @@
 
 static char *progname;
 
-/* This is the command that creates the list of proocol family names 
+/* This is the command that creates the list of proocol family names
 echo "#include<sys/socket.h>" | gcc -E -dD - | egrep '^#define  *PF_.*[0-9]$' | \
 awk 'BEGIN {printf "static char *pf_names[] = { \\\n"}   {printf "  [%s] = \"%s\", \\\n", $3, substr(tolower($2),4)} END {printf "};\n"}'
 */

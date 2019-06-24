@@ -121,7 +121,7 @@ static void epoll_tab_del(struct epoll_tab *tab, int fd) {
 	}
 }
 
-static void epoll_tab_add(struct epoll_tab *tab, int fd, epoll_data_t data, 
+static void epoll_tab_add(struct epoll_tab *tab, int fd, epoll_data_t data,
 		struct vuht_entry_t *ht, int sfd, void *private) {
 	struct epoll_tab_elem *new = malloc(sizeof(struct epoll_tab_elem));
 	fatal(new);
@@ -171,7 +171,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		sd->extra->statbuf.st_ino = epfd;
 		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, tab);
 		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
-	} 
+	}
 	sd->ret_value = sd->orig_ret_value;
 }
 
@@ -458,7 +458,7 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			for (j = 0; j < nfds; j++) {
 				if (fd == fds[j].fd) {
 					uint32_t fdevents = events & fds[j].events;
-					if (fdevents) 
+					if (fdevents)
 						fds[j].revents |= fdevents;
 				}
 			}
@@ -643,7 +643,7 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND)
 			sd->ret_value = ret_value;
-		else if (orig_ret_value < 0) 
+		else if (orig_ret_value < 0)
 			sd->ret_value = orig_ret_value;
 		else
 			sd->ret_value = orig_ret_value + ret_value;

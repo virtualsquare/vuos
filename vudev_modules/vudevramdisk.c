@@ -120,7 +120,7 @@ ssize_t vuramdisk_pread(int fd, void *buf, size_t count, off_t offset, struct vu
 ssize_t vuramdisk_pwrite(int fd, const void *buf, size_t count, off_t offset, struct vudevfd_t *vudevfd) {
 	struct vuramdisk_t *ramdisk = vudev_get_private_data(vudevfd->vudev);
   if(ramdisk->flags & READONLY) {
-    errno = EBADF; 
+    errno = EBADF;
 		return -1;
   }
 	count = _ck_size(ramdisk, count, offset);
@@ -135,8 +135,8 @@ off_t vuramdisk_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vudevf
 		case SEEK_SET: ret_value = offset; break;
 		case SEEK_CUR: ret_value = vudevfd->offset + offset; break;
 		case SEEK_END: ret_value = RAMDISK_SIZE(ramdisk) + offset; break;
-    default: errno = EINVAL; 
-						 ret_value = (off_t) -1; 
+    default: errno = EINVAL;
+						 ret_value = (off_t) -1;
 						 break;
 	}
 	return ret_value;
@@ -165,7 +165,7 @@ int vuramdisk_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t 
 			case HDIO_GETGEO:
 											memcpy(addr, &(ramdisk->geometry), sizeof(struct hd_geometry));
 											break;
-			default: errno = EINVAL; 
+			default: errno = EINVAL;
 							 return -1;
 		}
 		return 0;
@@ -194,7 +194,7 @@ void *vuramdisk_init(const char *source, unsigned long flags, const char *args, 
 	ramdisk->geometry.cylinders = GET_CYLINDERS(ramdisk);
 	ramdisk->rd_size = ramdisk->geometry.heads * ramdisk->geometry.sectors * ramdisk->geometry.cylinders;
 	if((ramdisk->diskdata = calloc(1, ramdisk->rd_size * STD_SECTORSIZE)) == NULL) {
-		free(ramdisk); 
+		free(ramdisk);
 		errno = ENOMEM;
 		return NULL;
   }

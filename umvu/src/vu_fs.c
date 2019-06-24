@@ -37,7 +37,7 @@ struct vu_fs_t {
 	char *rootdir;  // current root directory (absolute canonicalized path) */
 	mode_t umask;   // current umask
 	size_t count;   // number of threads sharing this entry
-	int path_rewrite; // true if patnames must be rewritten 
+	int path_rewrite; // true if patnames must be rewritten
 };
 
 static __thread struct vu_fs_t *vu_fs = NULL;

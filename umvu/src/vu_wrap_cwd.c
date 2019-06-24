@@ -51,7 +51,7 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (ht)
 				rewrite_syspath(sd, "/"); /* this directory should always exist */
 			else
-				rewrite_syspath(sd, sd->extra->path); 
+				rewrite_syspath(sd, sd->extra->path);
 			sd->action = DOIT_CB_AFTER;
 		} else {
 			if (mode == 0)
@@ -85,7 +85,7 @@ void wi_getcwd(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		size_t cwdlen;
 		vu_fs_get_cwd(plaincwd, PATH_MAX);
 		vu_fs_get_rootdir(root, PATH_MAX);
-		if (root[1] == 0) 
+		if (root[1] == 0)
 			root[0] = 0;
 		rootlen = strlen(root);
 		if (strncmp(plaincwd, root, rootlen) == 0) {

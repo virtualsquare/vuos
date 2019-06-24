@@ -152,7 +152,7 @@ void debug_add_tags(char *tags, int local) {
 void debug_del_tags(char *tags, int local) {
 	for (; *tags; tags++) {
 		int index = debug_tag2index(tags[0]);
-		if (local) 
+		if (local)
 			tdebugmask &= ~(1ULL << index);
 		else
 			debugmask &= ~(1ULL << index);
@@ -220,7 +220,7 @@ static void _debug_set_tag_color(int tag, const char *s) {
 }
 
 void debug_set_color(char *tags, const char *s) {
-	for (; *tags; tags++) 
+	for (; *tags; tags++)
 		_debug_set_tag_color(tags[0], s);
 }
 
@@ -276,15 +276,15 @@ static void generate_color_esc_sequence(struct debugcolor color, char *seq) {
 	if (color.reverse) { *seq++ = sep; *seq++ = '7'; sep = ';'; }
 	if (color.set_foreground) {
 		*seq++ = sep;
-		*seq++ = '3'; 
-		*seq++ = '0' + color.foreground; 
-		sep = ';'; 
+		*seq++ = '3';
+		*seq++ = '0' + color.foreground;
+		sep = ';';
 	}
 	if (color.set_background) {
 		*seq++ = sep;
-		*seq++ = '4'; 
-		*seq++ = '0' + color.background; 
-		sep = ';'; 
+		*seq++ = '4';
+		*seq++ = '0' + color.background;
+		sep = ';';
 	}
 	*seq++ = 'm';
 	*seq = 0;

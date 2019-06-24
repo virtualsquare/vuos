@@ -46,7 +46,7 @@ void umvu_peek_syscall(struct user_regs_struct *regs,
 {
 	if (regs && syscall_desc) {
 		if (op == PEEK_ARGS) {
-			syscall_desc->orig_syscall_number = 
+			syscall_desc->orig_syscall_number =
 				syscall_desc->syscall_number = regs->orig_rax;
 			syscall_desc->syscall_args[0] = regs->rdi;
 			syscall_desc->syscall_args[1] = regs->rsi;
@@ -148,7 +148,7 @@ int umvu_peek_str(uintptr_t addr, void *buf, size_t datalen)
 			struct iovec local_iov = {cbuf, chunk_len};
 			struct iovec remote_iov = {(void *) addr, chunk_len};
 			int rv=process_vm_readv(tracee_tid, &local_iov, 1, &remote_iov, 1, 0);
-			if (rv != (int) chunk_len) 
+			if (rv != (int) chunk_len)
 				return -1;
 			else {
 				unsigned int r;

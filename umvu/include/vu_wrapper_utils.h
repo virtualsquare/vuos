@@ -18,7 +18,7 @@
  * stucture for write wrappers/small buffers (stack allocation)
  *    vu_alloc_peek_local_arg(addr, var, size, nested)
  * stucture for read wrappers IOVEC
- *    vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested) 
+ *    vu_alloc_iov_arg(iovaddr, iov, iovcnt, buf, bufsize, nested)
  *          it assigns buf and bufsize...
  *    vu_poke_iov_arg(iovaddr, iov, iovcnt, buf, len, nested)
  *    vu_free_iov_arg(iov, buf, nested)

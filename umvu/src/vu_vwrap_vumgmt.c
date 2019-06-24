@@ -100,7 +100,7 @@ void vw_rmmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		printk(KERN_ERR "module %s is not loaded\n", name);
 		sd->ret_value = -ENOENT;
 		return;
-	} 
+	}
 	service = vuht_get_service(sht);
 	fatal(service);
 
@@ -145,7 +145,7 @@ void vw_lsmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	localbufsize++; /* for the string terminator */
 
 	if (buf_addr != 0) { /*NULL*/
-		if (localbufsize < buf_size) 
+		if (localbufsize < buf_size)
 			buf_size = localbufsize;
 		umvu_poke_data(buf_addr, localbuf, buf_size);
 	}
@@ -161,7 +161,7 @@ void vuctl_getinfo(struct syscall_descriptor_t *sd) {
 		r_uname(&info.uname);
 		snprintf(info.vu_serverid, sizeof(info.vu_serverid), "%d", getpid());
 		get_vu_name(info.vu_name, sizeof(info.vu_name));
-		if (umvu_poke_data(info_addr, &info, sizeof(info)) < 0) 
+		if (umvu_poke_data(info_addr, &info, sizeof(info)) < 0)
 			sd->ret_value = -EINVAL;
 		else
 			sd->ret_value = 0;

@@ -28,7 +28,7 @@
 static char *progname;
 void usage()
 {
-  fprintf(stderr, 
+  fprintf(stderr,
 			"Usage:\n"
 			"  %s OPTIONS\n"
 			"  OPTIONS:\n"
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     usage();
   }
   while (1) {
-    c=getopt_long(argc, argv, 
+    c=getopt_long(argc, argv,
 				short_options, long_options, NULL);
     if (c == -1) break;
     switch (c) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     usage();
 	if ((bufsize = vu_lsmod(NULL, 0)) > 0) {
 		char buf[bufsize];
-		if (vu_lsmod(buf, bufsize) < 0) 
+		if (vu_lsmod(buf, bufsize) < 0)
 			perror(progname);
 		else
 			printf("%s", buf);

@@ -30,7 +30,7 @@
 static char *progname;
 void usage()
 {
-  fprintf(stderr, 
+  fprintf(stderr,
 			"Usage: %s [ARG] [ARG] ... [ -- cmd args ]\n"
 			"  ARG = --help | DEBUGSPEC\n"
 			"  DEBUGSPEC = [+|-]TAG[TAG]...[:COLORSPEC]\n"
@@ -65,9 +65,9 @@ static void vu_ls_debugtags(char *lstags) {
 		vu_get_debugtagname(c, tagname, 32);
 		if (((lstags != NULL && strchr(lstags, c)) ||
 				 (lstags == NULL && (tagselected || *tagname != '\0'))))	
-			printf("%c %c%s%s\n", c, 
-					tagselected ? '+' : '-', 
-					ltagselected ? "(+)" : "   ", 
+			printf("%c %c%s%s\n", c,
+					tagselected ? '+' : '-',
+					ltagselected ? "(+)" : "   ",
 					tagname);
 	}
 }
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 			char *color;
 			if (strchr(functions, *arg))
 				function = *tags++;
-			if ((color = strchr(tags, ':')) != NULL) 
+			if ((color = strchr(tags, ':')) != NULL)
 				*color++ = 0;
 			switch (function) {
 				case '+': vu_add_debugtags(*tags ? tags : ALLTAGS, cmdargv != NULL);

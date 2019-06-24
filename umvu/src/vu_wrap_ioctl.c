@@ -41,7 +41,7 @@
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
 
-/* TODO XXX ioctl can be a blocking syscall. 
+/* TODO XXX ioctl can be a blocking syscall.
 	 ioctl should be changed to poll(NULL, 0, -1),
 	 the call of module's ioctl should be in the "during" phase,
 	 sending a PTRACE_INTERRUPT when done, and
@@ -74,9 +74,9 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (reqargs == (unsigned long) -1)
 			reqargs = request;
 		len = _IOC_SIZE(reqargs);
-		if (len > 0) 
+		if (len > 0)
 			vu_alloc_arg(addr, buf, len, nested);
-		if (reqargs & IOC_OUT) 
+		if (reqargs & IOC_OUT)
 			vu_peek_arg(addr, buf, len, nested);
 		ret_value = service_syscall(ht, __VU_ioctl)(sfd, request, buf, addr, private);
 		if (ret_value < 0)

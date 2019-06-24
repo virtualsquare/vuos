@@ -56,7 +56,7 @@ void wi_mount(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		xfree(filesystemtype);
 		xfree(data);
 		/* store results */
-		if (ret_value < 0) 
+		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;

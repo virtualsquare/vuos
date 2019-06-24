@@ -44,7 +44,7 @@ void version_exit(void) {
 void usage_exit(int exit_status)
 {
 	if (!quiet) {
-		fprintf(stderr, 
+		fprintf(stderr,
 				"Usage: vuname [OPTION]...\n"
 				" Print certain VUOS system information.  With no OPTION, same as -s.\n"
 				"Usage: vuname newname\n"
@@ -140,11 +140,11 @@ int main(int argc, char *argv[])
 			case 0x101:
 								version_exit();
 								break;
-			case 'N' : c = 'V'; 
+			case 'N' : c = 'V';
 								 /* for backwards compatibility */
 								 __attribute__ ((fallthrough));
 			default: ret_value = ch2fieldindex(c);
-							 if (ret_value >= 0) 
+							 if (ret_value >= 0)
 								 flags |= 1 << ret_value;
 							 else
 								 usage_exit(1);
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 		kernel_uname = 0;
 	}
 	if (prompt) {
-		if (kernel_uname) 
+		if (kernel_uname)
 			printf("%s\n",vi.uname.nodename);
 		else if (strlen(vi.vu_name) > 0)
 			printf("%s\n",vi.vu_name);
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 		unsigned int n;
 		char *sep;
 		for (n = 0, sep = ""; n < sizeof(field_options) - 1; n++) {
-			if (flags & (1 << n) && 
+			if (flags & (1 << n) &&
 					(kernel_uname == 0 || vuos_options[n] == ' ') &&
 					(flags != -1 || fields[n] != unknown)) {
 				printf("%s%s", sep, fields[n]);

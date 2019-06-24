@@ -72,7 +72,7 @@ int op_access(const char *path, int mask){
 
 int op_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi){
 	int fd = (int) fi->fh;
-	int rv = fstat(fd,stbuf); 
+	int rv = fstat(fd,stbuf);
 
 	RETURN(rv);
 }

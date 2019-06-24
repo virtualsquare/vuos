@@ -46,7 +46,7 @@ struct vuht_entry_t *choice_path(struct syscall_descriptor_t *sd) {
 		ht = NULL;
 	} else
 		ht = vuht_pick(CHECKPATH, extra->path, &extra->statbuf, SET_EPOCH);
-	printkdebug(c, "path %s: %c ht %p err = %d %s", extra->path, 
+	printkdebug(c, "path %s: %c ht %p err = %d %s", extra->path,
 			nested ? 'N' : '-', ht,
 			(sd->action == SKIPIT) ? -sd->ret_value : 0,
 			(sd->action == SKIPIT) ? "SKIPIT" : "");
@@ -65,7 +65,7 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
 	vu_fd_get_path(fd, nested, path, PATH_MAX);
 	extra->path = strdup(path);
 	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
-	printkdebug(c, "fd %d %s: %c ht %p", fd, extra->path, 
+	printkdebug(c, "fd %d %s: %c ht %p", fd, extra->path,
 			nested ? 'N' : '-', ht);
 	if (ht) {
 		extra->mpath = vuht_path2mpath(ht, extra->path);
@@ -91,7 +91,7 @@ struct vuht_entry_t *choice_ioctl(struct syscall_descriptor_t *sd) {
   if (ht) {
     set_vepoch(vuht_get_vepoch(ht));
     vuht_pick_again(ht);
-  } else 
+  } else
 		ht = vuht_pick(CHECKIOCTL, &request, NULL, SET_EPOCH);
   printkdebug(c, "ioctl %d %s: %c ht %p", fd, extra->path,
       nested ? 'N' : '-', ht);

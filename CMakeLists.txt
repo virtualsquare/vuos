@@ -16,7 +16,7 @@ set(HEADERS_INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/include)
 set(VU_HEADERS ${PROJECT_SOURCE_DIR}/include)
 set(VU_DYN_SOURCE_PATH ${CMAKE_BINARY_DIR}/umvu_dynsrc)
 set(VU_DYN_HEADER_PATH ${CMAKE_BINARY_DIR}/include)
- 
+
 set(VU_SYSCALL_DEFS ${VU_DYN_HEADER_PATH}/syscall_defs.h)
 set(R_TABLE_H ${VU_DYN_HEADER_PATH}/r_table.h)
 set(VU_SYSNAMES ${VU_DYN_SOURCE_PATH}/syscall_names.c)

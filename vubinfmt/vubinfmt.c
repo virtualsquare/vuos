@@ -249,7 +249,7 @@ static int vubinfmt_confirm(uint8_t type, void *arg, int arglen, struct vuht_ent
 	pthread_mutex_lock(&(vubinfmt->mutex));
 	if (vubinfmt->enabled)
 		retval = vubinfmt_match(req, vubinfmt->head);
-	else 
+	else
 		retval = 0;
 	pthread_mutex_unlock(&(vubinfmt->mutex));
 	return retval;
@@ -316,7 +316,7 @@ int vu_binfmt_entry_upcall (int tag, FILE *f, int openflags, void *pseudoprivate
 	struct vubinfmt_entry_t *this = pseudoprivate;
 	if (tag == PSEUDOFILE_LOAD_CONTENTS) {
 		vubinfmt_show(f, this);
-	} 
+	}
 	if (tag == PSEUDOFILE_STORE_CLOSE && (openflags & O_ACCMODE) != O_RDONLY) {
 		int value;
 		int valid = fscanf(f, "%d", &value);

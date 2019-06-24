@@ -33,10 +33,10 @@ typedef void *(*inheritance_upcall_t)(inheritance_state_t state, void *arg);
 /* register an upcall handler */
 void vu_inheritance_upcall_register(inheritance_upcall_t upcall);
 
-/* 
+/*
 	 call all the registered handlers.
 
-	 vu_inheritance_call(INH_SOMETHING, NULL, commonarg): 
+	 vu_inheritance_call(INH_SOMETHING, NULL, commonarg):
 	 >>> all the handlers get commonarg as their arg
 	 >>> the return values of the handlers are discarded
 	 vu_inheritance_call(INH_SOMETHING, inoutarg, commonarg):

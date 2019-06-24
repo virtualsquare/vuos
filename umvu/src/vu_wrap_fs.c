@@ -86,7 +86,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		/* store results */
 		vu_poke_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		sd->ret_value = ret_value;
-	} 
+	}
 }
 
 /* readlink, readlinkat */
@@ -123,7 +123,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* store results */
 		len = strlen(buf) + 1;
-		if (len > bufsize) 
+		if (len > bufsize)
 			len = bufsize;
 		vu_poke_arg(bufaddr, buf, len, nested);
 		sd->ret_value = ret_value;
@@ -552,7 +552,7 @@ void wi_symlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int nested = sd->extra->nested;
 		int ret_value;
 		char *target;
-		if (nested) 
+		if (nested)
 			target = (char *) sd->syscall_args[0];
 		else
 			target = umvu_peekdup_path(sd->syscall_args[0]);

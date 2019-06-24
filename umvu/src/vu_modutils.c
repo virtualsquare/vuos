@@ -157,7 +157,7 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name) 
 	int i;
 	static syscall_t useless;
 	for (i = 0; i < VU_NR_MODULE_SYSCALLS; i++) {
-		if (strcmp(name, vu_syscall_names[i]) == 0) 
+		if (strcmp(name, vu_syscall_names[i]) == 0)
 			return &service->module_syscall[i];
 	}
   useless	= NULL;

@@ -99,7 +99,7 @@ static int need_interpreter(struct binfmt_req_t *req) {
 	if (req->filehead[0] == '#' && req->filehead[1] == '!')
 		return 1;
 	req->fileheadlen = snprintf(req->filehead, BINFMTBUFLEN, "#!/bin/sh\n");
-	return 1; /* XXX unknown => script ?? */  
+	return 1; /* XXX unknown => script ?? */
 }
 
 /* get args in the interpreter #! line */
@@ -220,7 +220,7 @@ static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf)
 		sd->ret_value = -ENOENT;
 		sd->action = SKIPIT;
 		return -1;
-	} else 
+	} else
 		return 0;
 }
 
@@ -296,7 +296,7 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 	if (!(req->flags & BINFMT_PRESERVE_ARGV0))
 		argv_behead(argv_list);
 
-	if (depth == 1) 
+	if (depth == 1)
 		argv_addhead(argv_list, sd->syscall_args[0], NULL);
 	else
 		argv_addhead(argv_list, 0, req->path);

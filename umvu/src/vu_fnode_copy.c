@@ -80,7 +80,7 @@ static int copyfile_out(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 		close(fdin);
 		return -1;
 	}
-	while ((n = r_read(fdin, buf, BUFSIZ)) > 0) 
+	while ((n = r_read(fdin, buf, BUFSIZ)) > 0)
 		service_syscall(ht, __VU_write)(fdout, buf, n, private);
 	service_syscall(ht, __VU_close)(fdout, private);
 	r_close(fdin);

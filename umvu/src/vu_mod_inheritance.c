@@ -80,7 +80,7 @@ static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
 				fatal(args);
 				mod_inheritance_call(MOD_INH_CLONE, args, arg);
 				ret_value = args;
-			} 
+			}
 			break;
 		case INH_START:
 			if (mod_inheritance_upcall_list_count > 0) {
@@ -101,7 +101,7 @@ static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
 			break;
 		case INH_TERMINATE:
 			pthread_rwlock_rdlock(&mod_inheritance_upcall_rwlock);
-			if (mod_inheritance_upcall_list_count > 0) 
+			if (mod_inheritance_upcall_list_count > 0)
 				mod_inheritance_call(MOD_INH_TERMINATE, NULL, NULL);
 			pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
 			break;

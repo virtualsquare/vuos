@@ -46,7 +46,7 @@
 	 .num_links: counter of symlink to avoid infinite loops (ELOOP)
 	 .mode: lstat's st_mode of the last component (of the file at the end)
 	   0 means non-existent -1 invalid (lstat must be called again).
-	 .flags: flags (see canonicalize.h), follow link (final component) 
+	 .flags: flags (see canonicalize.h), follow link (final component)
 	   this flag is for l-system calls like lstat, lchmod, lchown etc...
 	   permit nonexistent leaves, etc.
 	 .private: opaque arg for user provided access functions (lmode, readlink, getcwd, getroot).
@@ -191,7 +191,7 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 				cdata->mode = -1;
 				memmove(cdata->ebuf+n,cdata->end,len+1);
 				cdata->end = memcpy(cdata->ebuf,buf,n);
-				/* note that ebuf contains only the concatenation of the link target 
+				/* note that ebuf contains only the concatenation of the link target
 					 and the reamining part of the original path.
 					 The heading part of the source path can be lost but this is not a problem
 					 as the recursion can invalidate part of the destination string;

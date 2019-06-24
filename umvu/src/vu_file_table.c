@@ -86,7 +86,7 @@ static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 }
 
 int vu_fnode_close(struct vu_fnode_t *fnode) {
-	int ret_value; 
+	int ret_value;
 	pthread_rwlock_wrlock(&fnode->lock);
 	printkdebug(f, "close %s (%p) count %d", fnode->path, fnode->ht, fnode->count);
 	fnode->count -= 1;

@@ -121,7 +121,7 @@ uint32_t vufstat_merge(int dirfd, const char *path, struct vu_stat *statbuf) {
 			for (int i = 0; tags[i]; i++) {
 				if (args[i] != NULL) {
 					switch (strcase(tags[i])) {
-						case(STRCASE(t,y,p,e)): 
+						case(STRCASE(t,y,p,e)):
 							switch (args[i][0]) {
 								case 's': statbuf->st_mode = (statbuf->st_mode & ~S_IFMT) | S_IFSOCK;
 													mask |= VUFSTAT_TYPE;
@@ -138,27 +138,27 @@ uint32_t vufstat_merge(int dirfd, const char *path, struct vu_stat *statbuf) {
 													break;
 							}
 							break;
-						case(STRCASE(m,o,d,e)): 
+						case(STRCASE(m,o,d,e)):
 							statbuf->st_mode = (statbuf->st_mode & S_IFMT) | (strtoul(args[i], NULL, 8) & ~S_IFMT);
 							mask |= VUFSTAT_MODE;
 							break;
-						case(STRCASE(u,i,d)): 
+						case(STRCASE(u,i,d)):
 							statbuf->st_uid = strtoul(args[i], NULL, 0);
 							mask |= VUFSTAT_UID;
 							break;
-						case(STRCASE(g,i,d)): 
+						case(STRCASE(g,i,d)):
 							statbuf->st_gid = strtoul(args[i], NULL, 0);
 							mask |= VUFSTAT_GID;
 							break;
-						case(STRCASE(r,d,e,v)): 
+						case(STRCASE(r,d,e,v)):
 							statbuf->st_rdev = read_dev_t(args[i]);
 							mask |= VUFSTAT_RDEV;
 							break;
-						case(STRCASE(d,e,v)): 
+						case(STRCASE(d,e,v)):
 							statbuf->st_dev = read_dev_t(args[i]);
 							mask |= VUFSTAT_DEV;
 							break;
-						case(STRCASE(c,t,i,m,e)): 
+						case(STRCASE(c,t,i,m,e)):
 							merge_timespec(&statbuf->st_ctim, args[i]);
 							mask |= VUFSTAT_CTIME;
 							break;

@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 		optind++;
 	}
 
-	if (argc > optind) 
+	if (argc > optind)
 		user=argv[optind];
 
 	if (argc > optind+1)
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 		else
 			shell = getenv("SHELL");
 	}
-	if (shell == NULL) 
+	if (shell == NULL)
 		shell="/bin/sh";
 	unsetenv("IFS");
 	if (change_environment) {
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 		arg0=shell;
 	getgrouplist(user,gid,NULL,&ngroups);
 	groups=malloc(ngroups * sizeof (gid_t));
-	if (groups == NULL) 
+	if (groups == NULL)
 		ngroups=0;
 	else
 		getgrouplist(user,gid,groups,&ngroups);

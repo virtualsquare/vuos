@@ -86,7 +86,7 @@ static int vboxdd_detect_type(int fd, char **disktype) {
 	else if (strncmp (buf, "<<<",  3) == 0) *disktype = "VDI";
 	else {
 		printk(KERN_ERR "cannot autodetect disk type\n");
-		errno = ENODEV; 
+		errno = ENODEV;
 		return -1;
 	}
 	printkdebug(D, "disktype [%s]", *disktype);
@@ -243,18 +243,18 @@ ssize_t vuvdi_pwrite(int fd, const void *buf, size_t count, off_t offset, struct
 off_t vuvdi_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vudevfd) {
   off_t ret_value;
 	switch (whence) {
-		case SEEK_SET: ret_value = offset; 
+		case SEEK_SET: ret_value = offset;
 									 break;
-		case SEEK_CUR: ret_value = (vudevfd->offset + offset); 
+		case SEEK_CUR: ret_value = (vudevfd->offset + offset);
 									 break;
 		case SEEK_END: {
 										 struct vuvdi_t *vdi = vudev_get_private_data(vudevfd->vudev);
-										 ret_value = vdi->size + offset; 
+										 ret_value = vdi->size + offset;
 										 break;
 									 }
-    default: 
-									 errno = EINVAL; 
-									 ret_value = (off_t) -1; 
+    default:
+									 errno = EINVAL;
+									 ret_value = (off_t) -1;
 									 break;
 	}
 	return ret_value;
@@ -326,7 +326,7 @@ static void *vuvdi_init(const char *source, unsigned long flags, const char *arg
 		goto exit_err;
 	if(vboxdd_open(vdi->disk, disk_type, source,
 				(flags&MS_RDONLY)? VD_OPEN_FLAGS_READONLY:VD_OPEN_FLAGS_NORMAL, NULL) < 0) {
-		errno = ENODEV; 
+		errno = ENODEV;
 		printk(KERN_ERR "opening vbox image failed\n");
 		goto exit_err;
 	}

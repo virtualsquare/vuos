@@ -118,7 +118,7 @@ void vu_vnode_close(struct vu_vnode_t *vnode) {
 
 /* no lock needed, usage count guarantees that there are no risks */
 char *vu_vnode_getvpath(struct vu_vnode_t *vnode) {
-	return vnode->vpath; 
+	return vnode->vpath;
 }
 
 int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {

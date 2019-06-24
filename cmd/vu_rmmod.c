@@ -28,7 +28,7 @@
 static char *progname;
 void usage()
 {
-  fprintf(stderr, 
+  fprintf(stderr,
 			"Usage:\n"
 			"  %s OPTIONS vu_module [vu_module] ...\n"
 			"  OPTIONS:\n"
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     usage();
   }
   while (1) {
-    c=getopt_long(argc, argv, 
+    c=getopt_long(argc, argv,
 				short_options, long_options, NULL);
     if (c == -1) break;
     switch (c) {

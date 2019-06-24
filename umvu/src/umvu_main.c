@@ -53,7 +53,7 @@ static struct option long_options[] = {
 	{0,0,0,0}};
 
 static void usage_n_exit(void) {
-	fprintf(stderr, 
+	fprintf(stderr,
 			"UMVU: user mode implementation of VU-OS\n"
 			"Copyright 2017-2018 VirtualSquare Team\n\n"
 			"Usage:\n"
