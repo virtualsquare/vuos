@@ -58,7 +58,7 @@ void multiplex_read_wrappers(mode_t mode,
 	if (wrapout == NULL)
 		x_wo_read[modeindex] = wo_NULL;
 	else
-		x_wo_read[modeindex] = wrapduring;
+		x_wo_read[modeindex] = wrapout;
 }
 
 void multiplex_write_wrappers(mode_t mode,
@@ -78,7 +78,7 @@ void multiplex_write_wrappers(mode_t mode,
 	if (wrapout == NULL)
 		x_wo_write[modeindex] = wo_NULL;
 	else
-		x_wo_write[modeindex] = wrapduring;
+		x_wo_write[modeindex] = wrapout;
 }
 
 void wi_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
