@@ -163,18 +163,7 @@ void vu_nesting_init(int argc, char **argv) {
 	char *ld_preload = getenv("LD_PRELOAD");
 	/* continue if purelibc is loaded, otherwise add LD_PRELOAD to the
 		 environment and reload the hypervisor by execv("/proc/self/exe", argv); */
-	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
-#if 0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-		_pure_start_p = dlsym(RTLD_DEFAULT,"_pure_start");
-#pragma GCC diagnostic pop
-		if (_pure_start_p) {
-			printk(KERN_INFO "Purelibc found: nested virtualization enabled\n");
-			native_syscall = _pure_start_p(capture_forward_syscall, 0);
-		}
-#endif
-	} else {
+	if (ld_preload == NULL || strcmp(ld_preload, PURELIBC_LIB) != 0) {
 		if (setenv("LD_PRELOAD", PURELIBC_LIB, 1) == 0) {
 			execv("/proc/self/exe", argv);
 		}
