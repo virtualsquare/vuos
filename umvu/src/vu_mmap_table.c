@@ -131,7 +131,7 @@ void vu_mmap_munmap(uintptr_t addr, size_t length) {
 				/* unload  addr, this->addr + this->length - addr */
 				this->length = addr + length - this->addr;
 			} else {
-				/* case 3:
+				/* case 4:
 					 area interval:  +-----------+
 					 unmap interval:     +---+
 					 new areas:      +---+   +---+

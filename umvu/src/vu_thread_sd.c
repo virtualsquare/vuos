@@ -26,12 +26,15 @@
 #include <umvu_peekpoke.h>
 #include <vu_execute.h>
 
+/* safe default value */
 static struct syscall_extra_t default_extra;
 static struct syscall_descriptor_t default_sd = {.extra = &default_extra};
 
 /* per thread syscall descriptor */
 __thread struct syscall_descriptor_t *thread_sd = &default_sd;
 
+/* set the new value of sd and return the previous,
+	 so that it can be used later to restore the old value */
 struct syscall_descriptor_t *set_thread_sd(struct syscall_descriptor_t *sd) {
 	struct syscall_descriptor_t *tmp = thread_sd;
 	//printk("set_thread_sd (%d) %p->%p\n", umvu_gettid(), tmp, sd);
