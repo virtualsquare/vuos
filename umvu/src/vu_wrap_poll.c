@@ -51,6 +51,12 @@
 #define ERESTARTNOHAND 514
 #define ERESTART_RESTARTBLOCK 516
 
+/* epoll data structures:
+ * struct epoll_tab: head of the file descriptor/event list.
+ *                   created by epoll_create
+ * epoll_tab_elem: created by epoll_ctl/EPOLL_CTL_ADD
+ */
+
 struct epoll_tab_elem {
 	int fd;
 	struct vuht_entry_t *ht;
@@ -134,17 +140,27 @@ static void epoll_tab_add(struct epoll_tab *tab, int fd, epoll_data_t data,
 	tab->head = new;
 }
 
+/* common wait code */
+
+static void vu_poll_wait_thread(struct syscall_descriptor_t *sd, int epfd) {
+	if ((sd->waiting_pid = r_fork()) == 0) {
+		struct pollfd pfd = {epfd, POLLIN, 0};
+		//printk("epoll_thread... %d\n", epfd);
+		//int ret_value =
+		r_poll(&pfd, 1, -1);
+		//printk("epoll_thread %d %d\n", ret_value, errno);
+		r_exit(1);
+	}
+}
+
+/*SELECT management of epoll: epoll_create/epoll_create1/epoll_ctl/epoll_wait/epoll_wait
+	 and close/release of epoll file descriptors */
+
 void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (!nested)
 		sd->action = DOIT_CB_AFTER;
 }
-
-/* private field of fnode entry should be used to store the list of tracked fds (close) */
-struct epoll_el {
-	int fd;
-	struct epoll_el *next;
-};
 
 void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -169,6 +185,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 		sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
 		sd->extra->statbuf.st_dev = 0;
 		sd->extra->statbuf.st_ino = epfd;
+		/* use the file table to map the user leverl fd to the (real) epollfd for modules */
 		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, tab);
 		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
 	}
@@ -209,8 +226,18 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->action = SKIPIT;
 		} else {
 			struct epoll_event mod_event;
-			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
-		 	mod_event.events = event->events;
+			vu_alloc_local_arg(eventaddr, event, sizeof(event), nested);
+			/* event is ignored in EPOLL_CTL_DEL and can be NULL */
+			switch (op) {
+				case EPOLL_CTL_ADD:
+				case EPOLL_CTL_MOD:
+					if (!nested) umvu_peek_data(eventaddr, event, sizeof(event));
+					mod_event.events = event->events;
+					break;
+				case EPOLL_CTL_DEL:
+					mod_event.events = 0;
+					break;
+			}
 			mod_event.data.fd = fd;
 			ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, &mod_event, private);
 			//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
@@ -254,21 +281,9 @@ void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-static void epoll_thread(int epfd) {
-  struct pollfd pfd = {epfd, POLLIN, 0};
-  //printk("epoll_thread... %d\n", epfd);
-  //int ret_value =
-  r_poll(&pfd, 1, -1);
-  //printk("epoll_thread %d %d\n", ret_value, errno);
-}
-
-
 void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct epoll_inout *epollio = sd->inout;
-	if ((sd->waiting_pid = r_fork()) == 0) {
-    epoll_thread(epollio->epfd);
-    r_exit(1);
-  }
+	vu_poll_wait_thread(sd, epollio->epfd);
 }
 
 void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -331,6 +346,8 @@ static int epoll_close_upcall(struct vuht_entry_t *ht, int epfd, void *private) 
 	r_close(epfd);
 	return 0;
 }
+
+/* management of poll/ppoll */
 
 struct poll_inout {
 	int nfds;
@@ -413,20 +430,9 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-static void poll_thread(int epfd) {
-  struct pollfd pfd = {epfd, POLLIN, 0};
-  //printk("poll_thread... %d\n", epfd);
-  //int ret_value =
-  r_poll(&pfd, 1, -1);
-  //printk("poll_thread %d %d\n", ret_value, errno);
-}
-
 void wd_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  struct poll_inout *selectio = sd->inout;
-  if ((sd->waiting_pid = r_fork()) == 0) {
-    poll_thread(selectio->epfd);
-    r_exit(1);
-  }
+  struct poll_inout *pollio = sd->inout;
+	vu_poll_wait_thread(sd, pollio->epfd);
 }
 
 void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -490,6 +496,8 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   xfree(pollio->fds);
   xfree(pollio);
 }
+
+/* management of select pselect */
 
 #define FD_SET_SIZE(nfds) ((__FD_ELT(nfds) + 1) * sizeof(__fd_mask))
 struct select_inout {
@@ -564,21 +572,9 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-static void select_thread(int epfd) {
-	struct pollfd pfd = {epfd, POLLIN, 0};
-	//printk("select_thread... %d\n", epfd);
-	//int ret_value =
-	r_poll(&pfd, 1, -1);
-	//printk("select_thread %d %d\n", ret_value, errno);
-}
-
-
 void wd_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct select_inout *selectio = sd->inout;
-	if ((sd->waiting_pid = r_fork()) == 0) {
-		select_thread(selectio->epfd);
-		r_exit(1);
-	}
+	vu_poll_wait_thread(sd, selectio->epfd);
 }
 
 void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {

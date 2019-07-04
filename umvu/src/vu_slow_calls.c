@@ -62,7 +62,6 @@ static void slow_thread(int epfd) {
 	//struct epoll_event useless;
 	struct pollfd pfd = {epfd, POLLIN, 0};
 	//printk("vu_slowcall_during... %d\n", epfd);
-	//int ret_value = r_epoll_wait(epfd, &useless, 1, -1);
 	poll(&pfd, 1, -1);
 
 	//printk("vu_slowcall_wakeup %d %d\n", ret_value, errno);
