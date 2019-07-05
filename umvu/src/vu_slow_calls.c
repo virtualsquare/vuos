@@ -38,7 +38,6 @@
 
 struct slowcall {
 	int epfd;
-	//char *stack[2048 - sizeof(int) - sizeof(pid_t)];
 };
 
 struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {

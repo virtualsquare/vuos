@@ -1,6 +1,6 @@
 /*
  *   VUOS: view OS project
- *   Copyright (C) 2017  Renzo Davoli <renzo@cs.unibo.it>, Antonio Cardace <anto.cardace@gmail.com>
+ *   Copyright (C) 2017, 2019 Renzo Davoli <renzo@cs.unibo.it>, Antonio Cardace <anto.cardace@gmail.com>
  *   VirtualSquare team.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -51,250 +51,323 @@
 #define ERESTARTNOHAND 514
 #define ERESTART_RESTARTBLOCK 516
 
-/* epoll data structures:
- * struct epoll_tab: head of the file descriptor/event list.
- *                   created by epoll_create
- * epoll_tab_elem: created by epoll_ctl/EPOLL_CTL_ADD
- */
-
 struct epoll_tab_elem {
 	int fd;
-	struct vuht_entry_t *ht;
-	int sfd;
-	void *private;
-	epoll_data_t data;
-	struct epoll_tab_elem *next;
+	int wepfd;
+  struct vuht_entry_t *ht;
+  int sfd;
+  void *private;
+  struct epoll_event event;
+  struct epoll_tab_elem *next;
 };
 
 struct epoll_tab {
-	pthread_mutex_t mutex;
-	int nested;
 	struct epoll_tab_elem *head;
 };
 
-static struct epoll_tab *epoll_tab_create(int nested) {
-	struct epoll_tab *tab = malloc(sizeof(struct epoll_tab));
-	fatal(tab);
-	pthread_mutex_init(&tab->mutex, NULL);
-	tab->nested = nested;
-	tab->head = NULL;
-	return tab;
+struct epoll_info {
+	pthread_mutex_t mutex;
+	int nested;
+	struct epoll_tab tab;
+};
+
+static struct epoll_tab epoll_tab_init(void) {
+	struct epoll_tab ret_value = {NULL};
+	return ret_value;
 }
 
-static void epoll_tab_lock(struct epoll_tab *tab) {
-	pthread_mutex_lock(&tab->mutex);
+static struct epoll_tab_elem *epoll_tab_search(struct epoll_tab tab, int fd) {
+  struct epoll_tab_elem *scan;
+  for (scan = tab.head; scan != NULL; scan = scan->next) {
+    if (scan->fd == fd)
+      return scan;
+  }
+  return NULL;
 }
 
-static void epoll_tab_unlock(struct epoll_tab *tab) {
-	pthread_mutex_unlock(&tab->mutex);
-}
-
-static void epoll_tab_destroy(struct epoll_tab *tab) {
-	if (tab) {
-		while (tab->head != NULL) {
-			struct epoll_tab_elem *tmp = tab->head;
-			tab->head = tmp->next;
-			xfree(tmp);
-		}
-		pthread_mutex_destroy(&tab->mutex);
-		xfree(tab);
-	}
-}
-
-static struct epoll_tab_elem *epoll_tab_head(struct epoll_tab *tab) {
-	struct epoll_tab_elem *this = tab->head;
-	return this;
-}
-
-static epoll_data_t *epoll_tab_search(struct epoll_tab *tab, int fd) {
-	struct epoll_tab_elem *scan;
-	for (scan = tab->head; scan != NULL; scan = scan->next) {
-		if (scan->fd == fd)
-			return &scan->data;
-	}
-	return NULL;
+static inline struct epoll_tab_elem *epoll_tab_head(struct epoll_tab tab) {
+	return tab.head;
 }
 
 static void epoll_tab_del(struct epoll_tab *tab, int fd) {
-	struct epoll_tab_elem **scan;
-	for (scan = &tab->head; *scan != NULL; scan = &((*scan)->next)) {
-		struct epoll_tab_elem *this = *scan;
-		if (this->fd == fd) {
-			*scan = this->next;
-			free(this);
-			return;
-		}
+  struct epoll_tab_elem **scan;
+  for (scan = &tab->head; *scan != NULL; scan = &((*scan)->next)) {
+    struct epoll_tab_elem *this = *scan;
+    if (this->fd == fd) {
+      *scan = this->next;
+      free(this);
+      return;
+    }
+  }
+}
+
+static inline struct epoll_tab_elem *epoll_tab_alloc(void) {
+	 struct epoll_tab_elem *new = malloc(sizeof(struct epoll_tab_elem));
+  fatal(new);
+	return new;
+}
+
+static void epoll_tab_add(struct epoll_tab *tab, struct epoll_tab_elem *new) {
+  new->next = tab->head;
+  tab->head = new;
+}
+
+static void epoll_tab_destroy(struct epoll_tab *tab) {
+	while (tab->head != NULL) {
+		struct epoll_tab_elem *tmp = tab->head;
+		tab->head = tmp->next;
+		xfree(tmp);
 	}
 }
 
-static void epoll_tab_add(struct epoll_tab *tab, int fd, epoll_data_t data,
-		struct vuht_entry_t *ht, int sfd, void *private) {
-	struct epoll_tab_elem *new = malloc(sizeof(struct epoll_tab_elem));
-	fatal(new);
-	new->fd = fd;
-	new->ht = ht;
-	new->sfd = sfd;
-	new->private = private;
-	new->data = data;
-	new->next = tab->head;
-	tab->head = new;
+static struct epoll_info *epoll_info_create(int nested) {
+	struct epoll_info *info = malloc(sizeof(struct epoll_info));
+	fatal(info);
+	pthread_mutex_init(&info->mutex, NULL);
+  info->nested = nested;
+  info->tab = epoll_tab_init();
+  return info;
+}
+
+static void epoll_info_lock(struct epoll_info *info) {
+  pthread_mutex_lock(&info->mutex);
+}
+
+static void epoll_info_unlock(struct epoll_info *info) {
+  pthread_mutex_unlock(&info->mutex);
+}
+
+static void epoll_info_destroy(struct epoll_info *info) {
+	if (info) {
+		epoll_tab_destroy(&info->tab);
+		pthread_mutex_destroy(&info->mutex);
+		xfree(info);
+	}
 }
 
 /* common wait code */
 
 static void vu_poll_wait_thread(struct syscall_descriptor_t *sd, int epfd) {
-	if ((sd->waiting_pid = r_fork()) == 0) {
-		struct pollfd pfd = {epfd, POLLIN, 0};
-		//printk("epoll_thread... %d\n", epfd);
-		//int ret_value =
-		r_poll(&pfd, 1, -1);
-		//printk("epoll_thread %d %d\n", ret_value, errno);
-		r_exit(1);
-	}
+  if ((sd->waiting_pid = r_fork()) == 0) {
+    struct pollfd pfd = {epfd, POLLIN, 0};
+     //printk("epoll_thread... %d\n", epfd);
+		 //int ret_value =
+    r_poll(&pfd, 1, -1);
+     //printk("epoll_thread %d %d\n", ret_value, errno);
+    r_exit(1);
+  }
 }
 
-/*SELECT management of epoll: epoll_create/epoll_create1/epoll_ctl/epoll_wait/epoll_wait
-	 and close/release of epoll file descriptors */
-
 void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int nested = sd->extra->nested;
-	if (!nested)
-		sd->action = DOIT_CB_AFTER;
+	sd->action = DOIT_CB_AFTER;
 }
 
 void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	int fd = sd->orig_ret_value;
-	if (fd >= 0) {
-		/* standard args */
-    int syscall_number = sd->syscall_number;
-		 /* args */
+  int fd = sd->orig_ret_value;
+  if (fd >= 0) {
+		int syscall_number = sd->syscall_number;
+     /* args */
     int flags;
-		int epfd;
-		struct vu_fnode_t *fnode;
-		struct epoll_tab *tab = epoll_tab_create(nested);
+    int epfd;
+    struct vu_fnode_t *fnode;
+    struct epoll_info *info = epoll_info_create(nested);
     switch (syscall_number) {
-			case __NR_epoll_create:
-				flags = 0;
-				break;
-			case __NR_epoll_create1:
-				flags = sd->syscall_args[0];
-				break;
+      case __NR_epoll_create:
+        flags = 0;
+        break;
+      case __NR_epoll_create1:
+        flags = sd->syscall_args[0];
+        break;
+    }
+    epfd = r_epoll_create1(EPOLL_CLOEXEC);
+    sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
+    sd->extra->statbuf.st_dev = 0;
+    sd->extra->statbuf.st_ino = epfd;
+		//printk("wo_epoll_create1 %d %d %p\n", fd, epfd, info);
+    /* use the file table to map the user leverl fd to the (real) epollfd for modules */
+    fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, info);
+    vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
+  }
+  sd->ret_value = sd->orig_ret_value;
+}
+
+static int epoll_ctl_add(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, int epfd,struct epoll_info *info,
+		int sfd, void *private) {
+	int nested = sd->extra->nested;
+	int fd = sd->syscall_args[2];
+	uintptr_t eventaddr = sd->syscall_args[3];
+	struct epoll_tab_elem *epoll_elem = epoll_tab_search(info->tab, fd);
+	if (epoll_elem != NULL)
+		return -EEXIST;
+	else {
+		int wepfd = r_epoll_create1(EPOLL_CLOEXEC);
+		//printk("wi_epoll_ctl ADD %d %p %d\n", fd, info, wepfd);
+		if (wepfd < 0)
+			return -errno;
+		else {
+			int retval;
+			struct epoll_event *event;
+			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
+			struct epoll_event mod_event = {.events = event->events, .data.u64 = 0};
+			retval = service_syscall(ht, __VU_epoll_ctl)(wepfd, EPOLL_CTL_ADD, sfd, &mod_event, private);
+			//printk("RETVAL %d\n", retval);
+			if (retval < 0) {
+				r_close(wepfd);
+				return retval;
+			} else {
+				struct epoll_tab_elem *new = epoll_tab_alloc();
+				struct epoll_event welem = {.events = POLLIN, .data.ptr = new};
+				new->fd = fd;
+				new->wepfd = wepfd;
+				new->ht = ht;
+				new->sfd = sfd;
+				new->private = private;
+				new->event = *event;
+				epoll_tab_add(&info->tab, new);
+				r_epoll_ctl(epfd, EPOLL_CTL_ADD, wepfd, &welem);
+			}
+			return retval;
 		}
-		epfd = r_epoll_create1(EPOLL_CLOEXEC);
-		sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFEPOLL;
-		sd->extra->statbuf.st_dev = 0;
-		sd->extra->statbuf.st_ino = epfd;
-		/* use the file table to map the user leverl fd to the (real) epollfd for modules */
-		fnode = vu_fnode_create(NULL, NULL, &sd->extra->statbuf, 0, epfd, tab);
-		vu_fd_set_fnode(fd, nested, fnode, (flags & EPOLL_CLOEXEC) ? FD_CLOEXEC : 0);
 	}
-	sd->ret_value = sd->orig_ret_value;
+}
+
+static int epoll_ctl_mod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, int epfd, struct epoll_info *info,
+		int sfd, void *private) {
+	int nested = sd->extra->nested;
+	int fd = sd->syscall_args[2];
+	uintptr_t eventaddr = sd->syscall_args[3];
+	struct epoll_tab_elem *epoll_elem = epoll_tab_search(info->tab, fd);
+	if (epoll_elem == NULL)
+		return -ENOENT;
+	else {
+		int retval;
+		struct epoll_event *event;
+		//printk("wi_epoll_ctl MOD %d %p \n", fd, info);
+		vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
+		struct epoll_event mod_event = {.events = event->events, .data.u64 = 0};
+		retval = service_syscall(ht, __VU_epoll_ctl)(epoll_elem->wepfd, EPOLL_CTL_MOD, sfd, &mod_event, private);
+		if (retval >= 0)
+			epoll_elem->event = *event;
+		return retval;
+	}
+}
+
+static int epoll_ctl_del(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, int epfd, struct epoll_info *info,
+		int sfd, void *private) {
+	int fd = sd->syscall_args[2];
+	struct epoll_tab_elem *epoll_elem = epoll_tab_search(info->tab, fd);
+	if (epoll_elem == NULL)
+		return -ENOENT;
+	else {
+		int retval;
+		//printk("wi_epoll_ctl DEL %d %p \n", fd, info);
+		retval = service_syscall(ht, __VU_epoll_ctl)(epoll_elem->wepfd, EPOLL_CTL_DEL, sfd, NULL, private);
+		if (retval >= 0) {
+			r_close(epoll_elem->wepfd);
+			epoll_tab_del(&info->tab, fd);
+		}
+		return retval;
+	}
 }
 
 void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int nested = sd->extra->nested;
 	if (ht) {
-		 /* args */
-		int pepfd = sd->syscall_args[0];
-		int op = sd->syscall_args[1];
+		int nested = sd->extra->nested;
+    int proc_epfd = sd->syscall_args[0];
+    int op = sd->syscall_args[1];
 		int fd = sd->syscall_args[2];
-		uintptr_t eventaddr = sd->syscall_args[3];
-		struct epoll_event *event;
-		struct epoll_tab *tab;
-		int epfd = vu_fd_get_sfd(pepfd, (void **) &tab, nested);
-    void *private = NULL;
-    int sfd = vu_fd_get_sfd(fd, &private, nested);
-		int ret_value = 0;
-		epoll_data_t *data;
-
-		epoll_tab_lock(tab);
-		data = epoll_tab_search(tab, fd);
-		switch (op) {
-			case EPOLL_CTL_ADD:
-				if (data != NULL)
-					ret_value = -EEXIST;
-				break;
-			case EPOLL_CTL_MOD:
-			case EPOLL_CTL_DEL:
-				if (data == NULL)
-					ret_value = -ENOENT;
-				break;
+		int mode = vu_fd_get_mode(proc_epfd, nested);
+		//printk("wi_epoll_ctl %d %p epfd %d, fd %d\n", sd->extra->nested, ht, proc_epfd, fd);
+		sd->action = SKIPIT;
+#if 0
+		/* not working yet */
+		if (nested) {
+			uintptr_t eventaddr = sd->syscall_args[3];
+			void *private = NULL;
+			int sfd = vu_fd_get_sfd(fd, &private, nested);
+			struct epoll_event *event;
+			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
+			sd->ret_value = service_syscall(ht, __VU_epoll_ctl)
+				(proc_epfd, op, sfd, &event, private);
+			printk("NESTED EPOLL %d %d %d -> %d\n", proc_epfd, op, sfd, sd->ret_value);
+			return;
 		}
-		if (ret_value < 0) {
-			sd->ret_value = ret_value;
-			sd->action = SKIPIT;
-		} else {
-			struct epoll_event mod_event;
-			vu_alloc_local_arg(eventaddr, event, sizeof(event), nested);
-			/* event is ignored in EPOLL_CTL_DEL and can be NULL */
+#endif
+		if (mode == 0)
+			sd->ret_value = EBADF;
+		else if ((mode & S_IFMT) != S_IFEPOLL)
+			sd->ret_value = -EINVAL;
+		else {
+			struct epoll_info *info;
+			int epfd = vu_fd_get_sfd(proc_epfd, (void **) &info, nested);
+			void *private = NULL;
+      int sfd = vu_fd_get_sfd(fd, &private, nested);
+			epoll_info_lock(info);
 			switch (op) {
 				case EPOLL_CTL_ADD:
-				case EPOLL_CTL_MOD:
-					if (!nested) umvu_peek_data(eventaddr, event, sizeof(event));
-					mod_event.events = event->events;
+					sd->ret_value = epoll_ctl_add(ht, sd, epfd, info, sfd, private);
 					break;
 				case EPOLL_CTL_DEL:
-					mod_event.events = 0;
+					sd->ret_value = epoll_ctl_del(ht, sd, epfd, info, sfd, private);
 					break;
+				case EPOLL_CTL_MOD:
+					sd->ret_value = epoll_ctl_mod(ht, sd, epfd, info, sfd, private);
+					break;
+				default:
+					sd->ret_value = -EINVAL;
 			}
-			mod_event.data.fd = fd;
-			ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, op, sfd, &mod_event, private);
-			//printk("%p %d %d %d\n", service_syscall(ht, __VU_epoll_ctl), epfd, sfd, sd->ret_value);
-			if (ret_value >= 0) {
-				sd->ret_value = ret_value;
-				sd->action = SKIPIT;
-				switch (op) {
-					case EPOLL_CTL_ADD:
-						epoll_tab_add(tab, fd, event->data, ht, sfd, private);
-						break;
-					case EPOLL_CTL_MOD:
-						epoll_tab_del(tab, fd);
-						epoll_tab_add(tab, fd, event->data, ht, sfd, private);
-						break;
-					case EPOLL_CTL_DEL:
-						epoll_tab_del(tab, fd);
-						break;
-				}
-			}
+			epoll_info_unlock(info);
 		}
-		epoll_tab_unlock(tab);
 	}
 }
 
-struct epoll_inout {
-	int epfd;
-	struct epoll_tab *tab;
-};
+static int epoll_close_upcall(struct vuht_entry_t *ht, int epfd, void *private) {
+  struct epoll_info *info = private;
+  epoll_info_lock(info);
+	struct epoll_tab_elem *head;
+
+	//printk("epoll_close_upcall %d %p\n", epfd, info);
+	while ((head = epoll_tab_head(info->tab)) != NULL) {
+		//printk("wi_epoll_ctl DEL %d %p \n", head->fd, info);
+		service_syscall(head->ht, __VU_epoll_ctl)(head->wepfd, EPOLL_CTL_DEL, head->sfd, NULL, head->private);
+		r_close(head->wepfd);
+		epoll_tab_del(&info->tab, head->fd);
+	}
+  epoll_info_unlock(info);
+  epoll_info_destroy(info);
+  r_close(epfd);
+  return 0;
+}
 
 void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	int pepfd = sd->syscall_args[0];
-	struct epoll_tab *tab;
-	int epfd = vu_fd_get_sfd(pepfd, (void **) &tab, nested);
-	if (epoll_tab_head(tab) != NULL) {
-		struct epoll_inout *epollio = malloc(sizeof(struct epoll_inout));
-		epollio->epfd = epfd;
-		epollio->tab = tab;
+	struct epoll_info *info;
+  __attribute__((unused)) int epfd = vu_fd_get_sfd(pepfd, (void **) &info, nested);
+	//printk("wi_epoll_wait n%d %d %p %p\n", nested, epfd, info, epoll_tab_head(info->tab));
+	if (epoll_tab_head(info->tab) != NULL)
 		sd->action = DOIT_CB_AFTER;
-		sd->inout = epollio;
-	}
 }
 
 void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	struct epoll_inout *epollio = sd->inout;
-	vu_poll_wait_thread(sd, epollio->epfd);
+	int pepfd = sd->syscall_args[0];
+  struct epoll_info *info;
+  int epfd = vu_fd_get_sfd(pepfd, (void **) &info, VU_NOT_NESTED);
+	vu_poll_wait_thread(sd, epfd);
 }
 
 void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	struct epoll_inout *epollio = sd->inout;
+	int pepfd = sd->syscall_args[0];
+  struct epoll_info *info;
+  int epfd = vu_fd_get_sfd(pepfd, (void **) &info, nested);
 	int orig_ret_value = sd->orig_ret_value;
-	/* args */
-	uintptr_t eventaddr = sd->syscall_args[1];
-	struct epoll_event *events;
-	int maxevents = sd->syscall_args[2];
-	//printk("wo_epoll_wait %d %d\n", maxevents, orig_ret_value);
+  /* args */
+  uintptr_t eventaddr = sd->syscall_args[1];
+  struct epoll_event *events;
+  int maxevents = sd->syscall_args[2];
+  //printk("wo_epoll_wait %d %d\n", maxevents, orig_ret_value);
 	if(orig_ret_value >= 0 || orig_ret_value == -EINTR) {
 		int ret_value = orig_ret_value;
 		if (ret_value < 0)
@@ -306,361 +379,330 @@ void wo_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			//printk("available_events %d\n", available_events);
 			vu_alloc_peek_arg(eventaddr, events, maxevents * sizeof(struct epoll_event), nested);
 			//printk("VU alloc okay\n");
-			epoll_ret_value = r_epoll_wait(epollio->epfd, events + ret_value, available_events, 0);
+			epoll_ret_value = r_epoll_wait(epfd, events + ret_value, available_events, 0);
 			//printk("epoll_ret_value %d\n", epoll_ret_value);
-			epoll_tab_lock(epollio->tab);
+			epoll_info_lock(info);
 			for (i = ret_value; i < ret_value + epoll_ret_value; i++) {
-				 epoll_data_t *data;
-				 int fd = events[i].data.fd;
-				 data = epoll_tab_search(epollio->tab, fd);
-				 if (data != NULL)
-					 events[i].data = *data;
+				struct epoll_tab_elem *elem = events[i].data.ptr;
+				if (elem) {
+					r_epoll_wait(elem->wepfd, &events[i], sizeof(struct epoll_event), nested);
+					events[i].data = elem->event.data;
+				}
 			}
-			epoll_tab_unlock(epollio->tab);
+			epoll_info_unlock(info);
 			if (epoll_ret_value > 0) {
-				ret_value += epoll_ret_value;
-				vu_poke_arg(eventaddr, events, ret_value * sizeof(struct epoll_event), nested);
-				sd->ret_value = ret_value;
-			} else
-				sd->ret_value = orig_ret_value;
-			vu_free_arg(events, nested);
+        ret_value += epoll_ret_value;
+        vu_poke_arg(eventaddr, events, ret_value * sizeof(struct epoll_event), nested);
+        sd->ret_value = ret_value;
+      } else
+        sd->ret_value = orig_ret_value;
+      vu_free_arg(events, nested);
 		}
 	} else
 		sd->ret_value = orig_ret_value;
-	//printk("wo_epoll_wait %d\n", sd->ret_value);
-	xfree(epollio);
-}
-
-static int epoll_close_upcall(struct vuht_entry_t *ht, int epfd, void *private) {
-	struct epoll_tab *tab = private;
-	struct epoll_tab_elem *head;
-	epoll_tab_lock(tab);
-	while ((head = epoll_tab_head(tab)) != NULL) {
-		struct epoll_event event = {.events = 0, .data.fd = head->fd};
-		if (head->ht != NULL)
-			service_syscall(head->ht, __VU_epoll_ctl)(epfd, EPOLL_CTL_DEL, head->sfd, &event, head->private);
-		epoll_tab_del(tab, head->fd);
-	}
-	epoll_tab_unlock(tab);
-	epoll_tab_destroy(tab);
-	r_close(epfd);
-	return 0;
 }
 
 /* management of poll/ppoll */
-
 struct poll_inout {
-	int nfds;
-	int nvirt;
-	struct pollfd *fds;
-	int epfd;
-	int fd[];
+  int epfd;
+  int nvirt;
+  struct epoll_tab tab;
+	int orig_fd[];
 };
 
-/* poll ppoll */
+/* XXX TBD nested select for modules */
 void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	if (!nested) {
-		uintptr_t fdsaddr =  sd->syscall_args[0];
-		int nfds = sd->syscall_args[1];
+	uintptr_t fdsaddr =  sd->syscall_args[0];
+	int nfds = sd->syscall_args[1];
+	if (nfds < 0) {
+		sd->ret_value = -EINVAL;
+		sd->action = SKIPIT;
+		return;
+	}
+  if (!nested) {
 		struct pollfd *fds;
-		int nvirt;
+		struct epoll_tab tab = epoll_tab_init();
 		int i;
 		vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), nested);
-		int virtfd[nfds];
-		for (i = nvirt = 0; i < nfds; i++) {
+		for (i = 0; i < nfds; i++) {
 			int fd = fds[i].fd;
-			struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
-			if (ht) {
-				int j;
-				for (j = 0; j < nvirt; j++) {
-					if (fd == virtfd[j])
-						break;
-				}
-				if (j == nvirt)
-					virtfd[nvirt++] = fd;
+			struct vuht_entry_t *fd_ht;
+			if (fd >= 0 && (fd_ht = vu_fd_get_ht(fd, nested)) != NULL) {
+				struct epoll_tab_elem *elem;
+				if ((elem = epoll_tab_search(tab, fd)) == NULL) {
+					void *private = NULL;
+          int sfd = vu_fd_get_sfd(fd, &private, nested);
+          elem = epoll_tab_alloc();
+          elem->fd = fd;
+          elem->wepfd = -1;
+          elem->ht = fd_ht;
+          elem->sfd = sfd;
+          elem->private = private;
+          elem->event.events = 0;
+          elem->event.data.ptr = elem;
+          epoll_tab_add(&tab, elem);
+        }
+				elem->event.events |= fds[i].events;
 			}
 		}
-		if (nvirt == 0) {
-			vu_free_arg(fds, nested);
-		} else {
-			struct poll_inout *pollio = malloc(sizeof(struct poll_inout) + nvirt *sizeof(int));
-			struct pollfd *fds_real = malloc(nfds * sizeof(struct pollfd));
-			pollio->nfds = nfds;
-			pollio->nvirt = nvirt;
-			pollio->fds = fds;
-			pollio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
-			for (i = 0; i < nvirt; i++) {
-				int fd = virtfd[i];
-				struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
-				void *private;
-				int sfd = vu_fd_get_sfd(fd, &private, nested);
-				struct epoll_event event = {.events = 0, .data.fd = fd};
-				int j;
-				for (j = 0; j < nfds; j++) {
-					if (fd == fds[j].fd)
-						event.events |= fds[j].events;
-				}
-				//printk("EPOLL ADD %d %d\n", fd, event.events);
-				if (service_syscall(ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_ADD, sfd, &event, private) < 0)
-					pollio->fd[i] = -1;
-				else
-					pollio->fd[i] = virtfd[i];
-			}
+		if (epoll_tab_head(tab) != NULL) {
+      struct poll_inout *pollio = malloc(sizeof(struct poll_inout) +
+					nfds * sizeof(int));
+			struct epoll_tab_elem *scan;
+			fatal(pollio);
+      pollio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
+      pollio->nvirt = 0;
+      pollio->tab = tab;
 			for (i = 0; i < nfds; i++) {
 				int fd = fds[i].fd;
-				int j;
-				for (j = 0; j < nvirt; j++) {
-					if (fd == virtfd[j])
-						break;
-				}
-				if (fd < 0 || j == nvirt) {
-					fds_real[i].fd = fds[i].fd;
-					fds_real[i].events = fds[i].events;
-					fds_real[i].revents = fds[i].revents;
-				} else {
-					fds_real[i].fd = -1;
-					fds_real[i].events = fds_real[i].revents = 0;
+				if (vu_fd_get_ht(fd, nested) == NULL)
+					pollio->orig_fd[i] = -1;
+				else {
+					pollio->orig_fd[i] = fds[i].fd;
+					fds[i].fd = -1;
 				}
 			}
-			sd->action = DOIT_CB_AFTER;
-      sd->inout = pollio;
-			vu_poke_arg(fdsaddr, fds_real, nfds * sizeof(struct pollfd), nested);
-		}
-	}
+			for (scan = epoll_tab_head(tab); scan != NULL; scan = scan->next) {
+				pollio->nvirt++;
+				//printk("EPOLL_CTL_ADD %d %d %p\n", pollio->epfd, scan->sfd, scan->private);
+        service_syscall(scan->ht, __VU_epoll_ctl)
+					(pollio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event, scan->private); // XXX error mgmt?
+      }
+			sd->inout = pollio;
+      sd->action = DOIT_CB_AFTER;
+      vu_poke_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), nested);
+    }
+    vu_free_arg(fds, nested);
+  }
 }
 
 void wd_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   struct poll_inout *pollio = sd->inout;
-	vu_poll_wait_thread(sd, pollio->epfd);
+  vu_poll_wait_thread(sd, pollio->epfd);
+}
+
+static inline int poll_add_events(int nfds, struct pollfd *fds, int fd, uint32_t events) {
+	int count = 0;
+	int i;
+	for (i = 0; i < nfds; i++) {
+		if (fds[i].fd == fd) {
+			uint32_t revents = events & fds[i].events;
+			if (fds[i].events == 0 && revents != 0)
+				count++;
+			fds[i].revents |= revents;
+		}
+	}
+	return count;
 }
 
 void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct poll_inout *pollio = sd->inout;
-	uintptr_t fdsaddr =  sd->syscall_args[0];
-	int nfds = sd->syscall_args[1];
-	struct pollfd *fds;
-	struct epoll_event eventv[pollio->nvirt];
-	int nepoll;
-	int orig_ret_value = sd->orig_ret_value;
+  uintptr_t fdsaddr =  sd->syscall_args[0];
+  int nfds = sd->syscall_args[1];
+  struct pollfd *fds;
+  int orig_ret_value = sd->orig_ret_value;
+  struct epoll_tab_elem *scan;
+  vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
 	int i;
-	vu_alloc_peek_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
+	/* restore file descriptors */
 	for (i = 0; i < nfds; i++) {
-		if (fds[i].fd < 0) {
-			fds[i].fd = pollio->fds[i].fd;
-			fds[i].events = pollio->fds[i].events;
-			fds[i].revents = 0;
-		}
+		if (pollio->orig_fd[i] >= 0) fds[i].fd = pollio->orig_fd[i];
 	}
-	if (sd->waiting_pid != 0) {
-		sd->ret_value = orig_ret_value;
-	} else {
-		int ret_value = 0;
-		nepoll = r_epoll_wait(pollio->epfd, eventv, pollio->nvirt, 0);
-		for (i = 0; i < nepoll; i++) {
-			int fd = eventv[i].data.fd;
-			uint32_t events = eventv[i].events;
-			int j;
-			for (j = 0; j < nfds; j++) {
-				if (fd == fds[j].fd) {
-					uint32_t fdevents = events & fds[j].events;
-					if (fdevents)
-						fds[j].revents |= fdevents;
-				}
-			}
-		}
-		for (i = ret_value = 0; i < nfds; i++) {
-			if (fds[i].revents)
-				ret_value++;
-		}
-		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTART_RESTARTBLOCK)
-			sd->ret_value = ret_value;
-		else if (orig_ret_value < 0)
+	if (sd->waiting_pid != 0)
+    sd->ret_value = orig_ret_value;
+	else {
+		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND)
+			orig_ret_value = 0;
+		if (orig_ret_value < 0)
 			sd->ret_value = orig_ret_value;
-		else
-			sd->ret_value = ret_value;
+		else {
+			struct epoll_event eventv[pollio->nvirt];
+			int nepoll;
+			nepoll = r_epoll_wait(pollio->epfd, eventv, pollio->nvirt, 0);
+			for (i = 0; i < nepoll; i++) {
+				scan = eventv[i].data.ptr;
+				orig_ret_value += poll_add_events(nfds, fds, scan->fd, eventv[i].events);
+			}
+    }
+		sd->ret_value = orig_ret_value;
+  }
+	for (scan = epoll_tab_head(pollio->tab); scan != NULL; scan = scan->next) {
+		service_syscall(scan->ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private); // XXX error mgmt?
 	}
-	//printk("orig_ret_value %d ret_value %d -> %d\n", orig_ret_value, ret_value, sd->ret_value );
+  r_close(pollio->epfd);
 	vu_poke_arg(fdsaddr, fds, nfds * sizeof(struct pollfd), VU_NOT_NESTED);
-	for (i = 0; i < pollio->nvirt; i++) {
-		int fd = pollio->fd[i];
-		if (fd >= 0) {
-			struct vuht_entry_t *fd_ht = vu_fd_get_ht(fd, VU_NOT_NESTED);
-			void *private = NULL;
-			int sfd = vu_fd_get_sfd(fd, &private, VU_NOT_NESTED);
-			struct epoll_event event = {.events = 0, .data.fd = fd};
-			service_syscall(fd_ht, __VU_epoll_ctl)(pollio->epfd, EPOLL_CTL_DEL, sfd, &event, private);
-		}
-	}
-	r_close(pollio->epfd);
-  xfree(pollio->fds);
+	vu_free_arg(fds, VU_NOT_NESTED);
   xfree(pollio);
 }
 
 /* management of select pselect */
 
+/* select pselect */
 #define FD_SET_SIZE(nfds) ((__FD_ELT(nfds) + 1) * sizeof(__fd_mask))
+#define EPOLLIN_SET (EPOLLRDNORM | EPOLLRDBAND | EPOLLIN | EPOLLHUP | EPOLLERR) /* Ready for reading */
+#define EPOLLOUT_SET (EPOLLWRBAND | EPOLLWRNORM | EPOLLOUT | EPOLLERR) /* Ready for writing */
+#define EPOLLEX_SET (EPOLLPRI) /* Exceptional condition */
+#define EPOLL_SELECT_SET (EPOLLIN | EPOLLOUT | EPOLLPRI) 
+
 struct select_inout {
-	int epfd;
-	int nfds;
-	int fd[];
+  int epfd;
+	int nvirt;
+	struct epoll_tab tab;
 };
 
-/* select pselect */
+static inline void peek_fd_set(uintptr_t fdsetaddr, fd_set *fdset, int nfds, int nested) {
+	if (fdsetaddr == 0)
+		FD_ZERO(fdset);
+	else
+		vu_peek_arg(fdsetaddr, fdset, FD_SET_SIZE(nfds), nested);
+}
+
+static inline void poke_fd_set(uintptr_t fdsetaddr, fd_set *fdset, int nfds, int nested) {
+	if (fdsetaddr != 0)
+		vu_poke_arg(fdsetaddr, fdset, FD_SET_SIZE(nfds), nested);
+}
+
+static inline uint32_t fd_set2events(int fd, fd_set *r, fd_set *w, fd_set *x) {
+	uint32_t events = 0;
+	if (FD_ISSET(fd, r)) events |= EPOLLIN_SET;
+	if (FD_ISSET(fd, w)) events |= EPOLLOUT_SET;
+	if (FD_ISSET(fd, x)) events |= EPOLLEX_SET;
+	return events;
+}
+
+static inline int events2fd_set(int fd, uint32_t events, uint32_t revents, fd_set *r, fd_set *w, fd_set *x) {
+	int count = 0;
+	if (events & EPOLLIN && revents & EPOLLIN_SET) FD_SET(fd, r), count++;
+	if (events & EPOLLOUT && revents & EPOLLOUT_SET) FD_SET(fd, w), count++;
+	if (events & EPOLLPRI && revents & EPOLLEX_SET) FD_SET(fd, x), count++;
+	return count;
+}
+
+static inline void fd_set_fdclr(int fd, fd_set *r, fd_set *w, fd_set *x) {
+	FD_CLR(fd, r);
+	FD_CLR(fd, w);
+	FD_CLR(fd, x);
+}
+
+/* XXX TBD nested select for modules */
 void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
-	if (!nested) {
-		int nfds = sd->syscall_args[0];
+	int nfds = sd->syscall_args[0];
+	uintptr_t readfdsaddr = sd->syscall_args[1];
+	uintptr_t writefdsaddr = sd->syscall_args[2];
+	uintptr_t exceptfdsaddr = sd->syscall_args[3];
+	if (nfds < 0) {
+		sd->ret_value = -EINVAL;
+		sd->action = SKIPIT;
+		return;
+	}
+  if (!nested) {
+    struct epoll_tab tab = epoll_tab_init();
 		int fd;
-		int nvirt;
-		uintptr_t readfdsaddr = sd->syscall_args[1];
-		uintptr_t writefdsaddr = sd->syscall_args[2];
-		uintptr_t exceptfdsaddr = sd->syscall_args[3];
 		fd_set readfds, writefds, exceptfds;
-		/* get the fd sets from the user-space */
-		if (readfdsaddr != 0) {
-			vu_peek_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), nested);
-		} else
-			FD_ZERO(&readfds);
-		if (writefdsaddr != 0) {
-			vu_peek_arg(writefdsaddr, &writefds, FD_SET_SIZE(nfds), nested);
-		} else
-			FD_ZERO(&writefds);
-		if (exceptfdsaddr != 0) {
-			vu_peek_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), nested);
-		} else
-			FD_ZERO(&exceptfds);
-		/* count how many virtual fds belong to the fdsets */
-		for (fd = nvirt = 0; fd < nfds; fd++) {
-			if ((FD_ISSET(fd, &readfds) || FD_ISSET(fd, &writefds) || FD_ISSET(fd, &exceptfds))
-					&& vu_fd_get_ht(fd, nested) != NULL)
-				nvirt++;
-		}
-		/* if there is at least one (otherwise let the process run the real system call) */
-		if (nvirt != 0) {
-			struct select_inout *selectio = malloc(sizeof(struct select_inout) + nvirt*sizeof(int));
-			fatal(selectio);
-			selectio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
-			for (fd = selectio->nfds = 0; fd < nfds && selectio->nfds < nvirt; fd++) {
+		peek_fd_set(readfdsaddr, &readfds, nfds, nested);
+		peek_fd_set(writefdsaddr, &writefds, nfds, nested);
+		peek_fd_set(exceptfdsaddr, &exceptfds, nfds, nested);
+		for (fd = 0; fd < nfds; fd++) {
+			uint32_t events = fd_set2events(fd, &readfds, &writefds, &exceptfds);
+			if (events != 0) {
 				struct vuht_entry_t *fd_ht;
-				uint32_t events = (FD_ISSET(fd, &readfds) ? EPOLLIN : 0) |
-					(FD_ISSET(fd, &writefds) ? EPOLLOUT : 0) |
-					(FD_ISSET(fd, &exceptfds) ? EPOLLPRI : 0);
-				if (events != 0 && (fd_ht = vu_fd_get_ht(fd, nested)) != NULL) {
+				if ((fd_ht = vu_fd_get_ht(fd, nested)) != NULL) {
 					void *private = NULL;
 					int sfd = vu_fd_get_sfd(fd, &private, nested);
-					struct epoll_event event = {.events = events, .data.fd = fd};
-					//printk("EPOLL ADD %d %d\n", fd, events);
-					if (service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_ADD, sfd, &event, private) >= 0) {
-						FD_CLR(fd, &readfds);
-						FD_CLR(fd, &writefds);
-						FD_CLR(fd, &exceptfds);
-					}
-					selectio->fd[selectio->nfds] = fd;
-					selectio->nfds++;
+					struct epoll_tab_elem *new = epoll_tab_alloc();
+					struct epoll_event event = {.events = events, .data.ptr = new};
+					fd_set_fdclr(fd, &readfds, &writefds, &exceptfds);
+					new->fd = fd;
+					new->wepfd = -1;
+					new->ht = fd_ht;
+					new->sfd = sfd;
+					new->private = private;
+					new->event = event;
+					epoll_tab_add(&tab, new);
 				}
 			}
-			sd->action = DOIT_CB_AFTER;
+		}
+		if (epoll_tab_head(tab) != NULL) {
+      struct select_inout *selectio = malloc(sizeof(struct select_inout));
+      struct epoll_tab_elem *scan;
+      fatal(selectio);
+			selectio->epfd = r_epoll_create1(EPOLL_CLOEXEC);
+      selectio->nvirt = 0;
+      selectio->tab = tab;
+			for (scan = epoll_tab_head(tab); scan != NULL; scan = scan->next) {
+        selectio->nvirt++;
+				//printk("EPOLL_CTL_ADD %d %d %p\n", selectio->epfd,  scan->sfd, scan->private);
+				service_syscall(scan->ht, __VU_epoll_ctl)
+					(selectio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event.events, scan->private); // XXX error mgmt?
+      }
+			poke_fd_set(readfdsaddr, &readfds, nfds, nested);
+			poke_fd_set(writefdsaddr, &writefds, nfds, nested);
+			poke_fd_set(exceptfdsaddr, &exceptfds, nfds, nested);
 			sd->inout = selectio;
-			if (readfdsaddr)
-				vu_poke_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), nested);
-			if (writefdsaddr)
-				vu_poke_arg(writefdsaddr, &writefds, FD_SET_SIZE(nfds), nested);
-			if (exceptfdsaddr)
-				vu_poke_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), nested);
+      sd->action = DOIT_CB_AFTER;
 		}
 	}
 }
 
 void wd_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct select_inout *selectio = sd->inout;
-	vu_poll_wait_thread(sd, selectio->epfd);
+  vu_poll_wait_thread(sd, selectio->epfd);
 }
 
 void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	int i;
-	int nfds = sd->syscall_args[0];
-	uintptr_t readfdsaddr = sd->syscall_args[1];
-	uintptr_t writefdsaddr = sd->syscall_args[2];
-	uintptr_t exceptfdsaddr = sd->syscall_args[3];
-	fd_set readfds, writefds, exceptfds;
-	struct select_inout *selectio = sd->inout;
+	int nested = VU_NOT_NESTED;
 	int orig_ret_value = sd->orig_ret_value;
-	int ret_value;
-	//printk("select wp %d\n",sd->waiting_pid);
-	if (sd->waiting_pid != 0) {
-		/*
-		if (orig_ret_value == -ERESTARTNOHAND) {
-			sd->ret_value = -EINTR;
-			sd->action = DO_IT_AGAIN;
-		} else */
-			sd->ret_value = orig_ret_value;
-	} else
-	{
-		struct epoll_event eventv[selectio->nfds];
-		int nepoll;
-		ret_value = 0;
-		if (readfdsaddr) {
-			vu_peek_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
-		} else
-			FD_ZERO(&readfds);
-		if (writefdsaddr) {
-			vu_peek_arg(writefdsaddr, &writefds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
-		} else
-			FD_ZERO(&writefds);
-		if (exceptfdsaddr) {
-			vu_peek_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
-		} else
-			FD_ZERO(&exceptfds);
-		if (orig_ret_value < 0) {
-			FD_ZERO(&readfds);
-			FD_ZERO(&writefds);
-			FD_ZERO(&exceptfds);
+  struct select_inout *selectio = sd->inout;
+  struct epoll_tab_elem *scan;
+  //printk("wo_select\n");
+	if (sd->waiting_pid != 0) // userland select terminated first, no virtual events
+		sd->ret_value = orig_ret_value;
+	else {
+		int nfds = sd->syscall_args[0];
+		uintptr_t readfdsaddr = sd->syscall_args[1];
+		uintptr_t writefdsaddr = sd->syscall_args[2];
+		uintptr_t exceptfdsaddr = sd->syscall_args[3];
+		fd_set readfds, writefds, exceptfds;
+		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND) {
+			// interrrupted syscall: virtual events only.
+			peek_fd_set(0, &readfds, nfds, nested);
+			peek_fd_set(0, &writefds, nfds, nested);
+			peek_fd_set(0, &exceptfds, nfds, nested);
+			orig_ret_value = 0;
+		} else {
+			peek_fd_set(readfdsaddr, &readfds, nfds, nested);
+			peek_fd_set(writefdsaddr, &writefds, nfds, nested);
+			peek_fd_set(exceptfdsaddr, &exceptfds, nfds, nested);
 		}
-		nepoll = r_epoll_wait(selectio->epfd, eventv, selectio->nfds, 0);
-		for (i = 0; i < nepoll; i++) {
-			int fd = eventv[i].data.fd;
-			uint32_t events = eventv[i].events;
-			//printk("Got event %d %d\n", fd, events);
-			if (fd >= 0) {
-				if (events & EPOLLIN) {
-					FD_SET(fd, &readfds);
-					ret_value++;
-				}
-				if (events & EPOLLOUT) {
-					FD_SET(fd, &writefds);
-					ret_value++;
-				}
-				if (events & EPOLLPRI) {
-					FD_SET(fd, &exceptfds);
-					ret_value++;
-				}
+		if (orig_ret_value < 0) {
+			/* restore the original fd_sets, as the mannual says:
+				 On error, -1 is returned, and errno is set to indicate the  error;  the file descriptor sets are unmodified */
+			for (scan = epoll_tab_head(selectio->tab); scan != NULL; scan = scan->next) 
+				events2fd_set(scan->fd, scan->event.events, EPOLL_SELECT_SET, &readfds, &writefds, &exceptfds);
+			sd->ret_value = orig_ret_value;
+    } else {
+			struct epoll_event events[selectio->nvirt];
+			int epollnfds, i;
+			int ret_value = 0;
+			epollnfds = r_epoll_wait(selectio->epfd, events, selectio->nvirt, 0);
+			//printk("wo_select here n%d %d\n", epollnfds);
+			for (i = 0; i < epollnfds; i++) {
+				struct epoll_tab_elem *elem = events[i].data.ptr;
+				//printk("wo_select elem %p %d\n", elem, elem->fd);
+				if (elem)
+					ret_value += events2fd_set(elem->fd, elem->event.events, events[i].events, &readfds, &writefds, &exceptfds);
+				sd->ret_value = orig_ret_value + ret_value;
+				//printk("wo_select final %d %d+%d\n", sd->ret_value, orig_ret_value, ret_value);
 			}
 		}
-		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND)
-			sd->ret_value = ret_value;
-		else if (orig_ret_value < 0)
-			sd->ret_value = orig_ret_value;
-		else
-			sd->ret_value = orig_ret_value + ret_value;
-		if (readfdsaddr)
-			vu_poke_arg(readfdsaddr, &readfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
-		if (writefdsaddr)
-			vu_poke_arg(writefdsaddr, &writefds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
-		if (exceptfdsaddr)
-			vu_poke_arg(exceptfdsaddr, &exceptfds, FD_SET_SIZE(nfds), VU_NOT_NESTED);
+		poke_fd_set(readfdsaddr, &readfds, nfds, nested);
+		poke_fd_set(writefdsaddr, &writefds, nfds, nested);
+		poke_fd_set(exceptfdsaddr, &exceptfds, nfds, nested);
 	}
-	for (i = 0; i < selectio->nfds; i++) {
-		int fd = selectio->fd[i];
-		if (fd >= 0) {
-			struct vuht_entry_t *fd_ht = vu_fd_get_ht(fd, VU_NOT_NESTED);
-			void *private = NULL;
-			int sfd = vu_fd_get_sfd(fd, &private, VU_NOT_NESTED);
-			struct epoll_event event = {.events = 0, .data.fd = fd};
-			service_syscall(fd_ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_DEL, sfd, &event, private);
-		}
-	}
-	//printk("WO select ret_value = %d %d\n", orig_ret_value, sd->ret_value);
+	for (scan = epoll_tab_head(selectio->tab); scan != NULL; scan = scan->next)
+		service_syscall(scan->ht, __VU_epoll_ctl)(selectio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private); // XXX error mgmt?
 	r_close(selectio->epfd);
 	xfree(selectio);
 }
@@ -669,3 +711,4 @@ __attribute__((constructor))
 	static void init (void) {
 		vu_fnode_set_close_upcall(S_IFEPOLL, epoll_close_upcall);
 	}
+
