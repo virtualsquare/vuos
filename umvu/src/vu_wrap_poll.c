@@ -760,4 +760,3 @@ __attribute__((constructor))
 	static void init (void) {
 		vu_fnode_set_close_upcall(S_IFEPOLL, epoll_close_upcall);
 	}
-
