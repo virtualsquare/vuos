@@ -211,7 +211,7 @@ static int epoll_ctl_add(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
 			struct epoll_event mod_event = {.events = event->events, .data.u64 = 0};
 			retval = service_syscall(ht, __VU_epoll_ctl)(wepfd, EPOLL_CTL_ADD, sfd, &mod_event, private);
-			//printk("RETVAL %d\n", retval);
+			//printk("RETVAL %d %s\n", retval, strerror(errno));
 			if (retval < 0) {
 				r_close(wepfd);
 				return retval;
@@ -280,8 +280,6 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int mode = vu_fd_get_mode(proc_epfd, nested);
 		//printk("wi_epoll_ctl %d %p epfd %d, fd %d\n", sd->extra->nested, ht, proc_epfd, fd);
 		sd->action = SKIPIT;
-#if 0
-		/* not working yet */
 		if (nested) {
 			uintptr_t eventaddr = sd->syscall_args[3];
 			void *private = NULL;
@@ -289,11 +287,10 @@ void wi_epoll_ctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			struct epoll_event *event;
 			vu_alloc_peek_local_arg(eventaddr, event, sizeof(event), nested);
 			sd->ret_value = service_syscall(ht, __VU_epoll_ctl)
-				(proc_epfd, op, sfd, &event, private);
-			printk("NESTED EPOLL %d %d %d -> %d\n", proc_epfd, op, sfd, sd->ret_value);
+				(proc_epfd, op, sfd, event, private);
+			//printk("NESTED EPOLL %d %d %d -> %d\n", proc_epfd, op, sfd, sd->ret_value);
 			return;
 		}
-#endif
 		if (mode == 0)
 			sd->ret_value = EBADF;
 		else if ((mode & S_IFMT) != S_IFEPOLL)
