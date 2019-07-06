@@ -41,6 +41,7 @@
 #include <vu_log.h>
 #include <vu_inheritance.h>
 #include <umvu_peekpoke.h>
+#define DISABLE_VDSO
 
 static int umvu_trace_legacy(pid_t tracee_tid);
 static int umvu_trace_seccomp(pid_t tracee_tid);
@@ -86,6 +87,48 @@ static struct sock_fprog seccomp_prog = {
   .filter = seccomp_filter,
   .len = (unsigned short) (sizeof(seccomp_filter)/sizeof(seccomp_filter[0])),
 };
+
+#ifdef DISABLE_VDSO
+
+#include <sys/auxv.h>
+static void disable_vdso(pid_t tid) {
+	struct user_regs_struct regs;
+	struct syscall_descriptor_t sys_orig;
+	uintptr_t addr;
+	uintptr_t string;
+	struct auxel {
+		uintptr_t key;
+		uintptr_t value;
+	} auxel;
+	P_GETREGS_NODIE(tid, &regs);
+	umvu_peek_syscall(&regs, &sys_orig, PEEK_ARGS);
+	//printk("disable_vdso %d %llx\n", tid, sys_orig.stack_pointer);
+	string = -1;
+	/* argv */
+	for (addr = sys_orig.stack_pointer; string != 0; addr += sizeof(string)) {
+		umvu_peek_data(addr, &string, sizeof(string));
+		//printk("env %llx\n", string);
+	}
+	string = -1;
+	/* environ */
+	for (; string != 0; addr += sizeof(string)) {
+		umvu_peek_data(addr, &string, sizeof(string));
+		//printk("env %llx\n", key);
+	}
+	auxel.key = -1;
+	for (; auxel.key != 0; addr += sizeof(auxel)) {
+		umvu_peek_data(addr, &auxel, sizeof(auxel));
+		//printk("env %llx %llx\n", auxel.key, auxel.value);
+		if (auxel.key == AT_SYSINFO_EHDR) {
+			auxel.value = 0;
+			umvu_poke_data(addr, &auxel, sizeof(auxel));
+			break;
+		}
+	}
+}
+#else
+#define disable_vdso(x)
+#endif
 
 static void default_syscall_handler(syscall_state_t state, struct syscall_descriptor_t *sd) {
 #if 0
@@ -218,6 +261,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
 					tracee_tid = sig_tid;
+					disable_vdso(tracee_tid);
 					vu_inheritance_call(INH_EXEC, NULL, NULL);
 					//printf("exec %d\n", tracee_tid);
 				}
@@ -356,6 +400,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
 					tracee_tid = sig_tid;
+					disable_vdso(tracee_tid);
 					vu_inheritance_call(INH_EXEC, NULL, NULL);
 					P_CONT(sig_tid, 0L);
 				} else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||
