@@ -79,13 +79,19 @@
 	} while(0)
 
 #define vu_poke_arg(addr, var, size, nested) \
-	if (!nested) umvu_poke_data(addr, var, size)
+	do { \
+		if (!nested) umvu_poke_data(addr, var, size); \
+	} while(0)
 
 #define vu_peek_arg(addr, var, size, nested) \
-	if (!nested) umvu_peek_data(addr, var, size)
+	do { \
+		if (!nested) umvu_peek_data(addr, var, size); \
+	} while(0)
 
 #define vu_free_arg(var, nested) \
-	if (!nested) xfree(var)
+	do { \
+		if (!nested) xfree(var); \
+	} while(0)
 
 __attribute__((always_inline))
 	static inline size_t iovec_bufsize(struct iovec *iov, int iovcnt) {

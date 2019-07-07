@@ -39,20 +39,22 @@
 void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
-		sd->action = SKIPIT;
+		long ret_value;
 		switch (sd->syscall_number) {
 			case __NR_clock_gettime:
 				{
 					clockid_t clk_id = sd->syscall_args[0];
 					uintptr_t tpaddr = sd->syscall_args[1];
 					if (tpaddr == 0)
-						sd->ret_value = EFAULT;
+						ret_value = -EFAULT;
 					else {
 						struct timespec *tp;
 						vu_alloc_local_arg(tpaddr, tp, sizeof(*tp), nested);
-						sd->ret_value = service_syscall(ht, __VU_clock_gettime)(clk_id, tp);
-						if (sd->ret_value == 0)
+						ret_value = service_syscall(ht, __VU_clock_gettime)(clk_id, tp);
+						if (ret_value == 0)
 							vu_poke_arg(tpaddr, tp, sizeof(*tp), nested);
+						else
+							ret_value = -errno;
 					}
 				}
 				break;
@@ -61,16 +63,18 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 					/* timezone is obsolete. ignored here */
 					uintptr_t tvaddr = sd->syscall_args[0];
 					if (tvaddr == 0)
-            sd->ret_value = EFAULT;
+            ret_value = -EFAULT;
           else {
 						struct timespec tp;
 						struct timeval *tv;
 						vu_alloc_local_arg(tvaddr, tv, sizeof(*tv), nested);
-						sd->ret_value = service_syscall(ht, __VU_clock_gettime)(CLOCK_REALTIME, &tp);
+						ret_value = service_syscall(ht, __VU_clock_gettime)(CLOCK_REALTIME, &tp);
 						tv->tv_sec = tp.tv_sec;
 						tv->tv_usec = tp.tv_nsec / 1000;
-						if (sd->ret_value == 0)
+						if (ret_value == 0)
               vu_poke_arg(tvaddr, tv, sizeof(*tv), nested);
+						else
+							ret_value = -errno;
 					}
 				}
 				break;
@@ -78,35 +82,43 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 				{
 					uintptr_t timeaddr = sd->syscall_args[0];
 					struct timespec tp;
-					sd->ret_value = service_syscall(ht, __VU_clock_gettime)(CLOCK_REALTIME, &tp);
-					if (sd->ret_value == 0)
-						sd->ret_value = tp.tv_sec;
-					if (timeaddr != 0) {
-						time_t *now;
-						vu_alloc_local_arg(timeaddr, now, sizeof(*now), nested);
-						*now = tp.tv_sec;
-					}
+					ret_value = service_syscall(ht, __VU_clock_gettime)(CLOCK_REALTIME, &tp);
+					if (ret_value == 0) {
+						ret_value = tp.tv_sec;
+						if (timeaddr != 0) {
+							time_t *now;
+							vu_alloc_local_arg(timeaddr, now, sizeof(*now), nested);
+							*now = tp.tv_sec;
+						}
+					} else
+						ret_value = -errno;
 				}
 				break;
 		}
+		if (ret_value == -EINTR)
+			sd->action = SKIPIT;
+		else
+			sd->ret_value = ret_value;
 	}
 }
 
 void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
-		sd->action = SKIPIT;
+		long ret_value;
 		switch (sd->syscall_number) {
 			case __NR_clock_settime:
 				{
 					clockid_t clk_id = sd->syscall_args[0];
 					uintptr_t tpaddr = sd->syscall_args[1];
 					if (tpaddr == 0)
-						sd->ret_value = EFAULT;
+						ret_value = -EFAULT;
 					else {
 						struct timespec *tp;
 						vu_alloc_peek_local_arg(tpaddr, tp, sizeof(*tp), nested);
-						sd->ret_value = service_syscall(ht, __VU_clock_settime)(clk_id, tp);
+						ret_value = service_syscall(ht, __VU_clock_settime)(clk_id, tp);
+						if (ret_value < 0)
+							ret_value = -errno;
 					}
 				}
 				break;
@@ -115,39 +127,52 @@ void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 					/* timezone is obsolete. ignored here */
           uintptr_t tvaddr = sd->syscall_args[0];
           if (tvaddr == 0)
-            sd->ret_value = EFAULT;
+            ret_value = -EFAULT;
           else {
             struct timespec tp;
             struct timeval *tv;
             vu_alloc_peek_local_arg(tvaddr, tv, sizeof(*tv), nested);
 						tp.tv_sec = tv->tv_sec;
 						tp.tv_nsec = tv->tv_usec * 1000;
-						sd->ret_value = service_syscall(ht, __VU_clock_settime)(CLOCK_REALTIME, &tp);
+						ret_value = service_syscall(ht, __VU_clock_settime)(CLOCK_REALTIME, &tp);
+						if (ret_value < 0)
+							ret_value = -errno;
 					}
 				}
 		}
+		if (ret_value == -EINTR)
+			sd->action = SKIPIT;
+		else
+			sd->ret_value = ret_value;
 	}
 }
 
 void wi_clock_getres(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	  int nested = sd->extra->nested;
   if (ht) {
+		long ret_value;
 		uintptr_t tpaddr = sd->syscall_args[1];
 		if (tpaddr == 0)
-			sd->ret_value = EFAULT;
+			ret_value = -EFAULT;
 		else {
 			clockid_t clk_id = sd->syscall_args[0];
 			uintptr_t tpaddr = sd->syscall_args[1];
 			if (tpaddr == 0)
-				sd->ret_value = EFAULT;
+				ret_value = -EFAULT;
 			else {
 				struct timespec *tp;
 				vu_alloc_local_arg(tpaddr, tp, sizeof(*tp), nested);
-				sd->ret_value = service_syscall(ht, __VU_clock_getres)(clk_id, tp);
-				if (sd->ret_value == 0)
+				ret_value = service_syscall(ht, __VU_clock_getres)(clk_id, tp);
+				if (ret_value == 0)
 					vu_poke_arg(tpaddr, tp, sizeof(*tp), nested);
+				else
+					ret_value = -errno;
 			}
 		}
+		if (ret_value == -EINTR)
+			sd->action = SKIPIT;
+		else
+			sd->ret_value = ret_value;
 	}
 }
 

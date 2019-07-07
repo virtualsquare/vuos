@@ -106,7 +106,7 @@ int vu_unrealcap_capset(cap_user_header_t hdrp, cap_user_data_t datap) {
 	if (vu_cap == NULL) {
 		vu_cap = new_vu_cap(vu_mod_gettid(), datap);
 		if (vu_cap == NULL)
-			return -ENOMEM;
+			return errno = ENOMEM, -1;
 		else
 			return 0;
 	} else {

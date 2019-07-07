@@ -67,6 +67,8 @@ void wi_capget(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (sd->ret_value == 0)
 		vu_poke_arg(datap, data,
 				sizeof(*data) * _LINUX_CAPABILITY_U32S_3, nested);
+	else
+		sd->ret_value = -errno;
 }
 
 void wi_capset(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -101,5 +103,7 @@ void wi_capset(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		vu_alloc_peek_local_arg(datap, data,
 				sizeof(*data) * _LINUX_CAPABILITY_U32S_3, nested);
 		sd->ret_value = service_syscall(ht, __VU_capset)(hdr, data);
+		if (sd->ret_value != 0)
+			sd->ret_value = -errno;
 	}
 }
