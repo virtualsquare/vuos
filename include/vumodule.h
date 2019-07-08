@@ -122,6 +122,9 @@ int VU_SYSNAME(name, setsockopt) (int sockfd, int level, int optname, \
 		const void *optval, socklen_t optlen, void *fdprivate); \
 int VU_SYSNAME(name, capget) (cap_user_header_t hdrp, cap_user_data_t datap); \
 int VU_SYSNAME(name, capset) (cap_user_header_t hdrp, const cap_user_data_t datap); \
+int VU_SYSNAME(name, clock_gettime) (clockid_t clk_id, struct timespec *tp); \
+int VU_SYSNAME(name, clock_settime) (clockid_t clk_id, const struct timespec *tp); \
+int VU_SYSNAME(name, clock_getres) (clockid_t clk_id, struct timespec *res); \
 \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
     struct vuht_entry_t *ht); \
