@@ -37,6 +37,7 @@
 #include <syscall_defs.h>
 #include <vu_execute.h>
 #include <service.h>
+#include <epoch.h>
 #include <path_utils.h>
 #include <vu_fs.h>
 #include <vu_file_table.h>
@@ -177,10 +178,13 @@ static int file_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	if (ht) {
 		int ret_value;
 		struct vuht_entry_t *sht = vu_mod_getht();
+		epoch_t e = get_vepoch();
+		set_vepoch(vuht_get_vepoch(ht));
 		vu_mod_setht(ht);
 		ret_value = service_syscall(ht, __VU_close)(sfd, private);
 		vu_mod_setht(sht);
 		vuht_drop(ht);
+		set_vepoch(e);
 		return ret_value;
 	} else
 		return 0;
