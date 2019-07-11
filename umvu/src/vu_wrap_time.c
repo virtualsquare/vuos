@@ -89,16 +89,17 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 							time_t *now;
 							vu_alloc_local_arg(timeaddr, now, sizeof(*now), nested);
 							*now = tp.tv_sec;
+              vu_poke_arg(timeaddr, now, sizeof(*now), nested);
 						}
 					} else
 						ret_value = -errno;
 				}
 				break;
 		}
-		if (ret_value == -EINTR)
+		if (ret_value != -EINTR) {
 			sd->action = SKIPIT;
-		else
 			sd->ret_value = ret_value;
+		}
 	}
 }
 
@@ -140,10 +141,10 @@ void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 					}
 				}
 		}
-		if (ret_value == -EINTR)
+		if (ret_value != -EINTR) {
 			sd->action = SKIPIT;
-		else
 			sd->ret_value = ret_value;
+		}
 	}
 }
 
