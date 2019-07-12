@@ -37,6 +37,7 @@ struct vu_module_t {
   char *description;
 };
 
+typedef unsigned long int syscall_arg_t;
 typedef long (*syscall_t)();
 extern const uint16_t vu_arch_table[];
 extern char *mountflag_strings[32];
@@ -174,6 +175,8 @@ struct binfmt_req_t {
 struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 pid_t vu_mod_gettid();
+int vu_mod_getsyscall_number(void);
+syscall_arg_t vu_mod_getsyscall_arg(unsigned int narg); /* 0 - 5 */
 void vu_mod_peek_str(void *addr, void *buf, size_t datalen);
 char *vu_mod_peekdup_path(void *addr);
 void vu_mod_peek_data(void *addr, void *buf, size_t datalen);

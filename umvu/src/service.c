@@ -58,7 +58,21 @@ void vu_mod_setht(struct vuht_entry_t *ht) {
 }
 
 /* modules are not aware of direct or nested calls */
+int vu_mod_getsyscall_number(void) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+  fatal(sd);
+	return sd->syscall_number;
+}
 
+syscall_arg_t vu_mod_getsyscall_arg(unsigned int narg) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+  fatal(sd);
+	if (narg < 6)
+		return sd->syscall_args[narg];
+	else
+		return 0;
+}
+	
 void vu_mod_peek_str(void *addr, void *buf, size_t datalen) {
 	struct syscall_descriptor_t *sd = get_thread_sd();
 	fatal(sd);
