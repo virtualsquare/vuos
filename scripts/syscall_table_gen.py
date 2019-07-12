@@ -29,10 +29,10 @@ wdset = set()
 woset = set()
 vwset = set()
 
-table = "struct syscall_tab_entry vu_syscall_table[] = {\n"
-vtable = "struct vsyscall_tab_entry vvu_syscall_table[] = {\n"
-ntable = "char *vu_syscall_names[] = {\n"
-vntable = "char *vvu_syscall_names[] = {\n"
+table = "const struct syscall_tab_entry vu_syscall_table[] = {\n"
+vtable = "const struct vsyscall_tab_entry vvu_syscall_table[] = {\n"
+ntable = "const char *vu_syscall_names[] = {\n"
+vntable = "const char *vvu_syscall_names[] = {\n"
 with open(sys.argv[1]) as f:
 	for line in f:
 		line = line.strip()

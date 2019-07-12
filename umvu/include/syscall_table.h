@@ -36,10 +36,10 @@ struct vsyscall_tab_entry{
 	wrapf_t *wrapf;
 };
 
-extern struct syscall_tab_entry vu_syscall_table[];
-extern struct vsyscall_tab_entry vvu_syscall_table[];
+extern const struct syscall_tab_entry vu_syscall_table[];
+extern const struct vsyscall_tab_entry vvu_syscall_table[];
 
 /* these arrays provide the names of _VU_ system calls (for debugging purposes) */
-extern char *vu_syscall_names[];
-extern char *vvu_syscall_names[];
+extern const char *vu_syscall_names[];
+extern const char *vvu_syscall_names[];
 #endif

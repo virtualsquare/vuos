@@ -12,7 +12,7 @@ for line in sys.stdin:
 
 print('''#define UNKNOWN_SYSTEM_CALL "unknown"
 
-static char *syscallname_table[] = {''')
+static const char *syscallname_table[] = {''')
 if syscall_names:
 	nmax = max(syscall_names.keys())
 	for i in range(nmax + 1):
@@ -25,7 +25,7 @@ else:
 print('''};
 
 #define SYSCALL_NAME_TABLE_SIZE (sizeof(syscallname_table)/sizeof(*syscallname_table))
-char *syscallname(int sysno) {
+const char *syscallname(int sysno) {
   if (sysno >= 0 && sysno < (int) SYSCALL_NAME_TABLE_SIZE)
     return syscallname_table[sysno];
   else

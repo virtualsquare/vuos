@@ -49,7 +49,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	struct syscall_descriptor_t sd = {.extra = &extra, .inout = NULL};
 	struct vuht_entry_t *ht;
 	int sysno = vu_arch_table[syscall_number];
-	struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
+	const struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 	long int ret_value;
 	struct syscall_descriptor_t *ssd = set_thread_sd(&sd);
 	epoch_t e = get_vepoch();

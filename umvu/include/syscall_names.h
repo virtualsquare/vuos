@@ -6,5 +6,5 @@
 	 is pre-processed to get the names of the the system calls provided by the
 	 kernel for the current architecture. */
 
-char *syscallname(int sysno);
+const char *syscallname(int sysno);
 #endif

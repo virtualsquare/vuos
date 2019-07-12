@@ -91,7 +91,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 	ssd = set_thread_sd(sd);
 	if (sd->syscall_number >= 0) {
 		int sysno = vu_arch_table[sd->orig_syscall_number];
-		struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
+		const struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 		switch (state) {
 			case IN_SYSCALL:
 				set_extra(&extra, sd, get_syspath);
@@ -130,7 +130,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 		int vsysno = - sd->syscall_number;
 		sd->ret_value = -ENOSYS;
 		if (vsysno < VVU_NR_SYSCALLS) {
-			struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
+			const struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
 			set_extra(&extra, sd, get_vsyspath);
 			printkdebug(s, "VIRSYSCALL %d (%d) %d %s %ld", umvu_gettid(), native_syscall(__NR_gettid),
 					vsysno, sd->extra->path, get_vepoch());
