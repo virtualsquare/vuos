@@ -326,6 +326,7 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	struct vuht_entry_t *new = vuht_alloc();
 	/* create the entry and fill in the fields */
 	fatal(new);
+	/* +1 if it is a string for the terminator */
 	new->obj = malloc(objlen + stringobj(type));
 	fatal(new->obj);
 	memcpy(new->obj, obj, objlen);
@@ -335,7 +336,6 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->type = type;
 	new->mountflags = mountflags;
 	new->mtabline = mtabline;
-	new->timestamp = update_epoch();
 	new->trailingnumbers = trailingnumbers;
 	new->private_data = private_data;
 	new->service = service;
@@ -347,6 +347,9 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 
 	new->hashsum = hashsum(type, new->obj, new->objlen);
 	pthread_rwlock_wrlock(&vuht_rwlock);
+	/* timestamp must be updated in the critical section
+		 to avoid race conditions */
+	new->timestamp = update_epoch();
 	/* add it to the right hash collision list */
 	if (objlen==0)
 		hashhead=&vuht_hash0[type];
