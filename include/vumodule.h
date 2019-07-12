@@ -38,7 +38,7 @@ struct vu_module_t {
 };
 
 typedef long (*syscall_t)();
-extern uint16_t vu_arch_table[];
+extern const uint16_t vu_arch_table[];
 extern char *mountflag_strings[32];
 
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);

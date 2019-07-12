@@ -15,7 +15,7 @@
 	 Several *real* system calls can be unified, processed and handled by
 	 modules as one vuos systems call.
 	 e.g. stat, lstat, fstat, fstatat, newfstatat: all are handled as __VU_lstat */
-extern uint16_t vu_arch_table[];
+extern const uint16_t vu_arch_table[];
 
 /* vu_arch_args defines for each system call provided by the architecure:
  * i) the number of arguments
@@ -43,13 +43,13 @@ extern uint16_t vu_arch_table[];
  *                                      AT_SYMLINK_NOFOLLOW is a supported flag
  */
 
-extern uint8_t vu_arch_args[];
+extern const uint8_t vu_arch_args[];
 
 /* virtual system calls are those provided by vuos for its services.
 	 e.g. insmod, rmmod, vuctl, msocket. umvu uses negative syscall numbers for virtual system calls */
 /* vvu_arch_args provides for each *virtual* system call the same information
 	 as vu_arch_table. The elements of vvu_arch_args has the same structure of vu_arch_table. */
-extern uint8_t vvu_arch_args[];
+extern const uint8_t vvu_arch_args[];
 
 #define ARCH_TYPE_SYMLINK_NOFOLLOW 1
 #define ARCH_TYPE_IS_AT 2
