@@ -63,33 +63,33 @@ static long double get_virttime(struct vumisctime_t *vumisct)
 {
 	struct timespec ts;
 	long double now;
-  clock_gettime(CLOCK_REALTIME,&ts);
-  now = ts.tv_sec + ((long double) ts.tv_nsec) / 1000000000;
-  //printk("get_virttime now %Lf\n",now);
-  now = (now - vumisct->base) * vumisct->freq + vumisct->base + vumisct->offset;
-  //printk("get_virttime umnow %Lf\n",now);
-  return now;
+	clock_gettime(CLOCK_REALTIME,&ts);
+	now = ts.tv_sec + ((long double) ts.tv_nsec) / 1000000000;
+	//printk("get_virttime now %Lf\n",now);
+	now = (now - vumisct->base) * vumisct->freq + vumisct->base + vumisct->offset;
+	//printk("get_virttime umnow %Lf\n",now);
+	return now;
 }
 
 static void set_virttime(struct vumisctime_t *vumisct,long double newnow)
 {
-  long double now = get_virttime(vumisct);
-  vumisct->offset += newnow - now;
+	long double now = get_virttime(vumisct);
+	vumisct->offset += newnow - now;
 }
 
 static void set_newfreq(struct vumisctime_t *vumisct,long double newfreq)
 {
 	struct timespec ts;
-  long double now;
-  long double oldnow;
-  long double newnow;
-  clock_gettime(CLOCK_REALTIME,&ts);
-  now = ts.tv_sec + ((long double) ts.tv_nsec) / 1000000000;
-  oldnow = (now - vumisct->base) * vumisct->freq + vumisct->base;
-  vumisct->base = now;
-  vumisct->freq = newfreq;
-  newnow = (now - vumisct->base) * vumisct->freq + vumisct->base;
-  vumisct->offset += oldnow - newnow;
+	long double now;
+	long double oldnow;
+	long double newnow;
+	clock_gettime(CLOCK_REALTIME,&ts);
+	now = ts.tv_sec + ((long double) ts.tv_nsec) / 1000000000;
+	oldnow = (now - vumisct->base) * vumisct->freq + vumisct->base;
+	vumisct->base = now;
+	vumisct->freq = newfreq;
+	newnow = (now - vumisct->base) * vumisct->freq + vumisct->base;
+	vumisct->offset += oldnow - newnow;
 }
 
 int infocontents(int tag, FILE *f, int openflags, void *pseudoprivate) {
@@ -109,7 +109,7 @@ int infocontents(int tag, FILE *f, int openflags, void *pseudoprivate) {
 		}
 	}
 	if (tag == PSEUDOFILE_STORE_CLOSE &&
-      (openflags & O_ACCMODE) != O_RDONLY	&& f != NULL) {
+			(openflags & O_ACCMODE) != O_RDONLY	&& f != NULL) {
 		switch (filetag[0]) {
 			case 'f':
 				{
@@ -132,30 +132,28 @@ int infocontents(int tag, FILE *f, int openflags, void *pseudoprivate) {
 int vumisctime_clock_gettime(clockid_t clk_id, struct timespec *tp) {
 	struct vumisctime_t *vumisctime_data = vumisc_get_private_data();
 	if (clk_id == CLOCK_REALTIME) {
-    long double now=get_virttime(vumisctime_data);
-    if (tp) {
-      tp->tv_sec = (time_t) now;
-      tp->tv_nsec = (time_t) ((now - tp->tv_sec) * 1000000000);
-    }
-    return 0;
-  }
-  else
-    return errno = EINTR, -1;
+		if (tp) {
+			long double now=get_virttime(vumisctime_data);
+			tp->tv_sec = (time_t) now;
+			tp->tv_nsec = (time_t) ((now - tp->tv_sec) * 1000000000);
+		}
+		return 0;
+	}
+	else
+		return errno = ENOTSUP, -1;
 }
 
 int vumisctime_clock_settime(clockid_t clk_id, const struct timespec *tp) {
 	struct vumisctime_t *vumisctime_data = vumisc_get_private_data();
 	if (clk_id == CLOCK_REALTIME) {
-    long double newnow;
 		if (tp) {
-      newnow = tp->tv_sec + ((long double) tp->tv_nsec) / 1000000000;
-      set_virttime(vumisctime_data, newnow);
-    }
-    return 0;
-  } else
-    return clock_settime(clk_id,tp);
-
-  return 0;
+			long double newnow;
+			newnow = tp->tv_sec + ((long double) tp->tv_nsec) / 1000000000;
+			set_virttime(vumisctime_data, newnow);
+		}
+		return 0;
+	} else
+		return errno = ENOTSUP, -1;
 }
 
 static void *vumisctime_init(const char *source) {

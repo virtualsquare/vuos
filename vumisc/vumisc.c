@@ -41,24 +41,28 @@
 #include <time.h>
 #include <vumisc.h>
 
-#define VUMISC_SC \
-    VUMISC(clock_settime), \
-    VUMISC(clock_getres), \
-    VUMISC(clock_gettime)
+#define VUMISC_SC_LIST \
+	VUMISC(clock_gettime), \
+	VUMISC(clock_settime), \
+	VUMISC(clock_getres)
 
 /* const char *vumisc_names[] = {"clock_gettime", ....}; */
 #define VUMISC(X) #X
-const char * vumisc_names[] = { VUMISC_SC };
+const char * vumisc_names[] = { VUMISC_SC_LIST };
 #undef VUMISC
 
 /* const int vumisc_nr[] = {__NR_clock_gettime, ....}; */
 #define VUMISC(X) __NR_ ## X
-const int vumisc_nr[] = { VUMISC_SC };
+const uint16_t vumisc_nr[] = { VUMISC_SC_LIST };
 #undef VUMISC
 
 /* enum vumisc_index[] = {VUMISC_clock_gettime, ....}; */
 #define VUMISC(X) VUMISC_ ## X
-enum vumisc_index { VUMISC_SC, NUM_VUMISC_SC };
+enum vumisc_index { VUMISC_SC_LIST, NUM_VUMISC_SC };
+
+#define IS_CLOCK_OP(X) \
+	((X) >= VUMISC(clock_gettime) && \
+	 (X) <= VUMISC(clock_getres))
 
 VU_PROTOTYPES(vumisc)
 
@@ -73,8 +77,8 @@ struct vumisc_t {
 	struct vumisc_operations_t *misc_ops;
 	void *private_data;
 	struct vuht_entry_t *path_ht;
+	struct vuht_entry_t *ops_ht;
 	syscall_t ops[NUM_VUMISC_SC];
-	struct vuht_entry_t *ops_ht[NUM_VUMISC_SC];
 };
 
 static struct vumisc_info *infofs_getinfo(struct vumisc_info *infotree, const char *pathname) {
@@ -187,18 +191,63 @@ int vu_vumisc_unlink(const char *pathname) {
 }
 
 int vu_vumisc_clock_gettime(clockid_t clk_id, struct timespec *tp) {
-	struct vumisc_t *vumisc = vu_get_ht_private_data();
-	return vumisc->ops[VUMISC(clock_gettime)](clk_id, tp);
+	if (tp == NULL)
+		return errno = -EFAULT, -1;
+	else {
+		struct vumisc_t *vumisc = vu_get_ht_private_data();
+		return vumisc->ops[VUMISC(clock_gettime)](clk_id, tp);
+	}
 }
 
 int vu_vumisc_clock_settime(clockid_t clk_id, const struct timespec *tp) {
-	struct vumisc_t *vumisc = vu_get_ht_private_data();
-	return vumisc->ops[VUMISC(clock_settime)](clk_id, tp);
+	if (tp == NULL)
+		return errno = -EFAULT, -1;
+	else {
+		struct vumisc_t *vumisc = vu_get_ht_private_data();
+		return vumisc->ops[VUMISC(clock_settime)](clk_id, tp);
+	}
 }
 
 int vu_vumisc_clock_getres(clockid_t clk_id, struct timespec *res) {
-	struct vumisc_t *vumisc = vu_get_ht_private_data();
-	return vumisc->ops[VUMISC(clock_getres)](clk_id, res);
+	if (res == NULL)
+		return errno = -EFAULT, -1;
+	else {
+		struct vumisc_t *vumisc = vu_get_ht_private_data();
+		return vumisc->ops[VUMISC(clock_getres)](clk_id, res);
+	}
+}
+
+static int vumisc_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
+	int *sc = arg;
+	int index;
+	for (index = 0; index < NUM_VUMISC_SC; index++) {
+		if (vu_arch_table[vumisc_nr[index]] == *sc)
+			break;
+	}
+	if (index == NUM_VUMISC_SC)
+		return 0;
+	else {
+		if (IS_CLOCK_OP(index)) {
+			/* clock_* syscall may support some clk_id only.
+				 refusal must be done at ht confirmation time to permit further
+				 virtualization by other modules/submodules */
+			int syscall_number = vu_mod_getsyscall_number();
+			/* the following applies to __NR_clock_gettime, __NR_clock_settime, __NR_clock_getres, not
+				 other calls unified to these like gettimofday/settimeofday */
+			if (syscall_number == vumisc_nr[index]) {
+				struct vumisc_t *vumisc = vuht_get_private_data(ht);
+				struct vuht_entry_t *oldht = vu_mod_getht();
+				int ret_value;
+				vu_mod_setht(ht);
+				clockid_t clk_id = vu_mod_getsyscall_arg(0);
+				ret_value = vumisc->ops[index](clk_id, NULL);
+				vu_mod_setht(oldht);
+				if (ret_value < 0)
+					return 0;
+			}
+		}
+		return 1;
+	}
 }
 
 static syscall_t vumisc_getsym(void *handle, const char *filesystemtype, const char *symbol) {
@@ -210,14 +259,6 @@ static syscall_t vumisc_getsym(void *handle, const char *filesystemtype, const c
 	return dlsym(handle, fullname);
 #pragma GCC diagnostic pop
 }
-
-#if 0
-static int vumisc_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
-	int *sc = arg;
-	printk("%p %d\n", ht, *sc);
-	return 1;
-}
-#endif
 
 int vu_vumisc_mount(const char *source, const char *target,
 		const char *filesystemtype, unsigned long mountflags,
@@ -247,21 +288,15 @@ int vu_vumisc_mount(const char *source, const char *target,
 		for (i = 0; i < NUM_VUMISC_SC; i++)
 			new->ops[i] = vumisc_getsym(dlhandle, filesystemtype, vumisc_names[i]);
 		pthread_mutex_init(&(new->mutex), NULL);
-		pthread_mutex_lock(&(new->mutex));
 		if (misc_ops->init) {
-      new->private_data = misc_ops->init(source);
+			new->private_data = misc_ops->init(source);
 			if (new->private_data == NULL)
-        goto err_init_null;
-    }
+				goto err_init_null;
+		}
+		pthread_mutex_lock(&(new->mutex));
 		new->path_ht = vuht_pathadd(CHECKPATH, 
 				source, target, filesystemtype, mountflags, data, s, 0, NULL, new);
-		for (i = 0; i < NUM_VUMISC_SC; i++) {
-			if (new->ops[i] != NULL) {
-				int vu_syscall = vu_arch_table[vumisc_nr[i]];
-				new->ops_ht[i] = vuht_add(CHECKSC, &vu_syscall, sizeof(int), s, NULL, new, 0);
-			} else 
-				new->ops_ht[i] = NULL;
-		}
+		new->ops_ht = vuht_add(CHECKSC, NULL, 0, s, vumisc_confirm, new, 0);
 		pthread_mutex_unlock(&(new->mutex));
 		return errno = 0, 0;
 err_init_null:
@@ -277,12 +312,11 @@ err_nomem_misc:
 
 int vu_vumisc_umount2(const char *target, int flags) {
 	struct vumisc_t *vumisc = vu_get_ht_private_data();
-	int i;
 	pthread_mutex_lock(&(vumisc->mutex));
 	if (vumisc->path_ht != NULL)
 		vuht_del(vumisc->path_ht, flags);
-	for (i = 0; i < NUM_VUMISC_SC; i++)
-		vuht_del(vumisc->ops_ht[i], flags);
+	if (vumisc->ops_ht != NULL)
+		vuht_del(vumisc->ops_ht, flags);
 	pthread_mutex_unlock(&(vumisc->mutex));
 	printkdebug(M,"UMOUNT target:%s flags:%d %p", target, flags, vumisc);
 	return 0;
@@ -291,33 +325,20 @@ int vu_vumisc_umount2(const char *target, int flags) {
 void vu_vumisc_cleanup(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht) {
 	struct vumisc_t *vumisc = vu_get_ht_private_data();
-	int i;
 	switch (type) {
 		case CHECKPATH:
 			vumisc->path_ht = NULL;
 			break;
 		case CHECKSC:
-			for(i = 0; i < NUM_VUMISC_SC; i++) {
-				int vu_syscall = * (int *)(arg);
-				if (vu_syscall == vumisc_nr[i]) {
-					vumisc->ops_ht[i] = NULL;
-					break;
-				}
-			}
+			vumisc->ops_ht = NULL;
 	}
-	if (vumisc->path_ht == NULL) {
-		for(i = 0; i < NUM_VUMISC_SC; i++) {
-			if (vumisc->ops_ht[i] != NULL)
-				break;
-		}
-		if (i == NUM_VUMISC_SC) {
-			printkdebug(M,"CLEANUP %p", vumisc);
-			if(vumisc->misc_ops->fini)
-				vumisc->misc_ops->fini(vumisc->private_data);
-			pthread_mutex_destroy(&(vumisc->mutex));
-			dlclose(vumisc->dlhandle);
-			free(vumisc);
-		}
+	if (vumisc->path_ht == NULL && vumisc->ops_ht == NULL) {
+		printkdebug(M,"CLEANUP %p", vumisc);
+		if(vumisc->misc_ops->fini)
+			vumisc->misc_ops->fini(vumisc->private_data);
+		pthread_mutex_destroy(&(vumisc->mutex));
+		dlclose(vumisc->dlhandle);
+		free(vumisc);
 	}
 }
 
