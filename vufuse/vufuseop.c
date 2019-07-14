@@ -208,7 +208,7 @@ int vu_vufuse_mknod (const char *pathname, mode_t mode, dev_t dev)
 			fc.fuse->fops.release(pathname, &fi);
 		} else if (rv == -ENOSYS)
 			rv = fc.fuse->fops.mknod(pathname, mode, dev);
-	} else 
+	} else
 		rv = fc.fuse->fops.mknod(pathname, mode, dev);
 	fuse_pop_context(ofc);
 	pthread_mutex_unlock(&(fc.fuse->mutex));
@@ -859,7 +859,7 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 		vufuse_node_rename(fc.fuse, target, linkpath);
 	else if (hiddenpath) {
 		// revert the renaming to hiddenpath
-		if (fc.fuse->fops.rename(hiddenpath, linkpath) >= 0) 
+		if (fc.fuse->fops.rename(hiddenpath, linkpath) >= 0)
 			vufuse_node_rename(fc.fuse, hiddenpath, linkpath);
 	}
 	pthread_mutex_unlock(&(fc.fuse->mutex));

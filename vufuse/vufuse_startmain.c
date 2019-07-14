@@ -86,7 +86,7 @@ int fusestartmain(struct main_params *mntp) {
 			switch(strcase(tags[i])) {
 				case STRCASE(f,m,t): format = args[i]; tags[i] = STROPTX_DELETED_TAG; break;
 														 /* here some opt could change bits in mntp->pfuseflags */
-				case STRCASE(h,a,r,d,_,r,e,m,o,v,e): *mntp->pfuseflags |= FUSE_HARDREMOVE; 
+				case STRCASE(h,a,r,d,_,r,e,m,o,v,e): *mntp->pfuseflags |= FUSE_HARDREMOVE;
 																						 tags[i] = STROPTX_DELETED_TAG; break;
 			}
 		}

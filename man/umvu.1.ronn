@@ -182,15 +182,15 @@ permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gi
 
     $$  /sbin/gdisk /dev/hda
     GPT fdisk (gdisk) version 1.0.3
-    
+
     Partition table scan:
       MBR: not present
       BSD: not present
       APM: not present
       GPT: not present
-    
+
     Creating new GPT entries.
-    
+
     Command (? for help):  n
     Partition number (1-128, default 1):
     First sector (34-2097118, default = 2048) or {+-}size{KMGTP}:
@@ -198,7 +198,7 @@ permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gi
     Current type is 'Linux filesystem'
     Hex code or GUID (L to show codes, Enter = 8300):
     Changed type of partition to 'Linux filesystem'
-    
+
     Command (? for help): n
     Partition number (2-128, default 2):
     First sector (34-2097118, default = 411648) or {+-}size{KMGTP}:
@@ -206,7 +206,7 @@ permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gi
     Current type is 'Linux filesystem'
     Hex code or GUID (L to show codes, Enter = 8300):
     Changed type of partition to 'Linux filesystem'
-    
+
     Command (? for help): p
     Disk /dev/hda: 2097152 sectors, 1024.0 MiB
     Sector size (logical): 512 bytes
@@ -216,16 +216,16 @@ permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gi
     First usable sector is 34, last usable sector is 2097118
     Partitions will be aligned on 2048-sector boundaries
     Total free space is 2014 sectors (1007.0 KiB)
-    
+
     Number  Start (sector)    End (sector)  Size       Code  Name
        1            2048          411647   200.0 MiB   8300  Linux filesystem
        2          411648         2097118   823.0 MiB   8300  Linux filesystem
-    
+
     Command (? for help): w
-    
+
     Final checks complete. About to write GPT data. THIS WILL OVERWRITE EXISTING
     PARTITIONS!!
-    
+
     Do you want to proceed? (Y/N): Y
     OK; writing new GUID partition table (GPT) to /dev/hda.
     The operation has completed successfully.
@@ -244,12 +244,12 @@ permit filesystem mounting (`mount`(8) works in `umvu` adding a module of uid/gi
     Filesystem UUID: c96c6499-40cd-43df-addf-52e06d7e6842
     Superblock backups stored on blocks:
             8193, 24577, 40961, 57345, 73729
-    
+
     Allocating group tables: done
     Writing inode tables: done
     Creating journal (4096 blocks): done
       Writing superblocks and filesystem accounting information: done
-    
+
 
   now the file system on /dev/hda1 can be mounted on /mnt
 

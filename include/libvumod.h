@@ -43,7 +43,7 @@ int pseudofile_open(pseudo_upcall upcall, void *pseudoprivate, int flags, void *
 /* syscall implementation for pseudofiles. The signature of these function has been
 	 designed to be a drop in replacement for your module's functions. e.g. in yourmodule_init:
 	 struct vu_service_t *s = vu_mod_getservice();
-	 vu_syscall_handler(s, close) = pseudofile_close; 
+	 vu_syscall_handler(s, close) = pseudofile_close;
 	 */
 int pseudofile_close(int fd, void *private);
 

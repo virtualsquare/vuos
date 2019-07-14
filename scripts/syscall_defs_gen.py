@@ -35,13 +35,13 @@ with open(sys.argv[1]) as f:
 				if syscall.startswith('-'):
 					syscall = syscall[1:].strip()
 					syscall_len = len(syscall)
-					if syscall_len > vvu_syscall_max_namelen: 
+					if syscall_len > vvu_syscall_max_namelen:
 							vvu_syscall_max_namelen = syscall_len
 					code += "#define __VVU_{} {}\n".format(syscall,-vcounter)
 					vcounter += 1
 				else:
 					syscall_len = len(syscall)
-					if syscall_len > vu_syscall_max_namelen: 
+					if syscall_len > vu_syscall_max_namelen:
 							vu_syscall_max_namelen = syscall_len
 					code += "#define __VU_{} {}\n".format(syscall,counter)
 					counter += 1

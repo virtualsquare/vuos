@@ -49,7 +49,7 @@ static char *vufuse_node_hiddenpath_rename(struct fuse *fuse, char *oldpath)
   static unsigned long hiddencount;
 	char *last_slash = strrchr(oldpath, '/');
 	int last_slash_pos = (last_slash == NULL) ? 0 : (last_slash - oldpath);
-  asprintf(&name,"%*.*s/.fuse%0*lx%010lu", last_slash_pos, last_slash_pos, oldpath, 
+  asprintf(&name,"%*.*s/.fuse%0*lx%010lu", last_slash_pos, last_slash_pos, oldpath,
 			ADDRESS_LEN, (uintptr_t)fuse, hiddencount++);
 	free(oldpath);
   return name;
@@ -120,7 +120,7 @@ struct fuse_node *vufuse_node_add(struct fuse *fuse, const char *path) {
       new->nexthash = vufuse_node_head[hashkey];
       new->pprevhash = &(vufuse_node_head[hashkey]);
       vufuse_node_head[hashkey] = new;
-		} 
+		}
 	}
 	pthread_mutex_unlock(&vufuse_node_mutex);
 	return new;

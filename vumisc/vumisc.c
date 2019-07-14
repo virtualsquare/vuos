@@ -17,7 +17,7 @@
  *
  *   vumisc: miscellaneous virtualization.
  *   set single system call behavior, an info file system permits configuration.
- *   e.g.: 
+ *   e.g.:
  *      vu_insmod vumisc
  *      vumount -t vumisctime none /tmp/time
  *   pseudo file in /tmp/time change the user processes' perception of time.
@@ -139,13 +139,13 @@ int vu_vumisc_open(const char *pathname, int flags, mode_t mode, void **fdprivat
 	struct vumisc_t *vumisc = vu_get_ht_private_data();
 	struct vumisc_info *scan = infofs_getinfo(vumisc->misc_ops->infotree, pathname);
 	if (scan->path != NULL) {
-		if (simple_check_permission(flags, scan->stat.st_mode) == 0) 
+		if (simple_check_permission(flags, scan->stat.st_mode) == 0)
 			return errno = EACCES, -1;
 		switch (scan->stat.st_mode & S_IFMT) {
 			case S_IFREG:
 				pseudofile_open(vumisc->misc_ops->infocontents, scan->upcall_private, flags, fdprivate);
 				break;
-			case S_IFDIR: 
+			case S_IFDIR:
 				{
 					char *dirpath = (char *)pathname;
 					if (strcmp(dirpath, "/") == 0) dirpath = "";
@@ -156,7 +156,7 @@ int vu_vumisc_open(const char *pathname, int flags, mode_t mode, void **fdprivat
 				return errno = -EOPNOTSUPP, -1;
 		}
 		return 0;
-	} else 
+	} else
 		return errno = ENOENT, -1;
 }
 
@@ -294,7 +294,7 @@ int vu_vumisc_mount(const char *source, const char *target,
 				goto err_init_null;
 		}
 		pthread_mutex_lock(&(new->mutex));
-		new->path_ht = vuht_pathadd(CHECKPATH, 
+		new->path_ht = vuht_pathadd(CHECKPATH,
 				source, target, filesystemtype, mountflags, data, s, 0, NULL, new);
 		new->ops_ht = vuht_add(CHECKSC, NULL, 0, s, vumisc_confirm, new, 0);
 		pthread_mutex_unlock(&(new->mutex));

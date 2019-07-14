@@ -78,7 +78,7 @@ static void vu_uid_gid_modify_lock(void) {
 		new->sgid = vu_uid_gid->sgid;
 		new->fsgid = vu_uid_gid->fsgid;
 		new->ngroups = vu_uid_gid->ngroups;
-		if (new->ngroups <= 0) 
+		if (new->ngroups <= 0)
 			new->groups = NULL;
 		else {
 			new->groups = malloc(new->ngroups * sizeof(gid_t));
@@ -105,7 +105,7 @@ int vu_unrealuidgid_setresfuid(uid_t ruid, uid_t euid, uid_t suid, uid_t fsuid, 
 	return 0;
 }
 
-int vu_unrealuidgid_getresfuid(uid_t *ruid, uid_t *euid, uid_t *suid, 
+int vu_unrealuidgid_getresfuid(uid_t *ruid, uid_t *euid, uid_t *suid,
 		uid_t *fsuid, void *private) {
 	if (vu_uid_gid != NULL) {
 		pthread_rwlock_rdlock(&vu_uid_gid->lock);
@@ -163,7 +163,7 @@ int vu_unrealuidgid_getgroups(int size, gid_t list[], void *private) {
 			memcpy(list, vu_uid_gid->groups, vu_uid_gid->ngroups * sizeof(gid_t));
 		pthread_rwlock_unlock(&vu_uid_gid->lock);
 		return ret_value;
-	} else 
+	} else
 		return getgroups(size, list);
 }
 

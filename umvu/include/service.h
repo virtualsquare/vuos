@@ -31,7 +31,7 @@ struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 
 /* inline function: it is here for performance.
-	 it returns the pointer of the suscall implementation....
+	 it returns the pointer of the syscall implementation....
 	 an example of this inline usage is:
 	 retval = service_syscall(ht, __VU_read)(fd, buf, buflen);
  */

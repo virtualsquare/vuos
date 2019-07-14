@@ -60,7 +60,7 @@ effects caused by mixing environments.
     o   sets argv[0] of the shell to '-' in order to make the shell a login shell
 
   *  `-m`, `-p`, `--preserve-environment`:
-    Preserve  the  entire environment, i.e. it does not set `HOME`, `SHELL`, `USER` nor `LOGNAME`.  
+    Preserve  the  entire environment, i.e. it does not set `HOME`, `SHELL`, `USER` nor `LOGNAME`.
     This option is ignored if the option `--login` is specified.
 
   *  `-s` <shell>, `--shell` <shell>:
@@ -76,7 +76,7 @@ effects caused by mixing environments.
     o   /bin/sh
 
   * `-h`, `--help`:
-    Display a short help message and exit. 
+    Display a short help message and exit.
 
 ## SEE ALSO
 umvu(1), su(1)
