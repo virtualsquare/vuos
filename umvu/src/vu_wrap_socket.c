@@ -75,6 +75,8 @@ void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;
+		if (type & SOCK_CLOEXEC)
+			flags |= O_NONBLOCK;
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_socket)(domain, type, protocol, &private);
 		if (ret_value < 0) {
@@ -242,6 +244,8 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			flags = sd->syscall_args[3];
 		if (flags & SOCK_CLOEXEC)
 			fflags |= O_CLOEXEC;
+		if (flags & SOCK_CLOEXEC)
+			fflags |= O_NONBLOCK;
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_accept4)(sfd, addr, addrlen, flags, private, &private);
 		if (ret_value < 0)
@@ -252,14 +256,14 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
-			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, 0, ret_value, private);
+			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, fflags, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
 				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
 				int fd;
 				sd->ret_value = fd = r_open(vu_fnode_get_vpath(fnode), O_CREAT | O_RDWR, 0600);
 				if (fd >= 0)
-					vu_fd_set_fnode(fd, nested, fnode, flags);
+					vu_fd_set_fnode(fd, nested, fnode, fflags);
 				else
 					vu_fnode_close(fnode);
 			} else {
@@ -268,7 +272,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				/* change the call to "open(vopen, O_CREAT | O_RDWR, 0600)" */
 				sd->syscall_number = __NR_open;
 				rewrite_syspath(sd, vu_fnode_get_vpath(fnode));
-				sd->syscall_args[1] = O_CREAT | O_RDWR | (flags & O_CLOEXEC);
+				sd->syscall_args[1] = O_CREAT | O_RDWR | (fflags & O_CLOEXEC);
 				sd->syscall_args[2] = 0600;
 				sd->action = DOIT_CB_AFTER;
 			}
@@ -371,12 +375,28 @@ void wi_getpeername(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+static int get_send_recv_flags(struct syscall_descriptor_t *sd) {
+	int syscall_number = sd->syscall_number;
+	switch (syscall_number) {
+		case __NR_sendto:
+		case __NR_recvfrom:
+		case __NR_sendmmsg:
+		case __NR_recvmmsg:
+			return sd->syscall_args[3];
+		case __NR_sendmsg:
+		case __NR_recvmsg:
+			return sd->syscall_args[2];
+		default:
+			return 0;
+	}
+}
+
 /* sendto, send, sendmsg, sendmmsg */
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
-		if (!nested) {
+		if (!nested && (get_send_recv_flags(sd) & MSG_DONTWAIT) == 0) {
 			int fd = sd->syscall_args[0];
 			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLOUT, nested);
 			if (sc != NULL) {
@@ -500,7 +520,7 @@ void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (ht) {
-		if (!nested) {
+		if (!nested && (get_send_recv_flags(sd) & MSG_DONTWAIT) == 0) {
 			int fd = sd->syscall_args[0];
 			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
 			if (sc != NULL) {

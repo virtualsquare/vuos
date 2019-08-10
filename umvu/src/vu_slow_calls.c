@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <poll.h>
 #include <sys/epoll.h>
@@ -41,19 +42,23 @@ struct slowcall {
 };
 
 struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
-	void *private = NULL;
-	int sfd = vu_fd_get_sfd(fd, &private, nested);
-	int epfd = r_epoll_create1(EPOLL_CLOEXEC);
-	struct epoll_event event = {.events = events, .data.fd = fd};
-	int ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, EPOLL_CTL_ADD, sfd, &event, private);
-	//printk("vu_slowcall_in... %d (add %d)\n", epfd, ret_value);
-	if (ret_value < 0) {
-		r_close(epfd);
+	if (vu_fd_get_flflags(fd, nested) & O_NONBLOCK)
 		return NULL;
-	} else {
-		struct slowcall *sc = malloc(sizeof(struct slowcall));
-		sc->epfd = epfd;
-		return sc;
+	else {
+		void *private = NULL;
+		int sfd = vu_fd_get_sfd(fd, &private, nested);
+		int epfd = r_epoll_create1(EPOLL_CLOEXEC);
+		struct epoll_event event = {.events = events, .data.fd = fd};
+		int ret_value = service_syscall(ht, __VU_epoll_ctl)(epfd, EPOLL_CTL_ADD, sfd, &event, private);
+		//printk("vu_slowcall_in... %d (add %d)\n", epfd, ret_value);
+		if (ret_value < 0) {
+			r_close(epfd);
+			return NULL;
+		} else {
+			struct slowcall *sc = malloc(sizeof(struct slowcall));
+			sc->epfd = epfd;
+			return sc;
+		}
 	}
 }
 
