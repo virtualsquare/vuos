@@ -166,21 +166,6 @@ static void vu_poll_wait_thread(struct syscall_descriptor_t *sd, int epfd) {
   }
 }
 
-/* set ht and epoch for epoll_ctl (to be used when not already set) */
-static inline int vu_epoll_ctl_wrapper(struct vuht_entry_t *ht,
-		int epfd, int op, int fd, struct epoll_event *event, void *private) {
-	int retval;
-	struct vuht_entry_t *sht = vu_mod_getht();
-	epoch_t e = get_vepoch();
-	set_vepoch(vuht_get_vepoch(ht));
-	vu_mod_setht(ht);
-	retval = service_syscall(ht, __VU_epoll_ctl)(epfd, op, fd, event, private);
-	vu_mod_setht(sht);
-	vuht_drop(ht);
-	set_vepoch(e);
-	return retval;
-}
-
 /* EPOLL:
  * epoll_create: set up a epollfd (epfd) in the hypervisor, create epoll_info and
  * register the user level file descriptor in the file table.
@@ -372,7 +357,8 @@ static int epoll_close_upcall(struct vuht_entry_t *ht, int epfd, void *private) 
 	//printk("epoll_close_upcall %d %p\n", epfd, info);
 	while ((head = epoll_tab_head(info->tab)) != NULL) {
 		//printk("wi_epoll_ctl DEL %d %p \n", head->fd, info);
-		vu_epoll_ctl_wrapper(head->ht, head->wepfd, EPOLL_CTL_DEL, head->sfd, NULL, head->private);
+		VU_HTWRAP(head->ht,
+				service_syscall(head->ht, __VU_epoll_ctl)(head->wepfd, EPOLL_CTL_DEL, head->sfd, NULL, head->private));
 		r_close(head->wepfd);
 		epoll_tab_del(&info->tab, head->fd);
 	}
@@ -520,8 +506,9 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			for (scan = epoll_tab_head(tab); scan != NULL; scan = scan->next) {
 				pollio->nvirt++;
 				//printk("EPOLL_CTL_ADD %d %d %p\n", pollio->epfd, scan->sfd, scan->private);
-				vu_epoll_ctl_wrapper(scan->ht,
-						pollio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event, scan->private); // XXX error mgmt?
+				VU_HTWRAP(scan->ht,
+						service_syscall(scan->ht, __VU_epoll_ctl)
+						(pollio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event, scan->private)); // XXX error mgmt?
       }
 			sd->inout = pollio;
       sd->action = DOIT_CB_AFTER;
@@ -587,7 +574,9 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   }
 	/* de-register the epoll requests for modules */
 	for (scan = epoll_tab_head(pollio->tab); scan != NULL; scan = scan->next) {
-		vu_epoll_ctl_wrapper(scan->ht, pollio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private); // XXX error mgmt?
+		VU_HTWRAP(scan->ht,
+				service_syscall(scan->ht, __VU_epoll_ctl)
+				(pollio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private)); // XXX error mgmt?
 	}
 	epoll_tab_destroy(&pollio->tab);
   r_close(pollio->epfd);
@@ -697,8 +686,9 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			for (scan = epoll_tab_head(tab); scan != NULL; scan = scan->next) {
         selectio->nvirt++;
 				//printk("EPOLL_CTL_ADD %d %d %p\n", selectio->epfd,  scan->sfd, scan->private);
-				vu_epoll_ctl_wrapper(scan->ht,
-						selectio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event, scan->private); // XXX error mgmt?
+				VU_HTWRAP(scan->ht,
+						service_syscall(scan->ht, __VU_epoll_ctl)
+						(selectio->epfd, EPOLL_CTL_ADD, scan->sfd, &scan->event, scan->private)); // XXX error mgmt?
       }
 			poke_fd_set(readfdsaddr, &readfds, nfds, nested);
 			poke_fd_set(writefdsaddr, &writefds, nfds, nested);
@@ -766,7 +756,9 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 	/* de-register the epoll requests for modules */
 	for (scan = epoll_tab_head(selectio->tab); scan != NULL; scan = scan->next)
-		vu_epoll_ctl_wrapper(scan->ht, selectio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private); // XXX error mgmt?
+		VU_HTWRAP(scan->ht,
+				service_syscall(scan->ht, __VU_epoll_ctl)
+				(selectio->epfd, EPOLL_CTL_DEL, scan->sfd, NULL, scan->private)); // XXX error mgmt?
 	epoll_tab_destroy(&selectio->tab);
 	r_close(selectio->epfd);
 	xfree(selectio);

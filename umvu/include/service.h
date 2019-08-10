@@ -30,6 +30,25 @@ struct vu_service_t {
 struct vuht_entry_t *vu_mod_getht(void);
 void vu_mod_setht(struct vuht_entry_t *ht);
 
+/* hash table and epoch wrapper:
+ *	 set the ht and epoch to run a service_syscall and then
+ *	 restore the previous value.
+ * usage:
+ * VU_HTWRAP(ht, ret_value = service_syscall(ht, __VU_xxxx)(arg0, arg1...));
+ */
+
+#define VU_HTWRAP(HT, X) \
+	do { \
+		struct vuht_entry_t *__sht = vu_mod_getht(); \
+		epoch_t __e = get_vepoch(); \
+		vu_mod_setht(HT); \
+		set_vepoch(vuht_get_vepoch(HT)); \
+		(X); \
+		set_vepoch(__e); \
+		vu_mod_setht(__sht); \
+	} while(0)
+
+
 /* inline function: it is here for performance.
 	 it returns the pointer of the syscall implementation....
 	 an example of this inline usage is:
