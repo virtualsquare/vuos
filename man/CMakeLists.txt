@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
 
-set (RONN_ORGANIZATION "VirtualSquare")
+set (RONN_ORGANIZATION "VirtualSquare-VUOS")
 set (ROFF_COMMENT "^\.\\\\\"")
 
 ### ronn pages
