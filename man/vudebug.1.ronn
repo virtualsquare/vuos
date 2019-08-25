@@ -1,7 +1,7 @@
 vudebug(1) -- debug utility for umvu
 ====
 
-!--
+<!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
 .\" This is free documentation; you can redistribute it and/or
