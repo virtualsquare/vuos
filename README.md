@@ -281,7 +281,7 @@ as briefly explained in the following.
 First of all install the following packets:
 
     git python3 build-essential cmake make autogen autoconf libtool libcap-dev libattr1-dev libfuse-dev libexecs-dev
-    libssl1.0-dev libmhash-dev libpam0g-dev libfuse-dev e2fsprogs comerr-dev e2fslibs-dev
+    libssl1.0-dev libmhash-dev libpam0g-dev libfuse-dev e2fsprogs comerr-dev e2fslibs-dev libpam-dev libmhash-dev
 
 Then install libraries and tools from the following list of git repositories:
 
@@ -291,6 +291,8 @@ Then install libraries and tools from the following list of git repositories:
     https://github.com/rd235/libvolatilestream.git
     https://github.com/rd235/libstropt.git
     https://github.com/rd235/strcase.git
+    https://github.com/rd235/libfduserdata.git
+    https://github.com/rd235/libvpoll-eventfd.git
     https://github.com/rd235/libvdestack.git
     https://github.com/rd235/vdeplug_vlan.git
     https://github.com/rd235/cado.git
