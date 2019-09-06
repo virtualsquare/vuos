@@ -1,0 +1,66 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUMOUNT" "1" "June 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvumount\fR \- mount a filesystem or a resource
+.SH "SYNOPSIS"
+\fBvumount\fR [\fIoptions\fR \|\.\|\.\|\.] \fIsource\fR \fIdestination\fR
+.SH "DESCRIPTION"
+Everything is (or can be seen) as a file\. It is part of the philosophy of UNIX\. The file hierarchy is the global naming facility\.
+.P
+VUOS follows this principle: VUOS modules use \fBmount\fR(2) not only to mount virtual filesystems but also to activate other virual services\. The mountpoint, \fIdestination\fR in the synopsis, is the name that will be used to identify the virtual entity/service\.
+.P
+For example, in \fBvudev\fR it is possible to mount devices, in \fBvunet\fR the mountpoint is the name of the networking stack, \fBvustack\fR(1) uses the path ofthe mountpoint to set the current stack for processes\.
+.P
+\fBvumount\fR is just a command interface to \fBmount\fR(2)\. The \fBmount\fR(8) command is a complex tool which includes several features like the management of /etc/fstab and /etc/mtab\. \fBmount\fR(8) is a root setuid executable and performs security checks before the actual \fBmount\fR(2) syscall request\. \fBmount\fR(8) can be used in VUOS in place of \fBvumount\fR but it requires the (virtual) real uid of the executing process to be 0 (root)\. e\.g\. \fBvusu\fR(1) can be used to set the virtual real uid to 0\. \fBvumount\fR has been designed for VUOS but can be used to run the \fBmount\fR system call directly, without all the other management actions provided by \fBmount\fR(8)\. \fBvumount\fR is not setuid root\.
+.SH "OPTIONS"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a short help message and exit\.
+.TP
+\fB\-o\fR \fIlist\fR, \fB\-\-options\fR \fIlist\fR
+comma\-separated list of mount options
+.TP
+\fB\-t\fR \fIfstype\fR, \fB\-\-types\fR \fIfstype\fR
+define the filesystem type
+.TP
+\fB\-r\fR, \fB\-\-read\-only\fR
+mount the filesystem read\-only (same as \-o ro)
+.TP
+\fB\-w\fR, \fB\-\-rw\fR, \fB\-\-read\-write\fR
+mount the filesystem read\-write (default)
+.TP
+\fB\-B\fR, \fB\-\-bind\fR
+mount a subtree somewhere else (same as \-o bind)
+.TP
+\fB\-M\fR, \fB\-\-move\fR
+move a subtree to some other place
+.TP
+\fB\-R\fR, \fB\-\-rbind\fR
+mount a subtree and all submounts somewhere else
+.SH "SEE ALSO"
+umvu(1), vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vuumount(1), vudebug(1)
+.SH "AUTHOR"
+VirtualSquare\. Project leader: Renzo Davoli

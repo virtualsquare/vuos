@@ -1,0 +1,45 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUUMOUNT" "1" "June 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvuumount\fR \- unmount a filesystem or a resource
+.SH "SYNOPSIS"
+\fBvuumount\fR [\fIoptions\fR \|\.\|\.\|\.] \fIsource\fR \fIdestination\fR
+.SH "DESCRIPTION"
+\fBvuumount\fR is just a command interface to \fBumount\fR(2)\. It has been designed for VUOS but can be used to run the \fBumount\fR system call directly, without all the other management actions provided by \fBumount\fR(8)\. \fBvuumount\fR is not setuid root (viceversa \fBumount\fR is setuid root)\.
+.SH "OPTIONS"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a short help message and exit\.
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+force unmount (e\.g\. in case of an unreachable NFS system)
+.TP
+\fB\-d\fR, \fB\-\-detach\-loop\fR
+if mounted loop device, also free this loop device
+.SH "SEE ALSO"
+umvu(1), vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vumount(1), udebug(1)
+.SH "AUTHOR"
+VirtualSquare\. Project leader: Renzo Davoli

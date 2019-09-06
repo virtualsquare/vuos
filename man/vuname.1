@@ -1,0 +1,87 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUNAME" "1" "June 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvuname\fR \- print system/view information \- set view name\.
+.SH "SYNOPSIS"
+\fBvuname\fR [\fIoptions\fR \|\.\|\.\|\.]
+.P
+or
+.P
+\fBvuname\fR \fInewname\fR
+.SH "DESCRIPTION"
+Print certain system/view information\. With no options, and no arguments, same as \-s\. With no options and exactly one argument: set the VUOS view name\.
+.P
+This tool extends \fBuname\fR(1)\. It should provide the same output of \fBuname\fR except when it runs as a VUOS process (or if \fB\-\-x\fR/\fB\-\-nouname\fR disables this feature)\. In VUOS the system information is extended with view information\.
+.SH "OPTIONS"
+.TP
+\fB\-a\fR, \fB\-\-all\fR
+print all information, in the following order, except omit \fB\-p\fR and \fB\-i\fR if unknown\.
+.TP
+\fB\-s\fR, \fB\-\-kernel\-name\fR
+print the kernel name
+.TP
+\fB\-n\fR, \fB\-\-nodename\fR
+print the network node hostname
+.TP
+\fB\-r\fR, \fB\-\-kernel\-release\fR
+print the kernel release
+.TP
+\fB\-v\fR, \fB\-\-kernel\-version\fR
+print the kernel version
+.TP
+\fB\-m\fR, \fB\-\-machine\fR
+print the machine hardware name
+.TP
+\fB\-p\fR, \fB\-\-processor\fR
+print the processor type or "unknown"
+.TP
+\fB\-i\fR, \fB\-\-hardware\-platform\fR
+print the hardware platform or "unknown"
+.TP
+\fB\-o\fR, \fB\-\-operating\-system\fR
+print the operating system
+.TP
+\fB\-U\fR, \fB\-\-serverid\fR
+print the VUOS server id (it is the process id of the hypervisor)
+.TP
+\fB\-V\fR, \fB\-\-viewname\fR
+print the view name
+.TP
+\fB\-P\fR, \fB\-\-prompt\fR
+return a suitable (shell) command prompt: the nodename (\fB\-n\fR) if \fBvuname\fR runs outside VUOS else the view name (\fB\-V\fR) if it has been defined otherwise the nodename followedby the server id enclosed in square brackets (something like \fIhost[42]\fR)\.
+.TP
+\fB\-x\fR, \fB\-\-nouname\fR
+do not use uname (without this flag the command behaves like uname when it runs on a non VUOS enabled environment)\.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+quiet mode: error messages suppressed
+.TP
+\fB\-\-help\fR
+display a help message and exit
+.TP
+\fB\-\-version\fR
+output version information and exit
+

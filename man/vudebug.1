@@ -1,0 +1,118 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUDEBUG" "1" "September 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvudebug\fR \- debug utility for umvu
+.SH "SYNOPSIS"
+\fBvudebug\fR \-\-help
+.P
+\fBvudebug\fR [\fIdebarg\fR [\fIdebarg\fR \|\.\|\.\|\.]] [ \-\- \fIcommand\fR [\fIargs\fR]]
+.P
+where \fIdebarg\fR has the following syntax:
+.P
+\fB+\fR[\fItag\fR[\fItag\fR \|\.\|\.\|\.]][\fB:\fR\fIcolorspec\fR]
+.P
+or
+.P
+\fB\-\fR[\fItag\fR[\fItag\fR \|\.\|\.\|\.]]
+.P
+or
+.P
+\fB?\fR[\fItag\fR[\fItag\fR \|\.\|\.\|\.]]
+.P
+and \fIcolorspec\fR is a combination of the following characters: \fBnwrgbcmyNWRGBCMY+\-_*#\fR
+.SH "DESCRIPTION"
+vudebug enables or disables debug log messages\. Log messages are classified into categories\. Each category is identified by a \fItag\fR (one alphanumeric character)\. By convention lowercase letters are for logging messages of the hypervisor, while capital letters are for modules\.
+.P
+When \fBvudebug\fR command line ends with \fB\-\-\fR followed by a command and its command line arguments, logging is enabled for the execution of that command (and for all the subprocesses it eventually creates)\. Otherwise \fBvudebug\fR changes the categories to log globally, for all the processes\.
+.SH "OPTIONS"
+.TP
+\fB\-\-help\fR
+Print a short help message and exit\.
+.TP
+\fIdebarg\fR
+each debug argument begins by \fB+\fR, \fB\-\fR or \fB?\fR followed by zero, one or more debug tags\. (\fB+\fR enables log messages, \fB\-\fR disables log messages, \fB?\fR check if the log messages are enabled)\. When the debug argument has no tags, it is applied to all the tags\. Log messages of different categories can be shown in different colors and font effects\. When \fBvudebug\fR is used to enable/re\-enable tags (\fB+\fR) each \fIdebarg\fR can be followed by a semicolon (\fB:\fR) and a color specification\. A color specification is a string composed by the following characters:
+.IP
+\fBn w r g b c m y\fR: set foreground color (black, white, red, green, blue, cyan, magenta or yellow)
+.IP
+\fBN W R G B C M Y\fR: set background color (black, white, red, green, blue, cyan, magenta or yellow)
+.IP
+\fB+ \- _ * #\fR: font effect (bright, dim,underlined, blinking, reverse video)\.
+.SH "EXAMPLES"
+Get a list of available logging categories:
+.IP "" 4
+.nf
+$ vudebug ?
+D \-   VUDEV
+F \-   VUFUSE
+N \-   VUNET
+a \-   ACTION
+c \-   CHOICE
+f \-   FILETABLE
+m \-   MODULE
+n \-   NESTED
+p \-   PATH
+s \-   SYSCALL
+v \-   VNODE
+.fi
+.IP "" 0
+.P
+the list may vary depending on the version of the hypervisor and the modules currently loaded\.
+.P
+Enable path resolution logging:
+.IP "" 4
+.nf
+$ vudebug +p
+.fi
+.IP "" 0
+.P
+List some categories to see which ones are active:
+.IP "" 4
+.nf
+$ vudebug ?ps
+p +   PATH
+s \-   SYSCALL
+.fi
+.IP "" 0
+.P
+PATH is active, SYSCALL is not active\.
+.P
+Disable all the categories:
+.IP "" 4
+.nf
+$ vudebug \-
+.fi
+.IP "" 0
+.P
+Launch a bash and log syscall requests in red, path resolution in bold\-blue, module choice in reverse green:
+.IP "" 4
+.nf
+$ vudebug +s:r +p:b+ +c:g# \-\- bash
+.fi
+.IP "" 0
+.SH "SEE ALSO"
+umvu(1)
+.SH "AUTHOR"
+VirtualSquare\. Project leader: Renzo Davoli

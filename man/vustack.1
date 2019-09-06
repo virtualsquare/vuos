@@ -1,0 +1,88 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUSTACK" "1" "September 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvustack\fR \- set the default networking stack
+.SH "SYNOPSIS"
+\fBvustack\fR [\fIoptions\fR \|\.\|\.\|\.] \fIstack\fR \fIcommand\fR [\fIargs\fR]
+.SH "DESCRIPTION"
+\fBvunet\fR is the VUOS module for networking virtualization\. Networking stacks can be loaded using \fBvumount\fR(1) and are indentified by a pathname: the mount point\. \fBvustack\fR selects the stack to use among those available; \fIcommand\fR runs using the stack selected \fBvustack\fR\.
+.SH "OPTIONS"
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a short help message and exit\. If combined with \fB\-v\fR print also the list of protocol family names\.
+.TP
+\fB\-s\fR, \fB\-\-supported\fR
+select the stack only for the protocol families supported by \fIstack\fR\.
+.TP
+\fB\-f\fR \fIlist\fR, \fB\-\-family\fR \fIlist\fR, \fB\-\-families\fR \fIlist\fR
+select the stack for the protocol families in \fIlist\fR\. \fIlist\fR is a comma separated list of protocol names or numbers\.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+print the list of protocol families object of the stack selection\.
+.SH "EXAMPLES"
+Load \fBvunet\fR and mount a stack:
+.IP "" 4
+.nf
+$ vu_insmod vunet
+$ vumount \-t vunetvdestack vde:// /dev/net/vde
+.fi
+.IP "" 0
+.P
+Run \fIip link\fR using the stack mounted in /dev/net/vde:
+.IP "" 4
+.nf
+$ vustack /dev/net/vde ip link
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: vde0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ether 5a:1e:97:fa:ab:a3 brd ff:ff:ff:ff:ff:ff
+.fi
+.IP "" 0
+.P
+Run \fIip link set vde0 up\fR selecting /dev/net/vde only for the families supported by vunetvdestack:
+.IP "" 4
+.nf
+$ vustack \-s \-v /dev/net/vde ip link set vde0 up
+Using /dev/net/vde for the following address families:
+    inet(2) inet6(10) netlink(16) packet(17)
+.fi
+.IP "" 0
+.P
+mount a null stack and use it to disable netlink:
+.IP "" 4
+.nf
+$ vumount \-t vunetnull vde:// /dev/net/null
+$ exec vustack \-f netlink \-v /dev/net/null bash
+Using /dev/net/null for the following address families:
+    netlink(16)
+$ ip addr
+Cannot open netlink socket: Address family not supported by protocol
+.fi
+.IP "" 0
+.SH "SEE ALSO"
+umvu(1), vumount(1)
+.SH "AUTHOR"
+VirtualSquare\. Project leader: Renzo Davoli

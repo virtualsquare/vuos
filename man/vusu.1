@@ -1,0 +1,71 @@
+.\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" as published by the Free Software Foundation, either version 2
+.\" of the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+.\"
+.\" generated with Ronn-NG/v0.8.0
+.\" http://github.com/apjanke/ronn-ng/tree/0.8.0
+.TH "VUSU" "1" "August 2019" "VirtualSquare-VUOS" "test"
+.SH "NAME"
+\fBvusu\fR \- set the default networking stack
+.SH "SYNOPSIS"
+\fBvusu\fR [\fIoptions\fR] [\-] [\fIuser\fR [<argment\|\.\|\.\|\.]]
+.SH "DESCRIPTION"
+\fBvusu\fR allows to run commands with a substitute user and group ID (in VUOS)\. It requires a module loaded in VUOS able to redefine uid/gid, e\.g\. \fBunrealuidgid\fR\.
+.P
+When called without arguments, \fBvusu\fR defaults to running an interactive shell as (virtual) \fIroot\fR\.
+.P
+For compatibility with \fBsu\fR(1), \fBvusu\fR defaults to not change the current directory and to only set the environment variables \fBHOME\fR and \fBSHELL\fR (plus \fBUSER\fR and \fBLOGNAME\fR if the target user is not root)\. It is recommended to always use the \fB\-\-login\fR option (instead of its shortcut \-) to avoid side effects caused by mixing environments\.
+.SH "OPTIONS"
+.TP
+\fB\-c\fR \fIcommand\fR, \fB\-\-command\fR \fIcommand\fR
+Pass command to the shell with the \fB\-c\fR option\.
+.TP
+\fB\-\fR, \fB\-l\fR, \fB\-\-login\fR
+Start the shell as a login shell with an environment similar to a real login:
+.IP
+o clears all the environment variables except \fBTERM\fR
+.IP
+o initializes the environment variables \fBHOME\fR, \fBSHELL\fR, \fBUSER\fR, \fBLOGNAME\fR, and \fBPATH\fR
+.IP
+o changes to the target user\'s home directory
+.IP
+o sets argv[0] of the shell to \'\-\' in order to make the shell a login shell
+.TP
+\fB\-m\fR, \fB\-p\fR, \fB\-\-preserve\-environment\fR
+Preserve the entire environment, i\.e\. it does not set \fBHOME\fR, \fBSHELL\fR, \fBUSER\fR nor \fBLOGNAME\fR\. This option is ignored if the option \fB\-\-login\fR is specified\.
+.TP
+\fB\-s\fR \fIshell\fR, \fB\-\-shell\fR \fIshell\fR
+Run the specified shell instead of the default\. The shell to run is selected according to the following rules, in order:
+.IP
+o the shell specified with \fB\-\-shell\fR
+.IP
+o the shell specified in the environment variable \fBSHELL\fR, if the \fB\-\-preserve\-environment\fR option is used
+.IP
+o the shell listed in the passwd entry of the target user
+.IP
+o /bin/sh
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display a short help message and exit\.
+.SH "SEE ALSO"
+umvu(1), su(1)
+.SH "AUTHOR"
+VirtualSquare\. Project leader: Renzo Davoli\. (most of this man page is a derivative work from \fBsu\fR(1) man page)
