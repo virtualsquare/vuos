@@ -15,7 +15,7 @@ foreach(VU_RONN_PATH IN LISTS VU_RONN_PAGES)
 	list(APPEND VU_MAN_FILES ${VU_MANPAGE})
 endforeach(VU_RONN_PATH)
 
-add_custom_target(update_manpages ALL make RONN_ARGS="${RONN_ARGS}"  ${VU_MAN_FILES}
+add_custom_target(${PROJECT_NAME}_manpages ALL make RONN_ARGS="${RONN_ARGS}"  ${VU_MAN_FILES}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ### man pages
