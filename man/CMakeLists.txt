@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 set(RONN_ORGANIZATION "VirtualSquare-VUOS")
-set(RONN_ARGS --organization=${RONN_ORGANIZATION} --manual="test")
+set(RONN_ARGS --organization=${RONN_ORGANIZATION})
 
 # ### ronn pages
 
