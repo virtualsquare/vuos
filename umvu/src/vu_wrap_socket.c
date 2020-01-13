@@ -434,6 +434,7 @@ void _wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (addrlen > MAX_SOCKADDR_LEN)
 		addrlen = MAX_SOCKADDR_LEN;
 	vu_alloc_peek_local_arg(dest_addraddr, dest_addr, addrlen, nested);
+	if (dest_addraddr == 0) dest_addr = NULL;
 	sd->action = SKIPIT;
 	ret_value = service_syscall(ht, __VU_sendto)(sfd, buf, bufsize, flags, dest_addr, addrlen, NULL, 0, private);
 	if (ret_value < 0)
@@ -467,6 +468,7 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		msg->msg_namelen = MAX_SOCKADDR_LEN;
 	dest_addraddr = (uintptr_t) msg->msg_name;
 	vu_alloc_peek_local_arg(dest_addraddr, dest_addr, msg->msg_namelen, nested);
+	if (dest_addraddr == 0) dest_addr = NULL;
 	iovaddr = (uintptr_t) msg->msg_iov;
 	vu_alloc_peek_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, bufsize, nested);
 	controladdr = (uintptr_t) msg->msg_control;
@@ -560,6 +562,7 @@ void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (*addrlen > MAX_SOCKADDR_LEN)
 		*addrlen = MAX_SOCKADDR_LEN;
 	vu_alloc_local_arg(src_addraddr, src_addr, *addrlen, nested);
+	if (src_addraddr == 0) src_addr = NULL;
 	sd->action = SKIPIT;
 	ret_value = service_syscall(ht, __VU_recvfrom)(sfd, buf, bufsize, flags, src_addr, addrlen, NULL, 0, private);
 	if (ret_value < 0)
@@ -597,6 +600,7 @@ void _wo_recvmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		msg->msg_namelen = MAX_SOCKADDR_LEN;
 	src_addraddr = (uintptr_t) msg->msg_name;
 	vu_alloc_local_arg(src_addraddr, src_addr, msg->msg_namelen, nested);
+	if (src_addraddr == 0) src_addr = NULL;
 	iovaddr = (uintptr_t) msg->msg_iov;
 	vu_alloc_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, bufsize, nested);
 	controladdr = (uintptr_t) msg->msg_control;
