@@ -484,9 +484,57 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	vu_free_arg(control, nested);
 }
 
+#define EXP_SEMDMMSG
 void _wo_sendmmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+#ifdef EXP_SEMDMMSG
+	/* standard args */
+  int nested = sd->extra->nested;
+  /* args */
+  int fd = sd->syscall_args[0];
+	uintptr_t msgvecaddr = sd->syscall_args[1];
+	int len = sd->syscall_args[2] & 1023;
+	int flags = sd->syscall_args[3];
+	struct mmsghdr *msgvec;
+	void *private = NULL;
+	int sfd = vu_fd_get_sfd(fd, &private, nested);
+	int mret_value;
+	ssize_t ret_value = -EINVAL;
+	vu_alloc_peek_local_arg(msgvecaddr, msgvec, sizeof(struct mmsghdr) * len, nested);
+	sd->action = SKIPIT;
+	for (mret_value = 0; mret_value < len; mret_value++) {
+		struct msghdr *msg = &msgvec[mret_value].msg_hdr;
+		uintptr_t dest_addraddr;
+		void *dest_addr = NULL;
+		uintptr_t iovaddr;
+		struct iovec *iov;
+		uintptr_t controladdr;
+		void *control = NULL;
+		void *buf;
+		size_t bufsize;
+		dest_addraddr = (uintptr_t) msg->msg_name;
+		vu_alloc_peek_local_arg(dest_addraddr, dest_addr, msg->msg_namelen, nested);
+		if (dest_addraddr == 0) dest_addr = NULL;
+		iovaddr = (uintptr_t) msg->msg_iov;
+		vu_alloc_peek_iov_arg(iovaddr, iov, msg->msg_iovlen, buf, bufsize, nested);
+		controladdr = (uintptr_t) msg->msg_control;
+		vu_alloc_peek_arg(controladdr, control, msg->msg_controllen, nested);
+		ret_value = service_syscall(ht, __VU_sendto)(sfd, buf, bufsize, flags,
+				dest_addr, msg->msg_namelen, control, msg->msg_controllen, private);
+		if (ret_value >= 0)
+			msgvec[mret_value].msg_len = ret_value;
+		if (ret_value <= 0)
+			break;
+	}
+	if (mret_value == 0 && ret_value < 0)
+		sd->ret_value = -errno;
+	else {
+		vu_poke_arg(msgvecaddr, msgvec, sizeof(struct mmsghdr) * len, nested);
+		sd->ret_value = mret_value;
+	}
+#else
 	sd->ret_value = -ENOSYS;
 	sd->action = SKIPIT;
+#endif
 }
 
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {

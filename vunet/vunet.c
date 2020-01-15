@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <errno.h>
+#include <linux/if.h>
 #include <dlfcn.h>
 #include <vumodule.h>
 #include <vunet.h>
@@ -340,19 +341,33 @@ int vu_vunet_setsockopt(int sockfd, int level, int optname,
 }
 
 int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr, void *fdprivate) {
+	struct vunet_operations *netops;
 	current_vnetfd = fdprivate;
 	printkdebug(N, "ioctl %p %d 0x%x %p %d", current_vnetfd, sockfd, request, buf, addr);
 	if (current_vnetfd == NULL) {
 		struct vunet *vunet = vu_get_ht_private_data();
-		if (vunet->netops->ioctl == NULL)
-			return errno = ENOSYS, -1;
-		else
-			return vunet->netops->ioctl(sockfd, request, buf);
-	} else {
-		if (current_vnetfd->vunet->netops->ioctl == NULL)
-			return errno = ENOSYS, -1;
-		else
-			return current_vnetfd->vunet->netops->ioctl(sockfd, request, buf);
+		netops = vunet->netops;
+	} else
+		netops = current_vnetfd->vunet->netops;
+	if (netops->ioctl == NULL)
+		return errno = ENOSYS, -1;
+	else {
+		if (request == SIOCGIFCONF && buf != NULL) {
+			struct ifconf *ifc = buf;
+			char *userbuf = ifc->ifc_buf;
+			int ret_value;
+			if (userbuf != NULL)
+				ifc->ifc_buf = malloc(ifc->ifc_len);
+			ret_value = netops->ioctl(sockfd, request, buf);
+			if (ifc->ifc_buf != NULL) {
+				if (ret_value >= 0)
+					vu_mod_poke_data(userbuf, ifc->ifc_buf, ifc->ifc_len);
+				free(ifc->ifc_buf);
+			}
+			ifc->ifc_buf = userbuf;
+			return ret_value;
+		} else
+			return netops->ioctl(sockfd, request, buf);
 	}
 }
 
