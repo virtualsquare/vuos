@@ -203,7 +203,7 @@ static int vdestack_ioctl (int fd, unsigned long request, void *addr) {
 			} else
 				return retval;
 		} else {
-			int tmpfd = vdestack_socket(AF_NETLINK, SOCK_RAW|SOCK_CLOEXEC, 0);
+			int tmpfd = vdestack_socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC, 0);
 			int retval;
 			if (tmpfd < 0)
 				return -1;
