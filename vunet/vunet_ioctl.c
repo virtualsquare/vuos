@@ -21,6 +21,7 @@
 #include<sys/ioctl.h>
 #include<asm/ioctl.h>
 #include <linux/if.h>
+#include <linux/sockios.h>
 
 long vunet_ioctl_parms(unsigned long request) {
 	switch (request) {
