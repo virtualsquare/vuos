@@ -660,3 +660,8 @@ void wi_statfs(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
     sd->ret_value = ret_value;
   }
 }
+
+void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+  sd->action = SKIPIT;
+  sd->ret_value = -ENOSYS;
+}
