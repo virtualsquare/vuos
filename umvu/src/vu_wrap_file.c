@@ -558,6 +558,18 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					}
 				}
 				return;
+			case F_GETLK:
+			case F_SETLK:
+			case F_SETLKW:
+			case F_OFD_GETLK:
+			case F_OFD_SETLK:
+			case F_OFD_SETLKW:
+				/* 
+				 * perform the SC on the VUFS virtualized file
+				 * using the real SC
+				 * */
+				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
+				return;
 		}
 	} else {
 		switch (cmd) { /* common mgmt real fd*/
@@ -566,6 +578,19 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return; /* DOIT */
 			case F_SETFD:
 			case F_SETFL:
+				sd->action = DOIT_CB_AFTER;
+				return;
+			case F_GETLK:
+			case F_SETLK:
+			case F_SETLKW:
+			case F_OFD_GETLK:
+			case F_OFD_SETLK:
+			case F_OFD_SETLKW:
+				/*
+				 * File locking commands
+				 * if the file is not virtualized, execute the real SC
+				 * then check for the return value in the wrapoutf function
+				 * */
 				sd->action = DOIT_CB_AFTER;
 				return;
 		}
@@ -632,8 +657,50 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					vu_fd_set_flflags(fd, nested, flags);
 			}
 			break;
+		case F_GETLK:
+		case F_SETLK:
+		case F_SETLKW:
+		case F_OFD_GETLK:
+		case F_OFD_SETLK:
+		case F_OFD_SETLKW:
+			printkdebug(F, "wo_fcntl for file locking: %d", cmd);
+			printkdebug(F, "fcntl orig_ret_value: %d", ret_value);
+			if (ret_value < 0) {
+				// check errno to know the type of the error
+				// |_ how to get errno value??
+				printkdebug(F, "real fcntl call failed");
+			}
+			return;
 	}
 	sd->ret_value = ret_value;
+}
+
+void wi_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int fd = sd->syscall_args[0];
+	int op = sd->syscall_args[1];
+	printkdebug(F, "wi_flock on fd %d: %d", fd, op);
+	if (ht) {
+		// handle lock on virtualized file
+	} else {
+		// non-virtualized file, try to execute the real SC and check
+		// the result in the wrapout function
+		sd->action = DOIT_CB_AFTER;
+	}
+}
+
+void wo_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	// do not check for the ht variable: assume this function
+	// runs only if the file isn't virtualized
+	int fd = sd->syscall_args[0];
+	int op = sd->syscall_args[1];
+	int ret_value = sd->orig_ret_value;
+	printkdebug(F, "wo_flock on fd %d: %d", fd, op);
+	printkdebug(F, "flock orig_ret_value: %d", ret_value);
+
+	if (ret_value < 0) {
+		// check errno as in wo_fcntl
+		printkdebug(F, "real flock call failed");
+	}
 }
 
 /* umask */
