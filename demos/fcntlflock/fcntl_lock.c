@@ -122,7 +122,7 @@ void apply_lock(int index) {
 			cmd = F_SETLK;
 			break;
 		case 3:
-			opened_locks[index] = opened_locks[2];
+			opened_locks[index] = opened_locks[0];
 			
 			// avoid double-freeing this pointer if the fcntl call fails
 			opened_locks[index].lock_params = NULL;	
@@ -182,9 +182,13 @@ void flush_stdin() {
 int main(int argc, char **argv) {
 	init();
 
-	open_file("read.lock", O_RDONLY);
-	open_file("write.lock", O_WRONLY);
-	open_file("partial_read.lock", O_RDWR);
+	char *FILE1 = "read.lock";
+	char *FILE2 = "write.lock";
+	char *FILE3 = "partial_read.lock";
+
+	open_file(FILE1, O_RDONLY);
+	open_file(FILE2, O_WRONLY);
+	open_file(FILE3, O_RDWR);
 
 	// write something into the file that will be partially locked
 	populate_file(opened_locks[2].fd);
@@ -208,7 +212,7 @@ int main(int argc, char **argv) {
 	fgets(NULL, 0, stdin);
 	flush_stdin();
 	// get another fd for the same file
-	int index = open_file("partial_read.lock", O_RDWR);
+	int index = open_file(FILE2, O_RDWR);
 	// closig this fd will cause the release of all the opened locks
 	// even if it wasn't used to acquire any lock
 	close(opened_locks[index].fd);

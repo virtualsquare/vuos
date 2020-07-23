@@ -411,6 +411,12 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					P_CONT(sig_tid, 0L);
 				} else
 					P_CONT(sig_tid, 0L);
+				/*
+				 * PTRACE_O_SYSGOOD option was set by the tracer, so when
+				 * the syscall-exit-stop event occurs, WSTOPSIG(wstatus) will
+				 * be equal to (SIGTRAP | 0x80) to be able to tell it apart
+				 * from the syscall-enter-stop event o normal traps
+				 * */
 			} else if (WSTOPSIG(wstatus) == (SIGTRAP | 0x80)) {
 				if (syscall_desc.waiting_pid != 0)
 					r_kill(syscall_desc.waiting_pid, SIGKILL);
@@ -423,6 +429,9 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS);
 					P_SETREGS(sig_tid, &regs);
 				} else {
+					/* If the SC's return value has been modified by the wrap
+					 * function, update the corresponding register
+					 * */
 					if (umvu_poke_syscall(&regs, &syscall_desc, POKE_RETVALUE))
 						P_SETREGS(sig_tid, &regs);
 					syscall_desc.inout = NULL;

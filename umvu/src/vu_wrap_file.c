@@ -665,12 +665,13 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		case F_OFD_SETLKW:
 			printkdebug(F, "wo_fcntl for file locking: %d", cmd);
 			printkdebug(F, "fcntl orig_ret_value: %d", ret_value);
+			printkdebug(F, "orig_rax value: %d", sd->syscall_number);
 			if (ret_value < 0) {
 				// check errno to know the type of the error
 				// |_ how to get errno value??
 				printkdebug(F, "real fcntl call failed");
 			}
-			return;
+			break;
 	}
 	sd->ret_value = ret_value;
 }
@@ -701,6 +702,8 @@ void wo_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		// check errno as in wo_fcntl
 		printkdebug(F, "real flock call failed");
 	}
+
+	sd->ret_value = ret_value;
 }
 
 /* umask */

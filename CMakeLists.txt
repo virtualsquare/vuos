@@ -4,7 +4,7 @@ project("vuos")
 include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS
-		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
+	"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
 add_definitions(-D_GNU_SOURCE)
 
 execute_process(COMMAND echo ${add_definitions} RESULT_VARIABLE rv)

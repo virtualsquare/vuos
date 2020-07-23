@@ -30,14 +30,15 @@ int get_first_free_lockinfo_index() {
 void open_file(char* path, int mode) {
 	int res = open(path, O_CREAT | mode, S_IRUSR | S_IWUSR);
 
-	if (res < 0) {
-		printf("Error while opening %s\n", path);
-		return;
-	}
-
 	int i = get_first_free_lockinfo_index();
 	if (i == -1) {
 		printf("No space left\n");
+		return;
+	}
+
+	if (res < 0) {
+		opened_locks[i].fd = -1;
+		printf("Error while opening %s\n", path);
 		return;
 	}
 
@@ -116,6 +117,7 @@ void apply_lock(int index) {
 		printf("\n\t-------------------------------\n");
 		printf("\t Cannot apply lock on index %d\n\t (fd %d, error: %d)\n",
 				index, fd, errnocpy);
+		printf("\t flock return value: %d\n", res);
 		printf("\t-------------------------------\n\n");
 		return;
 	}
