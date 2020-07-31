@@ -231,9 +231,7 @@ char *vsyscalls[] = { [0] = "vufs_copyfile" };
 
 struct vu_module_t vu_module = {
 	.name = "vufs",
-	.description = "vu filesystem patchworking",
-	.mod_nr_vsyscalls = 1,
-	.vsyscalls = vsyscalls
+	.description = "vu filesystem patchworking"
 };
 
 __attribute__((constructor))

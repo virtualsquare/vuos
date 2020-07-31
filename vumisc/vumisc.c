@@ -68,9 +68,7 @@ VU_PROTOTYPES(vumisc)
 
 	struct vu_module_t vu_module = {
 		.name = "vumisc",
-		.description = "system call virtualization using info file system",
-		.mod_nr_vsyscalls = 0,
-		.vsyscalls = NULL
+		.description = "system call virtualization using info file system"
 	};
 
 struct vumisc_t {

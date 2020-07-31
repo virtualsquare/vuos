@@ -148,28 +148,6 @@ struct vu_service_t *module_load(const char *modname)
 			}
 		}
 
-		/*
-		 * note that even if the module doesn't export any new sc, one is added
-		 * anyway at the end of the array
-		 * */
-		if (module->mod_nr_vsyscalls == 0) {
-			service->module_syscall[i] = sys_enosys;
-			return service;
-		}
-
-		// load new syscalls added by the module
-		for (; i < VU_NR_MODULE_SYSCALLS + VSYSCALL_NR; i++) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-			service->module_syscall[i] = dlsym(handle, module->vsyscalls[i - VU_NR_MODULE_SYSCALLS]);
-#pragma GCC diagnostic pop
-			if (service->module_syscall[i] == NULL) {
-				service->module_syscall[i] = sys_enosys;
-			} else {
-				printkdebug(m, "%s %s module vsyscall added", module->name, module->vsyscalls[i - VU_NR_MODULE_SYSCALLS]);
-			}
-		}
-
 		return service;
 	} else {
 		errno = EINVAL;

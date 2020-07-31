@@ -37,9 +37,7 @@ VU_PROTOTYPES(vudev)
 
 	struct vu_module_t vu_module = {
 		.name = "vudev",
-		.description = "vu virtual devices",
-		.mod_nr_vsyscalls = 0,
-		.vsyscalls = NULL
+		.description = "vu virtual devices"
 	};
 
 #define VUDEVFLAGS_DEVID 1
