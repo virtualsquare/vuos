@@ -121,8 +121,9 @@ struct vu_service_t *module_load(const char *modname)
 #pragma GCC diagnostic ignored "-Wpedantic"
 	if ((module = dlsym(handle, "vu_module"))) {
 #pragma GCC diagnostic pop
+		int VSYSCALL_NR = module->mod_nr_vsyscalls > 0 ? module->mod_nr_vsyscalls : 1;
 		struct vu_service_t *service = malloc(sizeof(struct vu_service_t) +
-				VU_NR_SYSCALLS * sizeof(syscall_t));
+				(VU_NR_SYSCALLS + VSYSCALL_NR) * sizeof(syscall_t));
 		int prefixlen = strlen(module->name) + 4;
 		int fnamelen = prefixlen + VU_SYSCALL_MAX_NAMELEN + 1;
 		char fname[fnamelen];
@@ -146,6 +147,29 @@ struct vu_service_t *module_load(const char *modname)
 				printkdebug(m, "%s syscall %s -> %s", module->name, vu_syscall_names[i], fname);
 			}
 		}
+
+		/*
+		 * note that even if the module doesn't export any new sc, one is added
+		 * anyway at the end of the array
+		 * */
+		if (module->mod_nr_vsyscalls == 0) {
+			service->module_syscall[i] = sys_enosys;
+			return service;
+		}
+
+		// load new syscalls added by the module
+		for (; i < VU_NR_MODULE_SYSCALLS + VSYSCALL_NR; i++) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+			service->module_syscall[i] = dlsym(handle, module->vsyscalls[i - VU_NR_MODULE_SYSCALLS]);
+#pragma GCC diagnostic pop
+			if (service->module_syscall[i] == NULL) {
+				service->module_syscall[i] = sys_enosys;
+			} else {
+				printkdebug(m, "%s %s module vsyscall added", module->name, module->vsyscalls[i - VU_NR_MODULE_SYSCALLS]);
+			}
+		}
+
 		return service;
 	} else {
 		errno = EINVAL;

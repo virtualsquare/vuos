@@ -41,7 +41,9 @@ VU_PROTOTYPES(unrealcap)
 
 	struct vu_module_t vu_module = {
 		.name = "unrealcap",
-		.description = "virtualize capabilities"
+		.description = "virtualize capabilities",
+		.mod_nr_vsyscalls = 0,
+		.vsyscalls = NULL
 	};
 
 struct vu_cap_t {

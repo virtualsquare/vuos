@@ -33,7 +33,9 @@ VU_PROTOTYPES(vubinfmt)
 
 	struct vu_module_t vu_module = {
 		.name = "vubinfmt",
-		.description = "vu binfmt_misc support"
+		.description = "vu binfmt_misc support",
+		.mod_nr_vsyscalls = 0,
+		.vsyscalls = NULL
 	};
 
 struct vubinfmt_entry_t {

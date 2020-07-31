@@ -35,7 +35,9 @@ VU_PROTOTYPES(unrealsock)
 
 	struct vu_module_t vu_module = {
 		.name = "unrealsock",
-		.description = "tcp-ip stack server side"
+		.description = "tcp-ip stack server side",
+		.mod_nr_vsyscalls = 0,
+		.vsyscalls = NULL
 	};
 
 static struct vuht_entry_t *ht[3];

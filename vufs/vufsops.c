@@ -35,6 +35,7 @@
 #include <vufs_path.h>
 #include <vufs_getdents.h>
 #include <vufsa.h>
+#include <stdarg.h>
 
 #define MAXSIZE ((1ULL<<((sizeof(size_t)*8)-1))-1)
 #define CHUNKSIZE 4096
@@ -94,7 +95,7 @@ static void vufs_copyfile_create_path_cb(void *arg, int dirfd, const char *path)
 	}
 }
 
-static int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
+int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
 	int fdin = openat(vufs->rdirfd, path, O_RDONLY, 0);
 	if (fdin >= 0) {
 		struct vu_stat instat;
@@ -732,3 +733,61 @@ int vu_vufs_close(int fd, void *fdprivate) {
 	pthread_mutex_unlock(&(vufs->mutex));
 	return retval;
 }
+
+// RECORD LOCKING SYSCALLS
+/*
+int vu_vufs_fcntl(int fd, int cmd, ...) {
+	va_list ap;
+	va_start(ap, cmd);
+
+	switch (cmd) {
+		case F_SETLK:
+		case F_SETLKW:
+		case F_GETLK:
+		case F_OFD_SETLK:
+		case F_OFD_SETLKW:
+		case F_OFD_GETLK:
+			struct vufs_t *vufs = vu_get_ht_private_data();
+			struct vuht_entry *ht = vu_mod_getht();
+			char dest_path[MAXSIZE];
+			struct flock *lockinfo;
+*/
+			/* 
+			 * get the original path from the fd table
+			 * then make a copy in the virtual hierarchy
+			 * */
+/*			vu_fd_get_path(fd, 0, dest_path, PATH_MAX);
+			int retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
+
+			if (retval < 0) {
+				printkdebug(V, "Could not copy file %s", dest_path);
+				errno = EBADF;
+				retval = -1;
+			} else {
+				int flags = vu_fd_get_fdflags(fd, 0);
+				// could open with RDWR instead of retrieving the open flags ?
+				int vfd = openat(vufs->vdirfd, dest_path, flags);
+
+				if (vfd < 0) {
+					printkdebug(V, "Could not open virtual copy of %s", dest_path);
+					errno = EBADF;
+					retval = -1;
+				} else {
+					lockinfo = (struct flock*) va_arg(ap, struct flock*);
+					retval = r_fcntl(vfd, cmd, lockinfo);
+					printkdebug(V, "fcntl returned %d", retval);
+				}
+			}
+			break;
+		default:
+			// manage other fcntl cases
+			break;
+	}
+
+	va_end(ap);
+	return retval;
+}
+
+int vu_vufs_flock(int fd, int operation) {
+}
+*/

@@ -48,15 +48,15 @@ static int vufs_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t
 }
 
 static int set_mount_options(const char *input, struct vufs_t *vufs) {
-  int tagc = stropt(input, NULL, NULL, 0);
+	int tagc = stropt(input, NULL, NULL, 0);
 	int retval = 0;
-  if(tagc > 1) {
-    char buf[strlen(input)+1];
-    char *tags[tagc];
-    char *args[tagc];
+	if(tagc > 1) {
+		char buf[strlen(input)+1];
+		char *tags[tagc];
+		char *args[tagc];
 		int excl_choice = 0;
-    stropt(input, tags, args, buf);
-    for (int i=0; tags[i] != NULL; i++) {
+		stropt(input, tags, args, buf);
+		for (int i=0; tags[i] != NULL; i++) {
 			uint64_t strcasetag = strcase(tags[i]);
 			if (vufs == NULL) {
 				switch(strcasetag) {
@@ -77,8 +77,8 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 						}
 						if (++excl_choice > 1) {
 							printk(KERN_ERR "vufs: move, merge, cow and mincow are mutually exclusive\n", tags[i]);
-              return -1;
-            }
+							return -1;
+						}
 						break;
 					default:
 						printk(KERN_ERR "vufs: %s unknown tag\n", tags[i]);
@@ -161,11 +161,11 @@ int vu_vufs_mount(const char *source, const char *target,
 	pthread_mutex_init(&(new_vufs->mutex), NULL);
 	pthread_mutex_lock(&(new_vufs->mutex));
 
-  vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, vufs_confirm, new_vufs);
+	vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, vufs_confirm, new_vufs);
 
 	pthread_mutex_unlock(&(new_vufs->mutex));
-  errno = 0;
-  return 0;
+	errno = 0;
+	return 0;
 rdirerr:
 	close(new_vufs->vdirfd);
 vdirerr:
@@ -175,21 +175,21 @@ mallocerr:
 }
 
 int vu_vufs_umount2(const char *target, int flags) {
-  struct vuht_entry_t *ht = vu_mod_getht();
-  int ret_value;
-  if ((ret_value = vuht_del(ht, flags)) < 0) {
-    errno = -ret_value;
-    return -1;
-  }
-  return 0;
+	struct vuht_entry_t *ht = vu_mod_getht();
+	int ret_value;
+	if ((ret_value = vuht_del(ht, flags)) < 0) {
+		errno = -ret_value;
+		return -1;
+	}
+	return 0;
 }
 
 void vu_vufs_cleanup(uint8_t type, void *arg, int arglen,struct vuht_entry_t *ht) {
-  if (type == CHECKPATH) {
-    struct vufs_t *vufs = vuht_get_private_data(ht);
-    if (vufs == NULL) {
-      errno = EINVAL;
-    } else {
+	if (type == CHECKPATH) {
+		struct vufs_t *vufs = vuht_get_private_data(ht);
+		if (vufs == NULL) {
+			errno = EINVAL;
+		} else {
 			if (vufs->ddirfd >= 0)
 				close(vufs->ddirfd);
 			if (vufs->rdirfd >= 0)
@@ -200,38 +200,48 @@ void vu_vufs_cleanup(uint8_t type, void *arg, int arglen,struct vuht_entry_t *ht
 			free(vufs->target);
 			free(vufs);
 		}
-  }
+	}
 }
 
 void *vu_vufs_init(void) {
-  struct vu_service_t *s = vu_mod_getservice();
+	struct vu_service_t *s = vu_mod_getservice();
+	/* the following assignments set the actual glibc function
+	 * as the handler for every SC this module does not virtualize
+	 * this tells the hypervisor to use the original implementation
+	 * of the SC instead of the one provided by the module
+	 * */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-  vu_syscall_handler(s, read) = read;
-  vu_syscall_handler(s, write) = write;
-  vu_syscall_handler(s, lseek) = lseek;
+	vu_syscall_handler(s, read) = read;
+	vu_syscall_handler(s, write) = write;
+	vu_syscall_handler(s, lseek) = lseek;
 	vu_syscall_handler(s, pread64) = pread;
-  vu_syscall_handler(s, pwrite64) = pwrite;
-  vu_syscall_handler(s, fcntl) = fcntl;
+	vu_syscall_handler(s, pwrite64) = pwrite;
+	vu_syscall_handler(s, fcntl) = fcntl;
+
 #pragma GCC diagnostic pop
-  return NULL;
+	return NULL;
 }
 
 int vu_vufs_fini(void *private) {
-  return 0;
+	return 0;
 }
 
-  struct vu_module_t vu_module = {
-    .name = "vufs",
-    .description = "vu filesystem patchworking"
-  };
+char *vsyscalls[] = { [0] = "vufs_copyfile" };
+
+struct vu_module_t vu_module = {
+	.name = "vufs",
+	.description = "vu filesystem patchworking",
+	.mod_nr_vsyscalls = 1,
+	.vsyscalls = vsyscalls
+};
 
 __attribute__((constructor))
-  static void init(void) {
-    debug_set_name(V, "VUFS");
-  }
+	static void init(void) {
+		debug_set_name(V, "VUFS");
+	}
 
 __attribute__((destructor))
-  static void fini(void) {
-    debug_set_name(V, "");
-  }
+	static void fini(void) {
+		debug_set_name(V, "");
+	}

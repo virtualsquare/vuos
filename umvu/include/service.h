@@ -3,6 +3,7 @@
 
 #include <vumodule.h>
 #include <hashtable.h>
+#include <syscall_defs.h>
 
 /* each module define a service.
 	 services are registered in the hashtable (he key is the module name */
@@ -23,7 +24,7 @@ struct vu_service_t {
 	struct vuht_entry_t *service_ht;
 	// private data of the module (modules can use this pointer as they please.
 	void *private;
-	// table of vu_syscalls implementation.
+	// table of vu_syscalls implementation + visrtual syscalls added by the module
 	syscall_t module_syscall[];
 };
 
@@ -58,6 +59,18 @@ __attribute__((always_inline))
 	static inline syscall_t service_syscall(struct vuht_entry_t *ht, int vu_syscall_number) {
 		struct vu_service_t *service = vuht_get_service(ht);
 		return service->module_syscall[vu_syscall_number];
+	}
+
+__attribute__((always_inline))
+	static inline syscall_t service_vsyscall(struct vuht_entry_t *ht, int vu_syscall_number) {
+		struct vu_service_t *service = vuht_get_service(ht);
+		if (service->mod->vsyscalls != NULL && vu_syscall_number < service->mod->mod_nr_vsyscalls)
+			return service->module_syscall[VU_NR_MODULE_SYSCALLS + vu_syscall_number];
+		
+		/*
+		 * if the module doesn't declare any new sc,
+		 * the element at VU_NR_MODULE_SYSCALLS is always sys_enosys */
+		return service->module_syscall[VU_NR_MODULE_SYSCALLS];
 	}
 
 #endif

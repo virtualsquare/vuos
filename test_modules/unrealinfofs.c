@@ -61,7 +61,9 @@ VU_PROTOTYPES(unrealinfofs)
 
 	struct vu_module_t vu_module = {
 		.name = "unrealinfofs",
-		.description = "example of informational file system"
+		.description = "example of informational file system",
+		.mod_nr_vsyscalls = 0,
+		.vsyscalls = NULL
 	};
 
 struct info {

@@ -35,6 +35,8 @@ struct vuht_entry_t;
 struct vu_module_t {
   char *name;
   char *description;
+  int mod_nr_vsyscalls;
+  char **vsyscalls;
 };
 
 typedef unsigned long int syscall_arg_t;

@@ -182,16 +182,22 @@ void flush_stdin() {
 int main(int argc, char **argv) {
 	init();
 
+	/*
 	char *FILE1 = "read.lock";
 	char *FILE2 = "write.lock";
 	char *FILE3 = "partial_read.lock";
+	*/
+
+	char *FILE1 = "/etc/passwd";
+	char *FILE2 = "/etc/shadow";
+	char *FILE3 = "/etc/passwd";
 
 	open_file(FILE1, O_RDONLY);
 	open_file(FILE2, O_WRONLY);
 	open_file(FILE3, O_RDWR);
 
 	// write something into the file that will be partially locked
-	populate_file(opened_locks[2].fd);
+	//populate_file(opened_locks[2].fd);
 
 	fgets(NULL, 0, stdin);
 	flush_stdin();	// flush the stream to delete all unmatched characters
