@@ -569,48 +569,18 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				 * using the real SC
 				 * */
 				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
+				printkdebug(F, "the path of the file is %s", sd->extra->path);
+
 				/*
 				 * let VUFS manage this since it can create virtual representations
 				 * of the fs and apply locks on them
 				 * */
-
-				// define the struct here to allow access to its fields
-				struct vufs_t {
-					pthread_mutex_t mutex;
-
-					char *source;
-					char *target;
-					int rdirfd;
-					int vdirfd;
-					int ddirfd;
-					int flags;
-
-					char *except[];
-				};
-
-				struct vufs_t *vufs = vu_get_ht_private_data();
-				char *path = sd->extra->path + 1;
-
-				printkdebug(F, "virtual hierarchy root fd: %d", vufs->vdirfd);
-				printkdebug(F, "the path of the file is /%s", sd->extra->path);
-
-				// call the VUFS-added sc to copy the file in the virtual hierarchy
-				size_t MAX_SIZE = ((1ULL<<((sizeof(size_t)*8)-1))-1);
-				int res = service_vsyscall(ht, 0)(vufs, path, MAX_SIZE);
-				if (res < 0) {
-					// copyfile didn't work, try to execute the sc on the original file anyway
-					printkdebug(F, "Could not create virtual copy of %s", sd->extra->path);
+				struct flock *lockinfo = (struct flock*) sd->syscall_args[2];
+				ret_value = service_syscall(ht, __VU_fcntl)(sfd, cmd, lockinfo, sd->extra->path);
+				if (ret_value < 0) {
+					sd->ret_value = -errno;
 				} else {
-					int flags = vu_fd_get_fdflags(fd, sd->extra->nested);
-					int vfd = openat(vufs->vdirfd, path, flags | O_CREAT, 0600);
-					//int vfd = openat(vufs->vdirfd, path+1, flags);
-
-					if (vfd < 0) {
-						// cannot open file, go on anyway
-						printkdebug(F, "Could not open virtual copy of file %s", sd->extra->path);
-					} else {
-						sd->syscall_args[0] = vfd;
-					}
+					sd->ret_value = ret_value;
 				}
 
 				return;
