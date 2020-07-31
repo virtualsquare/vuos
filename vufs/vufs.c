@@ -217,7 +217,8 @@ void *vu_vufs_init(void) {
 	vu_syscall_handler(s, lseek) = lseek;
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
-	vu_syscall_handler(s, fcntl) = fcntl;
+
+	/* removed fcntl line since it is virtualized */
 
 #pragma GCC diagnostic pop
 	return NULL;

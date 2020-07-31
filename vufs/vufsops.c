@@ -17,6 +17,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#define _GNU_SOURCE
 
 #include <vumodule.h>
 #include <stdio.h>
@@ -95,7 +96,7 @@ static void vufs_copyfile_create_path_cb(void *arg, int dirfd, const char *path)
 	}
 }
 
-int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
+static int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
 	int fdin = openat(vufs->rdirfd, path, O_RDONLY, 0);
 	if (fdin >= 0) {
 		struct vu_stat instat;
@@ -735,7 +736,6 @@ int vu_vufs_close(int fd, void *fdprivate) {
 }
 
 // RECORD LOCKING SYSCALLS
-/*
 int vu_vufs_fcntl(int fd, int cmd, ...) {
 	va_list ap;
 	va_start(ap, cmd);
@@ -751,20 +751,21 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 			struct vuht_entry *ht = vu_mod_getht();
 			char dest_path[MAXSIZE];
 			struct flock *lockinfo;
-*/
+			
 			/* 
 			 * get the original path from the fd table
 			 * then make a copy in the virtual hierarchy
 			 * */
-/*			vu_fd_get_path(fd, 0, dest_path, PATH_MAX);
+			vu_fd_get_path(fd, 0, dest_path, PATH_MAX);
 			int retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
 
 			if (retval < 0) {
-				printkdebug(V, "Could not copy file %s", dest_path);
+				printkdebug(V, "Could not create virtual copy of file %s", dest_path);
 				errno = EBADF;
 				retval = -1;
 			} else {
-				int flags = vu_fd_get_fdflags(fd, 0);
+				int flags = O_RDWR;
+				//int flags = vu_fd_get_fdflags(fd, 0);
 				// could open with RDWR instead of retrieving the open flags ?
 				int vfd = openat(vufs->vdirfd, dest_path, flags);
 
@@ -774,13 +775,28 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 					retval = -1;
 				} else {
 					lockinfo = (struct flock*) va_arg(ap, struct flock*);
-					retval = r_fcntl(vfd, cmd, lockinfo);
+					retval = fcntl(vfd, cmd, lockinfo);
 					printkdebug(V, "fcntl returned %d", retval);
 				}
 			}
 			break;
+
+		case F_GETOWN_EX:
+		case F_SETOWN_EX:
+			struct f_owner_ex* ownp_arg = va_arg(ap, struct f_owner_ex*);
+			retval = fcntl(fd, cmd, ownp_arg);
+
+		case F_GET_RW_HINT:
+		case F_SET_RW_HINT:
+		case F_GET_FILE_RW_HINT:
+		case F_SET_FILE_RW_HINT:
+			uint argp = va_arg(ap, uint64_t *);
+			retval = fcntl(fd, cmd, argp);
+			break;
+
 		default:
-			// manage other fcntl cases
+			int arg = va_arg(ap, int);
+			retval = fcntl(fd, cmd, arg);
 			break;
 	}
 
@@ -790,4 +806,4 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 
 int vu_vufs_flock(int fd, int operation) {
 }
-*/
+
