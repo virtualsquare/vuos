@@ -567,23 +567,51 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				/* 
 				 * perform the SC on the VUFS virtualized file
 				 * using the real SC
+				 * let VUFS manage this since it can create virtual representations
+				 * of the fs and apply locks on them
 				 * */
 				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
 				printkdebug(F, "the path of the file is %s", sd->extra->path);
 
-				/*
-				 * let VUFS manage this since it can create virtual representations
-				 * of the fs and apply locks on them
+				uintptr_t flockaddr = sd->syscall_args[2];
+				void *lockinfo = malloc(sizeof(struct flock));
+
+				/* 
+				 * the third parameter is a pointer to a struct flock
+				 * so process memory cannot be accessed directly
 				 * */
-				struct flock *lockinfo = (struct flock*) sd->syscall_args[2];
+				if (umvu_peek_data(flockaddr, lockinfo, sizeof(struct flock)) < 0) {
+					printkdebug(F, "cannot peek flock info");
+					free(lockinfo);
+					break;
+				} else {
+					printkdebug(F, "successfully retrieved lockinfo");
+				}
+
+				//struct flock *lockinfo = (struct flock*) sd->syscall_args[2];
 				ret_value = service_syscall(ht, __VU_fcntl)(sfd, cmd, lockinfo, sd->extra->path);
 				if (ret_value < 0) {
 					sd->ret_value = -errno;
 				} else {
+					/*
+					 * F_GETLK and F_OFD_GETLK could set the pid field in the struct flock*
+					 * parameter of the process that is blocking the specified file, if any
+					 * */
+					if (cmd == F_GETLK || cmd  == F_OFD_GETLK) {
+						/* as before, the tracee memory cannot be accessed directly */
+						if (umvu_poke_data(flockaddr, lockinfo, sizeof(struct flock) < 0)) {
+							printkdebug(F, "cannot poke flock info");
+						} else {
+							printkdebug(F, "successfully written data to tracee memory");
+						}
+					}
+
 					sd->ret_value = ret_value;
 				}
 
-				return;
+				free(lockinfo);
+				sd->action = SKIPIT;
+				break;
 		}
 	} else {
 		switch (cmd) { /* common mgmt real fd*/

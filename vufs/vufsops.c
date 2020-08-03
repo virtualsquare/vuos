@@ -754,11 +754,7 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 			struct flock *lockinfo = va_arg(ap, struct flock*);
 			char *dest_path = va_arg(ap, char *);
 			
-			/* 
-			 * get the original path from the fd table
-			 * then make a copy in the virtual hierarchy
-			 * */
-			//vu_fd_get_path(fd, 0, dest_path, PATH_MAX);
+			/* make a copy of the file in the virtual hierarchy */
 			dest_path++;
 			retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
 
@@ -787,18 +783,18 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 			break;
 
 		case F_GETOWN_EX:
-		case F_SETOWN_EX: ;
+		case F_SETOWN_EX:
 			retval = fcntl(fd, cmd, va_arg(ap, struct f_owner_ex*));
 			break;
 
 		case F_GET_RW_HINT:
 		case F_SET_RW_HINT:
 		case F_GET_FILE_RW_HINT:
-		case F_SET_FILE_RW_HINT: ;
+		case F_SET_FILE_RW_HINT:
 			retval = fcntl(fd, cmd, va_arg(ap, uint64_t *));
 			break;
 
-		default: ;
+		default:
 			retval = fcntl(fd, cmd, va_arg(ap, int));
 			break;
 	}
