@@ -36,6 +36,7 @@
 #include <vufs_getdents.h>
 #include <vufsa.h>
 #include <stdarg.h>
+#include <sys/file.h>
 
 #define MAXSIZE ((1ULL<<((sizeof(size_t)*8)-1))-1)
 #define CHUNKSIZE 4096
@@ -803,7 +804,36 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 	return retval;
 }
 
-int vu_vufs_flock(int fd, int operation) {
-	return -1;
+int vu_vufs_flock(int fd, int operation, char *dest_path) {
+	struct vufs_t *vufs = vu_get_ht_private_data();
+	int retval;
+
+	dest_path++;
+	retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
+
+	if (retval < 0) {
+		printkdebug(V, "Could not create virtual copy of file %s", dest_path);
+		errno = EBADF;
+		retval = -1;
+	} else {
+		int flags = O_RDWR;
+
+		// if this is used, vu_fd_table.h must be included
+		// int flags = vu_fd_get_fdflags(fd, 0);
+
+		// TODO: remember to close this fd when the original one is
+		int vfd = openat(vufs->vdirfd, dest_path, flags);
+
+		if (vfd < 0) {
+			printkdebug(V, "Could not open virtual copy of %s", dest_path);
+			errno = EBADF;
+			retval = -1;
+		} else {
+			retval = flock(vfd, operation);
+			printkdebug(V, "fcntl returned %d", retval);
+		}
+	}
+	
+	return retval;
 }
 
