@@ -58,9 +58,7 @@ VU_PROTOTYPES(unreal)
 
 	struct vu_module_t vu_module = {
 		.name = "unreal",
-		.description = "Mapping to FS (server side)",
-		.mod_nr_vsyscalls = 0,
-		.vsyscalls = NULL
+		.description = "Mapping to FS (server side)"
 	};
 
 int vu_unreal_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *private) {

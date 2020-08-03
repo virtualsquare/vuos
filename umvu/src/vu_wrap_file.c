@@ -567,53 +567,51 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				/* 
 				 * perform the SC on the VUFS virtualized file
 				 * using the real SC
-				 * */
-				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
-				/*
 				 * let VUFS manage this since it can create virtual representations
 				 * of the fs and apply locks on them
 				 * */
+				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
+				printkdebug(F, "the path of the file is %s", sd->extra->path);
 
-				// define the struct here to allow access to its fields
-				struct vufs_t {
-					pthread_mutex_t mutex;
+				uintptr_t flockaddr = sd->syscall_args[2];
+				void *lockinfo = malloc(sizeof(struct flock));
 
-					char *source;
-					char *target;
-					int rdirfd;
-					int vdirfd;
-					int ddirfd;
-					int flags;
-
-					char *except[];
-				};
-
-				struct vufs_t *vufs = vu_get_ht_private_data();
-				char *path = sd->extra->path + 1;
-
-				printkdebug(F, "virtual hierarchy root fd: %d", vufs->vdirfd);
-				printkdebug(F, "the path of the file is /%s", sd->extra->path);
-
-				// call the VUFS-added sc to copy the file in the virtual hierarchy
-				size_t MAX_SIZE = ((1ULL<<((sizeof(size_t)*8)-1))-1);
-				int res = service_vsyscall(ht, 0)(vufs, path, MAX_SIZE);
-				if (res < 0) {
-					// copyfile didn't work, try to execute the sc on the original file anyway
-					printkdebug(F, "Could not create virtual copy of %s", sd->extra->path);
+				/* 
+				 * the third parameter is a pointer to a struct flock
+				 * so process memory cannot be accessed directly
+				 * */
+				if (umvu_peek_data(flockaddr, lockinfo, sizeof(struct flock)) < 0) {
+					printkdebug(F, "cannot peek flock info");
+					free(lockinfo);
+					break;
 				} else {
-					int flags = vu_fd_get_fdflags(fd, sd->extra->nested);
-					int vfd = openat(vufs->vdirfd, path, flags | O_CREAT, 0600);
-					//int vfd = openat(vufs->vdirfd, path+1, flags);
-
-					if (vfd < 0) {
-						// cannot open file, go on anyway
-						printkdebug(F, "Could not open virtual copy of file %s", sd->extra->path);
-					} else {
-						sd->syscall_args[0] = vfd;
-					}
+					printkdebug(F, "successfully retrieved lockinfo");
 				}
 
-				return;
+				//struct flock *lockinfo = (struct flock*) sd->syscall_args[2];
+				ret_value = service_syscall(ht, __VU_fcntl)(sfd, cmd, lockinfo, sd->extra->path);
+				if (ret_value < 0) {
+					sd->ret_value = -errno;
+				} else {
+					/*
+					 * F_GETLK and F_OFD_GETLK could set the pid field in the struct flock*
+					 * parameter of the process that is blocking the specified file, if any
+					 * */
+					if (cmd == F_GETLK || cmd  == F_OFD_GETLK) {
+						/* as before, the tracee memory cannot be accessed directly */
+						if (umvu_poke_data(flockaddr, lockinfo, sizeof(struct flock) < 0)) {
+							printkdebug(F, "cannot poke flock info");
+						} else {
+							printkdebug(F, "successfully written data to tracee memory");
+						}
+					}
+
+					sd->ret_value = ret_value;
+				}
+
+				free(lockinfo);
+				sd->action = SKIPIT;
+				break;
 		}
 	} else {
 		switch (cmd) { /* common mgmt real fd*/
@@ -631,12 +629,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case F_OFD_SETLK:
 			case F_OFD_SETLKW:
 				/*
-				 * File locking commands
-				 * if the file is not virtualized, execute the real SC
-				 * then check for the return value in the wrapoutf function
-				 * */
-				/*
-				 * Actually without VUFS we can't do much, so we let the
+				 * without VUFS we can't do much, so we let the
 				 * SC run unmodified and fail if it has to
 				 * */
 				return;
@@ -704,60 +697,33 @@ void wo_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					vu_fd_set_flflags(fd, nested, flags);
 			}
 			break;
-		case F_GETLK:
-		case F_SETLK:
-		case F_SETLKW:
-		case F_OFD_GETLK:
-		case F_OFD_SETLK:
-		case F_OFD_SETLKW:
-			/*
-			 * Actually this shouldn't be needed since we call the VUFS
-			 * fcntl implementations directly in the wrapin function
-			 * (and the action should be SKIPIT [?])
-			 * */
-			printkdebug(F, "wo_fcntl for file locking: %d", cmd);
-			printkdebug(F, "fcntl orig_ret_value: %d", ret_value);
-			printkdebug(F, "orig_rax value: %d", sd->syscall_number);
-			if (ret_value < 0) {
-				// check errno to know the type of the error
-				// |_ how to get errno value??
-				printkdebug(F, "real fcntl call failed");
-			}
-			break;
 	}
+
 	sd->ret_value = ret_value;
 }
 
-/*
- * The following two wrapper functions should behave (almost) as the
- * fcntl ones since their goal is very similar
- * */
 void wi_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int fd = sd->syscall_args[0];
 	int op = sd->syscall_args[1];
-	printkdebug(F, "wi_flock on fd %d: %d", fd, op);
+	int ret_value;
+
 	if (ht) {
-		// handle lock on virtualized file
+		printkdebug(F, "wi_flock for file locking: %d", op);
+		printkdebug(F, "the path of the file is %s", sd->extra->path);
+
+		ret_value = service_syscall(ht, __VU_flock)(fd, op, sd->extra->path);
+		if (ret_value < 0) {
+			sd->ret_value = -errno;
+		} else {
+			sd->ret_value = ret_value;
+		}
+
+		sd->ret_value = ret_value;
+		sd->action = SKIPIT;
+		return;
 	} 
 
-	// always virtualize
-}
-
-void wo_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	// do not check for the ht variable: assume this function
-	// runs only if the file isn't virtualized
-	int fd = sd->syscall_args[0];
-	int op = sd->syscall_args[1];
-	int ret_value = sd->orig_ret_value;
-	printkdebug(F, "wo_flock on fd %d: %d", fd, op);
-	printkdebug(F, "flock orig_ret_value: %d", ret_value);
-
-	if (ret_value < 0) {
-		// check errno as in wo_fcntl
-		printkdebug(F, "real flock call failed");
-	}
-
-	sd->ret_value = ret_value;
+	sd->action = DOIT;
 }
 
 /* umask */

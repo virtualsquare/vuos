@@ -217,7 +217,8 @@ void *vu_vufs_init(void) {
 	vu_syscall_handler(s, lseek) = lseek;
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
-	vu_syscall_handler(s, fcntl) = fcntl;
+
+	/* removed fcntl line since it is virtualized */
 
 #pragma GCC diagnostic pop
 	return NULL;
@@ -231,9 +232,7 @@ char *vsyscalls[] = { [0] = "vufs_copyfile" };
 
 struct vu_module_t vu_module = {
 	.name = "vufs",
-	.description = "vu filesystem patchworking",
-	.mod_nr_vsyscalls = 1,
-	.vsyscalls = vsyscalls
+	.description = "vu filesystem patchworking"
 };
 
 __attribute__((constructor))

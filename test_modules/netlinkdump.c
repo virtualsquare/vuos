@@ -35,9 +35,7 @@ VU_PROTOTYPES(netlinkdump)
 
 	struct vu_module_t vu_module = {
 		.name = "netlinkdump",
-		.description = "dump netlink messages",
-		.mod_nr_vsyscalls = 0,
-		.vsyscalls = NULL
+		.description = "dump netlink messages"
 	};
 
 static struct vuht_entry_t *ht;

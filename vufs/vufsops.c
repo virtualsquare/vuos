@@ -36,6 +36,7 @@
 #include <vufs_getdents.h>
 #include <vufsa.h>
 #include <stdarg.h>
+#include <sys/file.h>
 
 #define MAXSIZE ((1ULL<<((sizeof(size_t)*8)-1))-1)
 #define CHUNKSIZE 4096
@@ -95,7 +96,7 @@ static void vufs_copyfile_create_path_cb(void *arg, int dirfd, const char *path)
 	}
 }
 
-int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
+static int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate) {
 	int fdin = openat(vufs->rdirfd, path, O_RDONLY, 0);
 	if (fdin >= 0) {
 		struct vu_stat instat;
@@ -735,8 +736,9 @@ int vu_vufs_close(int fd, void *fdprivate) {
 }
 
 // RECORD LOCKING SYSCALLS
-/*
 int vu_vufs_fcntl(int fd, int cmd, ...) {
+	int retval;
+
 	va_list ap;
 	va_start(ap, cmd);
 
@@ -746,26 +748,28 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 		case F_GETLK:
 		case F_OFD_SETLK:
 		case F_OFD_SETLKW:
-		case F_OFD_GETLK:
+		case F_OFD_GETLK: ;
 			struct vufs_t *vufs = vu_get_ht_private_data();
-			struct vuht_entry *ht = vu_mod_getht();
-			char dest_path[MAXSIZE];
-			struct flock *lockinfo;
-*/
-			/* 
-			 * get the original path from the fd table
-			 * then make a copy in the virtual hierarchy
-			 * */
-/*			vu_fd_get_path(fd, 0, dest_path, PATH_MAX);
-			int retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
+
+			/* retrieve variadic parameters */
+			struct flock *lockinfo = va_arg(ap, struct flock*);
+			char *dest_path = va_arg(ap, char *);
+			
+			/* make a copy of the file in the virtual hierarchy */
+			dest_path++;
+			retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
 
 			if (retval < 0) {
-				printkdebug(V, "Could not copy file %s", dest_path);
+				printkdebug(V, "Could not create virtual copy of file %s", dest_path);
 				errno = EBADF;
 				retval = -1;
 			} else {
-				int flags = vu_fd_get_fdflags(fd, 0);
-				// could open with RDWR instead of retrieving the open flags ?
+				int flags = O_RDWR;
+
+				// if this is used, vu_fd_table.h must be included
+				// int flags = vu_fd_get_fdflags(fd, 0);
+				
+				// TODO: remember to close this fd when the original one is
 				int vfd = openat(vufs->vdirfd, dest_path, flags);
 
 				if (vfd < 0) {
@@ -773,14 +777,26 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 					errno = EBADF;
 					retval = -1;
 				} else {
-					lockinfo = (struct flock*) va_arg(ap, struct flock*);
-					retval = r_fcntl(vfd, cmd, lockinfo);
+					retval = fcntl(vfd, cmd, lockinfo);
 					printkdebug(V, "fcntl returned %d", retval);
 				}
 			}
 			break;
+
+		case F_GETOWN_EX:
+		case F_SETOWN_EX:
+			retval = fcntl(fd, cmd, va_arg(ap, struct f_owner_ex*));
+			break;
+
+		case F_GET_RW_HINT:
+		case F_SET_RW_HINT:
+		case F_GET_FILE_RW_HINT:
+		case F_SET_FILE_RW_HINT:
+			retval = fcntl(fd, cmd, va_arg(ap, uint64_t *));
+			break;
+
 		default:
-			// manage other fcntl cases
+			retval = fcntl(fd, cmd, va_arg(ap, int));
 			break;
 	}
 
@@ -788,6 +804,36 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 	return retval;
 }
 
-int vu_vufs_flock(int fd, int operation) {
+int vu_vufs_flock(int fd, int operation, char *dest_path) {
+	struct vufs_t *vufs = vu_get_ht_private_data();
+	int retval;
+
+	dest_path++;
+	retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
+
+	if (retval < 0) {
+		printkdebug(V, "Could not create virtual copy of file %s", dest_path);
+		errno = EBADF;
+		retval = -1;
+	} else {
+		int flags = O_RDWR;
+
+		// if this is used, vu_fd_table.h must be included
+		// int flags = vu_fd_get_fdflags(fd, 0);
+
+		// TODO: remember to close this fd when the original one is
+		int vfd = openat(vufs->vdirfd, dest_path, flags);
+
+		if (vfd < 0) {
+			printkdebug(V, "Could not open virtual copy of %s", dest_path);
+			errno = EBADF;
+			retval = -1;
+		} else {
+			retval = flock(vfd, operation);
+			printkdebug(V, "fcntl returned %d", retval);
+		}
+	}
+	
+	return retval;
 }
-*/
+
