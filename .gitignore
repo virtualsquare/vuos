@@ -1,3 +1,4 @@
+.gitignore
 build/
-demos/build/
+extra/
 *.swp

@@ -1,4 +1,0 @@
-in vuos:
-	in vunet/vunet_ioctl.c:34:10: error: 'SIOCGSTAMP' undeclared
-	starting from linux kernel v5.2-rc1 'SIOCGSTAMP' has been renamed to 'SIOCGSTAMP_OLD'
-	FIX: to access it again 'linux/sockios.h' needs to be included
