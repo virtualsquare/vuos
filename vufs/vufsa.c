@@ -244,7 +244,9 @@ static vufsa_status vufsa_mincow(vufsa_status status,
 			else
 				return VUFSA_DOREAL;
 		case VUFSA_DOREAL:
-			if (rv < 0 && errno == EACCES)
+			if (rv < 0 && (errno == EACCES || 
+						   errno == EAGAIN ||
+						   errno == EWOULDBLOCK ))
 				return VUFSA_DOCOPY;
 			else
 				return VUFSA_FINAL;

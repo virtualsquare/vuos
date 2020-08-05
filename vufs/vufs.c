@@ -217,10 +217,12 @@ void *vu_vufs_init(void) {
 	vu_syscall_handler(s, lseek) = lseek;
 	vu_syscall_handler(s, pread64) = pread;
 	vu_syscall_handler(s, pwrite64) = pwrite;
-
-	/* removed fcntl line since it is virtualized */
-
+	/* removed fcntl line since it is virtualized, is it needed? */
 #pragma GCC diagnostic pop
+
+	for (int i = 0; i < MAX_OPEN_FILES; i++)
+		open_fds[i] = -1;
+
 	return NULL;
 }
 

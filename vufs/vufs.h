@@ -5,6 +5,8 @@
 
 VU_PROTOTYPES(vufs)
 
+#define MAX_OPEN_FILES 1024
+
 #define O_UNLINK (O_PATH | O_EXCL)
 
 #define VUFS_TYPEMASK 0x7
@@ -31,5 +33,7 @@ struct vufs_fdprivate {
   FILE *getdentsf;
   char path[];
 };
+
+int open_fds[MAX_OPEN_FILES];
 
 #endif
