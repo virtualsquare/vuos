@@ -121,9 +121,8 @@ struct vu_service_t *module_load(const char *modname)
 #pragma GCC diagnostic ignored "-Wpedantic"
 	if ((module = dlsym(handle, "vu_module"))) {
 #pragma GCC diagnostic pop
-		int VSYSCALL_NR = module->mod_nr_vsyscalls > 0 ? module->mod_nr_vsyscalls : 1;
 		struct vu_service_t *service = malloc(sizeof(struct vu_service_t) +
-				(VU_NR_SYSCALLS + VSYSCALL_NR) * sizeof(syscall_t));
+				VU_NR_SYSCALLS * sizeof(syscall_t));
 		int prefixlen = strlen(module->name) + 4;
 		int fnamelen = prefixlen + VU_SYSCALL_MAX_NAMELEN + 1;
 		char fname[fnamelen];

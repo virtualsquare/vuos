@@ -230,8 +230,6 @@ int vu_vufs_fini(void *private) {
 	return 0;
 }
 
-char *vsyscalls[] = { [0] = "vufs_copyfile" };
-
 struct vu_module_t vu_module = {
 	.name = "vufs",
 	.description = "vu filesystem patchworking"
