@@ -31,7 +31,7 @@ VU_PROTOTYPES(vunet)
 
 	struct vu_module_t vu_module = {
 		.name = "vunet",
-		.description = "vu virtual networking",
+		.description = "vu virtual networking"
 	};
 
 struct vunet_default_t {
