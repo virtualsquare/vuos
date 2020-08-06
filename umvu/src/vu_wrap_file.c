@@ -563,7 +563,7 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case F_SETLKW:
 			case F_OFD_GETLK:
 			case F_OFD_SETLK:
-			case F_OFD_SETLKW:
+			case F_OFD_SETLKW: ;
 				/* 
 				 * perform the SC on the VUFS virtualized file
 				 * using the real SC

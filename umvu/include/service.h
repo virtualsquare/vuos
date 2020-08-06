@@ -3,7 +3,6 @@
 
 #include <vumodule.h>
 #include <hashtable.h>
-#include <syscall_defs.h>
 
 /* each module define a service.
 	 services are registered in the hashtable (he key is the module name */
@@ -24,7 +23,7 @@ struct vu_service_t {
 	struct vuht_entry_t *service_ht;
 	// private data of the module (modules can use this pointer as they please.
 	void *private;
-	// table of vu_syscalls implementation + visrtual syscalls added by the module
+	// table of vu_syscalls implementation
 	syscall_t module_syscall[];
 };
 
