@@ -570,9 +570,6 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				 * let VUFS manage this since it can create virtual representations
 				 * of the fs and apply locks on them
 				 * */
-				printkdebug(F, "wi_fcntl for file locking: %d", cmd);
-				printkdebug(F, "the path of the file is %s", sd->extra->path);
-
 				uintptr_t flockaddr = sd->syscall_args[2];
 				void *lockinfo = malloc(sizeof(struct flock));
 
@@ -581,14 +578,10 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				 * so process memory cannot be accessed directly
 				 * */
 				if (umvu_peek_data(flockaddr, lockinfo, sizeof(struct flock)) < 0) {
-					printkdebug(F, "cannot peek flock info");
 					free(lockinfo);
 					break;
-				} else {
-					printkdebug(F, "successfully retrieved lockinfo");
 				}
 
-				//struct flock *lockinfo = (struct flock*) sd->syscall_args[2];
 				ret_value = service_syscall(ht, __VU_fcntl)(sfd, cmd, lockinfo, sd->extra->path);
 				if (ret_value < 0) {
 					sd->ret_value = -errno;
@@ -600,9 +593,6 @@ void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 					if (cmd == F_GETLK || cmd  == F_OFD_GETLK) {
 						/* as before, the tracee memory cannot be accessed directly */
 						if (umvu_poke_data(flockaddr, lockinfo, sizeof(struct flock) < 0)) {
-							printkdebug(F, "cannot poke flock info");
-						} else {
-							printkdebug(F, "successfully written data to tracee memory");
 						}
 					}
 
@@ -708,9 +698,6 @@ void wi_flock(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value;
 
 	if (ht) {
-		printkdebug(F, "wi_flock for file locking: %d", op);
-		printkdebug(F, "the path of the file is %s", sd->extra->path);
-
 		ret_value = service_syscall(ht, __VU_flock)(fd, op, sd->extra->path);
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
