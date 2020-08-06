@@ -816,33 +816,38 @@ int vu_vufs_fcntl(int fd, int cmd, ...) {
 int vu_vufs_flock(int fd, int operation, char *dest_path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	int retval;
+	vufsa_status status = VUFSA_START;
+	// if this is used, vu_fd_table.h must be included
+	// int flags = vu_fd_get_fdflags(fd, 0);
+	int flags = O_RDWR;
+	int vfd = fd;
+	dest_path += 1;
 
-	dest_path++;
-	retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
-
-	if (retval < 0) {
-		printkdebug(V, "Could not create virtual copy of file %s", dest_path);
-		errno = EBADF;
-		retval = -1;
-	} else {
-		int flags = O_RDWR;
-
-		// if this is used, vu_fd_table.h must be included
-		// int flags = vu_fd_get_fdflags(fd, 0);
-
-		// TODO: remember to close this fd when the original one is
-		int vfd = openat(vufs->vdirfd, dest_path, flags);
-
-		if (vfd < 0) {
-			printkdebug(V, "Could not open virtual copy of %s", dest_path);
-			errno = EBADF;
-			retval = -1;
-		} else {
-			retval = flock(vfd, operation);
-			printkdebug(V, "fcntl returned %d", retval);
+	vufsa_next vufsa_next = vufsa_select(vufs, flags);
+	while ((status = vufsa_next(status, vufs, dest_path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = flock(fd, operation);
+				break;
+			case VUFSA_DOVIRT:
+				if (open_fds[fd] != -1) {
+					vfd = open_fds[fd];
+				} else {
+					// TODO: check that this fd is effectively closed
+					vfd = openat(vufs->vdirfd, dest_path, flags);
+					open_fds[fd] = vfd;
+				}
+				retval = flock(vfd, operation);
+				break;
+			case VUFSA_DOCOPY:
+				retval = vufs_copyfile(vufs, dest_path, MAXSIZE);
+				break;
+			case VUFSA_ERR:
+				retval = -1;
+			case VUFSA_FINAL:
+				break;
 		}
 	}
 
 	return retval;
 }
-
