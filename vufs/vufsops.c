@@ -684,9 +684,13 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
         break;
       case VUFSA_DOVIRT:
 				filepath = *pathname ? pathname : vufs->source;
-				if (oldmode == 0)
+				if ((flags & O_CREAT) && oldmode == 0) {
 					vufs_create_path(vufs->vdirfd, filepath, vufs_copyfile_create_path_cb, vufs);
-				retval = openat(vufs->vdirfd, filepath, flags, mode);
+					retval = openat(vufs->vdirfd, filepath, flags, mode);
+					if (retval < 0)
+						vufs_destroy_path(vufs->vdirfd, filepath);
+				} else
+					retval = openat(vufs->vdirfd, filepath, flags, mode);
         break;
       case VUFSA_DOCOPY:
 				retval = vufs_copyfile(vufs, pathname, flags & O_TRUNC ? 0 : MAXSIZE);
