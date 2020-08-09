@@ -174,9 +174,9 @@ uint32_t vufstat_merge(int dirfd, const char *path, struct vu_stat *statbuf) {
 uint32_t vufstat_cmpstat(struct vu_stat *statbuf1, struct vu_stat *statbuf2) {
 	uint32_t mask = 0;
 	if (statbuf1->st_mode != statbuf2->st_mode) {
-		if ((statbuf1->st_mode ^ statbuf2->st_mode) & ~S_IFMT)
-			mask |= VUFSTAT_TYPE;
 		if ((statbuf1->st_mode ^ statbuf2->st_mode) & S_IFMT)
+			mask |= VUFSTAT_TYPE;
+		if ((statbuf1->st_mode ^ statbuf2->st_mode) & ~S_IFMT)
 			mask |= VUFSTAT_MODE;
 	}
 	if (statbuf1->st_uid != statbuf2->st_uid)
