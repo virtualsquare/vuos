@@ -63,21 +63,6 @@ static void vufs_copyfile_vufstat(struct vufs_t *vufs, const char *path,
 	vufstat_write(vufs->ddirfd, path, rstat, mask);
 }
 
-static void vufs_newfilestat(struct vufs_t *vufs, const char *path, int fd, mode_t mode) {
-	struct vu_stat vstat;
-	struct vu_stat newvstat;
-	uint32_t mask;
-	newvstat.st_uid = setfsuid(-1);
-	newvstat.st_gid = setfsgid(-1); // XXX TBD setgid bid on dir
-	newvstat.st_mode = mode & ~vu_mod_getumask();
-	fchown(fd, newvstat.st_uid, newvstat.st_gid);
-	if (fchmod(fd, newvstat.st_mode & ~S_IFMT) < 0)
-		fchmod(fd, newvstat.st_mode & 0777);
-	fstat(fd, &vstat);
-	mask = vufstat_cmpstat(&vstat, &newvstat) & VUFSTAT_COPYMASK;
-	vufstat_write(vufs->ddirfd, path, &newvstat, mask);
-}
-
 static void vufs_copyfile_create_path_cb(void *arg, int dirfd, const char *path) {
 	struct vufs_t *vufs = arg;
 	struct vu_stat rstat;
@@ -139,6 +124,37 @@ static int vufs_copyfile(struct vufs_t *vufs, const char *path, size_t truncate)
 		close(fdin);
 		return -1;
 	}
+}
+
+static void vufs_newopenfilestat(struct vufs_t *vufs, const char *path, int fd, mode_t mode) {
+	struct vu_stat vstat;
+	struct vu_stat newvstat;
+	uint32_t mask;
+	newvstat.st_uid = setfsuid(-1);
+	newvstat.st_gid = setfsgid(-1); // XXX TBD setgid bit on dir
+	newvstat.st_mode = mode & ~vu_mod_getumask();
+	fchown(fd, newvstat.st_uid, newvstat.st_gid);
+	if (fchmod(fd, newvstat.st_mode & ~S_IFMT) < 0)
+		fchmod(fd, newvstat.st_mode & 0777);
+	fstat(fd, &vstat);
+	mask = vufstat_cmpstat(&vstat, &newvstat) & VUFSTAT_COPYMASK;
+	vufstat_write(vufs->ddirfd, path, &newvstat, mask);
+}
+
+static void vufs_newfilestat(struct vufs_t *vufs, const char *path, struct vu_stat *newvstat, uint32_t mask, mode_t mode) {
+	struct vu_stat vstat;
+	if ((mask & VUFSTAT_UID) == 0)
+		newvstat->st_uid = setfsuid(-1);
+	if ((mask & VUFSTAT_GID) == 0)
+		newvstat->st_gid = setfsgid(-1); // XXX TBD setgid bit on dir
+	if ((mask & VUFSTAT_MODE) == 0)
+		newvstat->st_mode = mode & ~vu_mod_getumask();
+	fchownat(vufs->vdirfd, path, newvstat->st_uid, newvstat->st_gid, AT_EMPTY_PATH);
+	if (fchmodat(vufs->vdirfd, path, newvstat->st_mode & ~S_IFMT, AT_EMPTY_PATH) < 0)
+		fchmodat(vufs->vdirfd, path, newvstat->st_mode & 0777, AT_EMPTY_PATH);
+	fstatat(vufs->vdirfd, path, &vstat, AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH);
+	mask |= vufstat_cmpstat(&vstat, newvstat) & VUFSTAT_COPYMASK;
+	vufstat_write(vufs->ddirfd, path, newvstat, mask);
 }
 
 /* RDONLY SYSCALLS */
@@ -342,6 +358,10 @@ int vu_vufs_mkdir (const char *path, mode_t mode) {
         break;
       case VUFSA_DOVIRT:
 				retval = mkdirat(vufs->vdirfd, path, mode);
+				if (retval >= 0 && vufs->ddirfd >= 0) {
+					struct vu_stat statbuf;
+					vufs_newfilestat(vufs, path, &statbuf, 0, mode);
+				}
         break;
 			case VUFSA_FINAL:
 				// now virt file exists, no need for whiteout file
@@ -370,6 +390,11 @@ int vu_vufs_symlink (const char *target, const char *path) {
         break;
       case VUFSA_DOVIRT:
         retval = symlinkat(target, vufs->vdirfd, path);
+				if (retval >= 0 && vufs->ddirfd >= 0) {
+					struct vu_stat statbuf;
+					statbuf.st_mode = 0777;
+					vufs_newfilestat(vufs, path, &statbuf, VUFSTAT_MODE, 0);
+				}
         break;
 			case VUFSA_FINAL:
 				// now virt file exists, no need for whiteout file
@@ -398,13 +423,14 @@ int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
         break;
       case VUFSA_DOVIRT:
         retval = mknodat(vufs->vdirfd, path, mode, dev);
-				if (retval < 0 && vufs->ddirfd >= 0) {
-					struct vu_stat buf;
+				if (retval < 0 && vufs->ddirfd >= 0)
 					retval = mknodat(vufs->vdirfd, path,
 							(mode & ~S_IFMT) | S_IFREG, 0);
+				if (retval >= 0 && vufs->ddirfd >= 0) {
+					struct vu_stat buf;
 					buf.st_mode = mode;
 					buf.st_rdev = dev;
-					vufstat_write(vufs->ddirfd, path, &buf, VUFSTAT_TYPE | VUFSTAT_RDEV);
+					vufs_newfilestat(vufs, path, &buf, VUFSTAT_TYPE | VUFSTAT_RDEV, mode);
 				}
         break;
       case VUFSA_FINAL:
@@ -700,7 +726,7 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 				if (retval >=0 && (flags & O_CREAT) && oldmode == 0) {
 					// no need for whiteout file
 					vufs_dewhiteout(vufs->ddirfd, pathname);
-					vufs_newfilestat(vufs, pathname, retval, mode);
+					vufs_newopenfilestat(vufs, pathname, retval, mode);
 				}
 				// fdprivate for getdents
 				if (retval >= 0 && S_ISDIR(oldmode)) {
