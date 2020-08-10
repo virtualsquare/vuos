@@ -267,9 +267,13 @@ static vufsa_status vufsa_mincow_creat(vufsa_status status,
 	switch (status) {
 		case VUFSA_START:
 			vufs_lock(vufs);
-			if (vufs_rexist(vufs, path) && !vufs_vdeleted(vufs, path)) {
-				errno = EEXIST;
-				return VUFSA_ERR;
+			if (vufs_rexist(vufs, path)) {
+				if (vufs_vdeleted(vufs, path))
+					return VUFSA_DOVIRT;
+				else {
+					errno = EEXIST;
+					return VUFSA_ERR;
+				}
 			} else
 				return VUFSA_DOREAL;
 		case VUFSA_DOREAL:
