@@ -307,7 +307,7 @@ static vufsa_status vufsa_mincow_unlink(vufsa_status status,
 			}
 		case VUFSA_DOREAL:
 			if (rv < 0 && errno == EACCES)
-				return VUFSA_DOVIRT;
+				return VUFSA_VUNLINK;
 			else
 				return VUFSA_FINAL;
 		case VUFSA_DOVIRT:
