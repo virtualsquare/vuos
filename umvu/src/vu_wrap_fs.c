@@ -521,12 +521,13 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -EEXIST;
       return;
     }
+		e = set_vepoch(sd->extra->epoch);
 		oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL, nested);
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
+			set_vepoch(e);
 			return;
 		}
-		e = set_vepoch(sd->extra->epoch);
 		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		vuht_drop(htold);
 		set_vepoch(e);
@@ -595,12 +596,13 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 													 break;
 		}
 		sd->action = SKIPIT;
+		e = set_vepoch(sd->extra->epoch);
 		oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL, nested);
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
+			set_vepoch(e);
 			return;
 		}
-		e = set_vepoch(sd->extra->epoch);
 		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		vuht_drop(htold);
 		set_vepoch(e);
