@@ -148,7 +148,7 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 			case __NR_faccessat:
 				mode = sd->syscall_args[2];
-				flags = sd->syscall_args[3];
+				flags = 0;
 				break;
 		}
 		/* call */
