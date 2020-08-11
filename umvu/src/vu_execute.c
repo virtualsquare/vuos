@@ -102,7 +102,8 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					execute_cleanup(ht,sd);
 				else {
 					if (vu_fs_is_chroot() || sd->extra->path_rewrite)
-						rewrite_syspath(sd, sd->extra->path);
+						if (sd->syscall_number != __NR_execve)
+							rewrite_syspath(sd, sd->extra->path);
 					tab_entry->wrapinf(ht, sd);
 					if ((sd->action & UMVU_CB_AFTER) == 0)
 						execute_cleanup(ht,sd);

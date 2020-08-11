@@ -47,6 +47,7 @@
 #include <vu_wrapper_utils.h>
 #include <vu_mod_inheritance.h>
 #include <vu_fnode_copy.h>
+#include <vu_chroot_exec.h>
 
 /* management of execve */
 /* struct binfmt_req_t is defined in include vumodule.h */
@@ -67,7 +68,7 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 	int ret_value;
 	int fd;
 	if (ht) {
-		void *private;
+		void *private = NULL;
 		fd = service_syscall(ht, __VU_open)(vuht_path2mpath(ht, req->path), O_RDONLY, 0, &private);
 		if (fd < 0)
 			return -errno;
@@ -77,8 +78,8 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 		fd = r_open(req->path, O_RDONLY);
 		if (fd < 0)
 			return -errno;
-		ret_value = read(fd, req->filehead, BINFMTBUFLEN);
-		close(fd);
+		ret_value = r_read(fd, req->filehead, BINFMTBUFLEN);
+		r_close(fd);
 	}
 	req->fileheadlen = ret_value;
 	return ret_value;
@@ -319,6 +320,9 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 
 	check_binfmt_misc(&new_req);
 
+	if (vu_fs_is_chroot())
+		exec_chroot_rewrite_interpreter(interpreter_ht, &new_req);
+
 	if (need_interpreter(&new_req)) {
 		recursive_interpreter(&new_req, sd, argv_list, depth + 1);
 	} else {
@@ -361,6 +365,9 @@ void wi_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 
 		check_binfmt_misc(&binfmt_req);
+
+		if (vu_fs_is_chroot())
+			exec_chroot_rewrite_interpreter(ht, &binfmt_req);
 
 		if (need_interpreter(&binfmt_req)) {
 			struct argv_list argv_list = load_argv(sd);
