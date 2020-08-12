@@ -67,6 +67,7 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 							return -1;
 						}
 						break;
+					case STRCASE(b,i,n,d):
 					case STRCASE(m,o,v,e):
 					case STRCASE(m,e,r,g,e):
 					case STRCASE(c,o,w):
@@ -97,6 +98,7 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 						vufs->except[retval] = NULL;
 						break;
 					case STRCASE(m,o,v,e):
+					case STRCASE(b,i,n,d):
 						break;
 					case STRCASE(m,e,r,g,e):
 						vufs->flags |= VUFS_MERGE;
