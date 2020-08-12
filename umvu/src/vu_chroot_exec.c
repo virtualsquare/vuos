@@ -1,6 +1,6 @@
 /*
  *   VUOS: view OS project
- *   Copyright (C) 2020  Renzo Davoli <renzo@cs.unibo.it>, Antonio Cardace <anto.cardace@gmail.com>
+ *   Copyright (C) 2020  Renzo Davoli <renzo@cs.unibo.it>
  *   VirtualSquare team.
  *
  *   This program is free software: you can redistribute it and/or modify
