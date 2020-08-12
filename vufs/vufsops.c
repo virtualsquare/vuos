@@ -159,13 +159,16 @@ static void vufs_newfilestat(struct vufs_t *vufs, const char *path, struct vu_st
 
 /* RDONLY SYSCALLS */
 int vu_vufs_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate) {
+	struct vufs_t *vufs = vu_get_ht_private_data();
+	pathname += 1;
 	if (sfd >= 0) {
-		return fstat(sfd, buf);
+		int retval = fstat(sfd, buf);
+		if (retval == 0)
+			vufstat_merge(vufs->ddirfd, pathname, buf);
+		return retval;
 	} else {
-		struct vufs_t *vufs = vu_get_ht_private_data();
 		int retval = 0;
 		vufsa_status status = VUFSA_START;
-		pathname += 1;
 		vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
 		while ((status = vufsa_next(status, vufs, pathname, retval)) != VUFSA_EXIT) {
 			//printk("LSTAT status %d %d %d\n", status,retval, errno);
