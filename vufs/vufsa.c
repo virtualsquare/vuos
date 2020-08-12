@@ -60,12 +60,22 @@ static int vufs_vdeleted(struct vufs_t *vufs, const char *path) {
 
 static inline int vufs_vexist (struct vufs_t *vufs, const char *path, int flags) {
 	struct vu_stat buf;
-	return fstatat(vufs->vdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0 || errno != ENOENT;
+	if (fstatat(vufs->vdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0)
+		return 1;
+	else if (errno == ENOENT)
+		return 0;
+	else
+		return 1;
 }
 
 static inline int vufs_rexist (struct vufs_t *vufs, const char *path, int flags) {
 	struct vu_stat buf;
-	return fstatat(vufs->rdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0 || errno != ENOENT;
+	if (fstatat(vufs->rdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0)
+		return 1;
+	else if (errno == ENOENT)
+    return 0;
+  else
+    return 1;
 }
 
 static vufsa_status vufsa_rdonly(vufsa_status status,
