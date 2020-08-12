@@ -58,14 +58,14 @@ static int vufs_vdeleted(struct vufs_t *vufs, const char *path) {
     return 0;
 }
 
-static inline int vufs_vexist (struct vufs_t *vufs, const char *path) {
+static inline int vufs_vexist (struct vufs_t *vufs, const char *path, int flags) {
 	struct vu_stat buf;
-	return fstatat(vufs->vdirfd, path, &buf, AT_EMPTY_PATH) == 0 || errno != ENOENT;
+	return fstatat(vufs->vdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0 || errno != ENOENT;
 }
 
-static inline int vufs_rexist (struct vufs_t *vufs, const char *path) {
+static inline int vufs_rexist (struct vufs_t *vufs, const char *path, int flags) {
 	struct vu_stat buf;
-	return fstatat(vufs->rdirfd, path, &buf, AT_EMPTY_PATH) == 0 || errno != ENOENT;
+	return fstatat(vufs->rdirfd, path, &buf, flags | AT_EMPTY_PATH) == 0 || errno != ENOENT;
 }
 
 static vufsa_status vufsa_rdonly(vufsa_status status,
@@ -114,7 +114,7 @@ static vufsa_status vufsa_merge(vufsa_status status,
   switch (status) {
     case VUFSA_START:
       vufs_lock(vufs);
-      if (vufs_vexist(vufs, path) || vufs_vdeleted(vufs, path)) {
+      if (vufs_vexist(vufs, path, 0) || vufs_vdeleted(vufs, path)) {
         errno = EROFS;
         return VUFSA_ERR;
       } else
@@ -136,7 +136,7 @@ static vufsa_status vufsa_merge_unlink(vufsa_status status,
   switch (status) {
     case VUFSA_START:
       vufs_lock(vufs);
-      if (vufs_vexist(vufs, path)) {
+      if (vufs_vexist(vufs, path, AT_SYMLINK_NOFOLLOW)) {
         errno = EROFS;
         return VUFSA_ERR;
       } else if (vufs_vdeleted(vufs, path)) {
@@ -161,7 +161,7 @@ static vufsa_status vufsa_cow(vufsa_status status,
   switch (status) {
     case VUFSA_START:
 			vufs_lock(vufs);
-			if (vufs_vexist(vufs, path) || vufs_vdeleted(vufs, path))
+			if (vufs_vexist(vufs, path, 0) || vufs_vdeleted(vufs, path))
 				return VUFSA_DOVIRT;
 			else
 				return VUFSA_DOCOPY;
@@ -184,7 +184,7 @@ static vufsa_status vufsa_cow_creat(vufsa_status status,
   switch (status) {
     case VUFSA_START:
       vufs_lock(vufs);
-			if (vufs_rexist(vufs, path) && !vufs_vdeleted(vufs, path)) {
+			if (vufs_rexist(vufs, path, 0) && !vufs_vdeleted(vufs, path)) {
 				errno = EEXIST;
 				return VUFSA_ERR;
 			} else
@@ -206,19 +206,19 @@ static vufsa_status vufsa_cow_unlink(vufsa_status status,
   switch (status) {
 		case VUFSA_START:
       vufs_lock(vufs);
-			if (vufs_vexist(vufs, path))
+			if (vufs_vexist(vufs, path, AT_SYMLINK_NOFOLLOW))
         return VUFSA_DOVIRT;
       else if (vufs_vdeleted(vufs, path)) {
         errno = ENOENT;
         return VUFSA_ERR;
-      } else if (vufs_rexist(vufs, path))
+      } else if (vufs_rexist(vufs, path, AT_SYMLINK_NOFOLLOW))
         return VUFSA_VUNLINK;
 			else {
 				errno = ENOENT;
         return VUFSA_ERR;
       }
 		case VUFSA_DOVIRT:
-			if (rv == 0 && vufs_rexist(vufs, path) && !vufs_vdeleted(vufs, path))
+			if (rv == 0 && vufs_rexist(vufs, path, 0) && !vufs_vdeleted(vufs, path))
 				return VUFSA_VUNLINK;
 			else
 				return VUFSA_FINAL;
@@ -239,7 +239,7 @@ static vufsa_status vufsa_mincow(vufsa_status status,
 	switch (status) {
 		case VUFSA_START:
 			vufs_lock(vufs);
-			if (vufs_vexist(vufs, path) || vufs_vdeleted(vufs, path))
+			if (vufs_vexist(vufs, path, 0) || vufs_vdeleted(vufs, path))
 				return VUFSA_DOVIRT;
 			else
 				return VUFSA_DOREAL;
@@ -267,7 +267,7 @@ static vufsa_status vufsa_mincow_creat(vufsa_status status,
 	switch (status) {
 		case VUFSA_START:
 			vufs_lock(vufs);
-			if (vufs_rexist(vufs, path)) {
+			if (vufs_rexist(vufs, path, 0)) {
 				if (vufs_vdeleted(vufs, path))
 					return VUFSA_DOVIRT;
 				else {
@@ -298,12 +298,12 @@ static vufsa_status vufsa_mincow_unlink(vufsa_status status,
 	switch (status) {
 		case VUFSA_START:
 			vufs_lock(vufs);
-			if (vufs_vexist(vufs, path))
+			if (vufs_vexist(vufs, path, AT_SYMLINK_NOFOLLOW))
 				return VUFSA_DOVIRT;
 			else if (vufs_vdeleted(vufs, path)) {
 				errno = ENOENT;
 				return VUFSA_ERR;
-			} else if (vufs_rexist(vufs, path))
+			} else if (vufs_rexist(vufs, path, AT_SYMLINK_NOFOLLOW))
 				return VUFSA_DOREAL;
 			else {
 				errno = ENOENT;
@@ -315,7 +315,7 @@ static vufsa_status vufsa_mincow_unlink(vufsa_status status,
 			else
 				return VUFSA_FINAL;
 		case VUFSA_DOVIRT:
-			if (rv == 0 && vufs_rexist(vufs, path) && !vufs_vdeleted(vufs, path))
+			if (rv == 0 && vufs_rexist(vufs, path, AT_SYMLINK_NOFOLLOW) && !vufs_vdeleted(vufs, path))
 				return VUFSA_VUNLINK;
 			else
 				return VUFSA_FINAL;
