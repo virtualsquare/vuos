@@ -30,41 +30,41 @@
 #include <vufs_path.h>
 
 void vufs_create_path(int dirfd, const char *path, create_path_cb_t callback, void *arg) {
-  int pathlen = strlen(path);
-  char tpath[pathlen];
-  int i;
-  for (i = 0; i < pathlen; i++) {
-    if (path[i] == '/') {
-      tpath[i] = 0;
+	int pathlen = strlen(path);
+	char tpath[pathlen];
+	int i;
+	for (i = 0; i < pathlen; i++) {
+		if (path[i] == '/') {
+			tpath[i] = 0;
 			if (mkdirat(dirfd, tpath, 0700) == 0 && callback)
 				callback(arg, dirfd, tpath);
-    }
-    tpath[i] = path[i];
-  }
+		}
+		tpath[i] = path[i];
+	}
 }
 
 void vufs_destroy_path(int dirfd, const char *path) {
-  int pathlen = strlen(path);
-  char tpath[pathlen];
-  int i;
-  strncpy(tpath, path, pathlen);
-  for (i = pathlen - 1; i >= 0; i--) {
-    if (tpath[i] == '/') {
-      tpath[i] = 0;
-      if (unlinkat(dirfd, tpath, AT_REMOVEDIR) < 0)
-        break;
-    }
-  }
+	int pathlen = strlen(path);
+	char tpath[pathlen];
+	int i;
+	strncpy(tpath, path, pathlen);
+	for (i = pathlen - 1; i >= 0; i--) {
+		if (tpath[i] == '/') {
+			tpath[i] = 0;
+			if (unlinkat(dirfd, tpath, AT_REMOVEDIR) < 0)
+				break;
+		}
+	}
 }
 
 static int skipdir(const char *name) {
-  if (name[0] == 0 || name[0] != '.')
-    return 0;
-  if (name[1] == 0)
-    return 1;
-  if (name[1] == '.' && name[2] == 0)
-    return 1;
-  return 0;
+	if (name[0] == 0 || name[0] != '.')
+		return 0;
+	if (name[1] == 0)
+		return 1;
+	if (name[1] == '.' && name[2] == 0)
+		return 1;
+	return 0;
 }
 
 void vufs_destroy_tree(int dirfd, const char *path, int recursive) {
@@ -104,7 +104,7 @@ int vufs_whiteout(int dirfd, const char *path) {
 }
 
 void vufs_dewhiteout(int dirfd, const char *path) {
-  if (dirfd >= 0) {
+	if (dirfd >= 0) {
 		if (unlinkat(dirfd, path, 0) == 0)
 			vufs_destroy_path(dirfd, path);
 	}

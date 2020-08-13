@@ -14,22 +14,22 @@ VU_PROTOTYPES(vufs)
 #define VUFS_MINCOW 0x4
 #define VUFS_VSTAT 0x100
 
-struct vufs_t {
-  pthread_mutex_t mutex;
+	struct vufs_t {
+		pthread_mutex_t mutex;
 
-  char *source;
-  char *target;
-  int rdirfd;
-  int vdirfd;
-  int ddirfd;
-  int flags;
+		char *source;
+		char *target;
+		int rdirfd;
+		int vdirfd;
+		int ddirfd;
+		int flags;
 
-  char *except[];
-};
+		char *except[];
+	};
 
 struct vufs_fdprivate {
-  FILE *getdentsf;
-  char path[];
+	FILE *getdentsf;
+	char path[];
 };
 
 #endif

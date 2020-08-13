@@ -29,13 +29,13 @@ while ((status = vufsa_next(status, vufs, path, openflag, 0, rv)) != VUFSA_EXIT)
 	switch (status) {
 		case VUFSA_DOREAL:
 			rv = /* implementation of do_real for this syscall */
-			break;
+				break;
 		case VUFSA_DOVIRT:
 			rv = /* implementation of do_virtual for this syscall */
-			break;
+				break;
 		case VUFSA_DOCOPY:
 			rv = /* implementation of do_copy for this syscall */
-			break;
+				break;
 		case VUFSA_ERR:
 			rv = -1;
 			break;

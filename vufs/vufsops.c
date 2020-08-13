@@ -197,38 +197,38 @@ int vu_vufs_access(char *path, int mode, int flags) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
 	int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
-        retval = faccessat(vufs->rdirfd,
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = faccessat(vufs->rdirfd,
 						*path ? path : vufs->target,
 						mode, flags);
-        break;
-      case VUFSA_DOVIRT:
-        retval = faccessat(vufs->vdirfd,
+				break;
+			case VUFSA_DOVIRT:
+				retval = faccessat(vufs->vdirfd,
 						*path ? path : vufs->target,
 						mode, flags);
-        break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
+				break;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
 	printkdebug(V, "ACCESS path:%s mode:%o retvalue:%d", path, mode, retval);
-  return retval;
+	return retval;
 }
 
 ssize_t vu_vufs_readlink(char *path, char *buf, size_t bufsiz) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-  vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
+	vufsa_status status = VUFSA_START;
+	int retval;
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
 				retval = readlinkat(vufs->rdirfd, path, buf, bufsiz);
 				break;
 			case VUFSA_DOVIRT:
@@ -236,9 +236,9 @@ ssize_t vu_vufs_readlink(char *path, char *buf, size_t bufsiz) {
 				break;
 			case VUFSA_ERR:
 				retval = -1;
-        break;
-    }
-  }
+				break;
+		}
+	}
 	printkdebug(V, "READLINK path:%s retvalue:%d", path, retval);
 	return retval;
 }
@@ -285,39 +285,39 @@ int vu_vufs_statfs (const char *path, struct statfs *buf, int sfd, void *fdpriva
 /* ALWAYS DELETE SYSCALLS */
 int vu_vufs_unlink (const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-  vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_UNLINK);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
-        retval = unlinkat(vufs->rdirfd, path, 0);
-        break;
-      case VUFSA_DOVIRT:
-        retval = unlinkat(vufs->vdirfd, path, 0);
-        break;
-      case VUFSA_VUNLINK:
+	vufsa_status status = VUFSA_START;
+	int retval;
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_UNLINK);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = unlinkat(vufs->rdirfd, path, 0);
+				break;
+			case VUFSA_DOVIRT:
+				retval = unlinkat(vufs->vdirfd, path, 0);
+				break;
+			case VUFSA_VUNLINK:
 				retval = vufs_whiteout(vufs->ddirfd, path);
 				break;
-      case VUFSA_FINAL:
+			case VUFSA_FINAL:
 				if (vufs->ddirfd >= 0)
 					vufstat_unlink(vufs->ddirfd, path);
 				break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
-  printkdebug(V, "UNLINK path:%s retvalue:%d", path, retval);
-  return retval;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
+	printkdebug(V, "UNLINK path:%s retvalue:%d", path, retval);
+	return retval;
 }
 
 int vu_vufs_rmdir(const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-	 vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
+	vufsa_status status = VUFSA_START;
+	int retval;
+	path += 1;
 	if (vufs_enotempty_ck(vufs, path) < 0)
 		retval = -1;
 	else {
@@ -350,82 +350,82 @@ int vu_vufs_rmdir(const char *path) {
 /* ALWAYS CREATE SYSCALLS */
 int vu_vufs_mkdir (const char *path, mode_t mode) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-  vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
+	vufsa_status status = VUFSA_START;
+	int retval;
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
 				retval = mkdirat(vufs->rdirfd, path, mode);
-        break;
-      case VUFSA_DOVIRT:
+				break;
+			case VUFSA_DOVIRT:
 				retval = mkdirat(vufs->vdirfd, path, mode);
 				if (retval >= 0 && vufs->ddirfd >= 0) {
 					struct vu_stat statbuf;
 					vufs_newfilestat(vufs, path, &statbuf, 0, mode);
 				}
-        break;
+				break;
 			case VUFSA_FINAL:
 				// now virt file exists, no need for whiteout file
 				if (retval >=0)
 					vufs_dewhiteout(vufs->ddirfd, path);
 				break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
-  printkdebug(V, "MKDIR path:%s mode:%o retvalue:%d", path, mode, retval);
-  return retval;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
+	printkdebug(V, "MKDIR path:%s mode:%o retvalue:%d", path, mode, retval);
+	return retval;
 }
 
 int vu_vufs_symlink (const char *target, const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-  vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
-        retval = symlinkat(target, vufs->rdirfd, path);
-        break;
-      case VUFSA_DOVIRT:
-        retval = symlinkat(target, vufs->vdirfd, path);
+	vufsa_status status = VUFSA_START;
+	int retval;
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = symlinkat(target, vufs->rdirfd, path);
+				break;
+			case VUFSA_DOVIRT:
+				retval = symlinkat(target, vufs->vdirfd, path);
 				if (retval >= 0 && vufs->ddirfd >= 0) {
 					struct vu_stat statbuf;
 					statbuf.st_mode = 0777;
 					vufs_newfilestat(vufs, path, &statbuf, VUFSTAT_MODE, 0);
 				}
-        break;
+				break;
 			case VUFSA_FINAL:
 				// now virt file exists, no need for whiteout file
 				if (retval >=0)
 					vufs_dewhiteout(vufs->ddirfd, path);
 				break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
-  printkdebug(V, "SYMLINK path:%s target:%s retvalue:%d", path, target, retval);
-  return retval;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
+	printkdebug(V, "SYMLINK path:%s target:%s retvalue:%d", path, target, retval);
+	return retval;
 }
 
 int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-  int retval;
-  path += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
-  while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
-        retval = mknodat(vufs->rdirfd, path, mode, dev);
-        break;
-      case VUFSA_DOVIRT:
-        retval = mknodat(vufs->vdirfd, path, mode, dev);
+	int retval;
+	path += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
+	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = mknodat(vufs->rdirfd, path, mode, dev);
+				break;
+			case VUFSA_DOVIRT:
+				retval = mknodat(vufs->vdirfd, path, mode, dev);
 				if (retval < 0 && vufs->ddirfd >= 0)
 					retval = mknodat(vufs->vdirfd, path,
 							(mode & ~S_IFMT) | S_IFREG, 0);
@@ -435,20 +435,20 @@ int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
 					buf.st_rdev = dev;
 					vufs_newfilestat(vufs, path, &buf, VUFSTAT_TYPE | VUFSTAT_RDEV, mode);
 				}
-        break;
-      case VUFSA_FINAL:
-        // now virt file exists, no need for whiteout file
-        if (retval >=0)
-          vufs_dewhiteout(vufs->ddirfd, path);
-        break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
-  printkdebug(V, "MKNOD path:%s mode:%o major:%d minor:%d retval:%d",
+				break;
+			case VUFSA_FINAL:
+				// now virt file exists, no need for whiteout file
+				if (retval >=0)
+					vufs_dewhiteout(vufs->ddirfd, path);
+				break;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
+	printkdebug(V, "MKNOD path:%s mode:%o major:%d minor:%d retval:%d",
 			path, mode, major(dev), minor(dev), retval);
-  return retval;
+	return retval;
 }
 
 /* LINK - RENAME */
@@ -472,9 +472,9 @@ int vu_vufs_link (const char *oldpath, const char *newpath) {
 						if (retval == 0) {
 							retval = linkat(vufs->vdirfd, oldpath, vufs->vdirfd, newpath, 0);
 							if (retval < 0) {
-                unlinkat(vufs->vdirfd, oldpath, 0);
-                vufstat_unlink(vufs->ddirfd, oldpath);
-              }
+								unlinkat(vufs->vdirfd, oldpath, 0);
+								vufstat_unlink(vufs->ddirfd, oldpath);
+							}
 						}
 						if (retval == 0)
 							vufstat_link(vufs->ddirfd, oldpath, newpath);
@@ -497,18 +497,18 @@ int vu_vufs_link (const char *oldpath, const char *newpath) {
 
 int vu_vufs_rename (const char *oldpath, const char *newpath, int flags) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-	  vufsa_status status = VUFSA_START;
-  int retval;
-  newpath += 1;
-  oldpath += 1;
-  vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
-  while ((status = vufsa_next(status, vufs, newpath, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
-        retval = syscall(__NR_renameat2, vufs->rdirfd, oldpath, vufs->rdirfd, newpath, flags);
-        break;
-      case VUFSA_DOVIRT:
-        retval = syscall(__NR_renameat2, vufs->vdirfd, oldpath, vufs->vdirfd, newpath, flags);
+	vufsa_status status = VUFSA_START;
+	int retval;
+	newpath += 1;
+	oldpath += 1;
+	vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
+	while ((status = vufsa_next(status, vufs, newpath, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
+				retval = syscall(__NR_renameat2, vufs->rdirfd, oldpath, vufs->rdirfd, newpath, flags);
+				break;
+			case VUFSA_DOVIRT:
+				retval = syscall(__NR_renameat2, vufs->vdirfd, oldpath, vufs->vdirfd, newpath, flags);
 				if (vufs->rdirfd >= 0) {
 					if (retval < 0 && errno == ENOENT && vufs->rdirfd >= 0) {
 						retval = vufs_copyfile(vufs, oldpath, MAXSIZE);
@@ -530,13 +530,13 @@ int vu_vufs_rename (const char *oldpath, const char *newpath, int flags) {
 				if (retval >=0)
 					vufs_dewhiteout(vufs->ddirfd, newpath);
 				break;
-      case VUFSA_ERR:
-        retval = -1;
-        break;
-    }
-  }
-  printkdebug(V, "RENAME oldpath:%s newpath:%s retvalue:%d", oldpath, newpath, retval);
-  return retval;
+			case VUFSA_ERR:
+				retval = -1;
+				break;
+		}
+	}
+	printkdebug(V, "RENAME oldpath:%s newpath:%s retvalue:%d", oldpath, newpath, retval);
+	return retval;
 	//return syscall(__NR_renameat2, vufs->vdirfd, newpath + 1, vufs->vdirfd, oldpath + 1, flags);
 }
 
@@ -552,8 +552,8 @@ static int fake_truncateat(const char *dir, const char *path, off_t length) {
 
 int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
 	if (sfd >= 0) {
-    return ftruncate(sfd, length);
-  } else {
+		return ftruncate(sfd, length);
+	} else {
 		struct vufs_t *vufs = vu_get_ht_private_data();
 		vufsa_status status = VUFSA_START;
 		int retval;
@@ -585,42 +585,42 @@ int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
 }
 
 int vu_vufs_utimensat (int dirfd, const char *path,
-    const struct timespec times[2], int flags, int sfd, void *fdprivate) {
+		const struct timespec times[2], int flags, int sfd, void *fdprivate) {
 	if (sfd >= 0) {
 		return futimens(sfd, times);
 	} else {
-		    struct vufs_t *vufs = vu_get_ht_private_data();
-    vufsa_status status = VUFSA_START;
-    int retval;
-    path += 1;
-    vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
-    while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
-      switch (status) {
-        case VUFSA_DOREAL:
-          retval = utimensat(vufs->rdirfd,
+		struct vufs_t *vufs = vu_get_ht_private_data();
+		vufsa_status status = VUFSA_START;
+		int retval;
+		path += 1;
+		vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
+		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
+			switch (status) {
+				case VUFSA_DOREAL:
+					retval = utimensat(vufs->rdirfd,
 							*path ? path : vufs->source,
 							times, flags | AT_SYMLINK_NOFOLLOW);
-          break;
-        case VUFSA_DOVIRT:
-          retval = utimensat(vufs->vdirfd,
+					break;
+				case VUFSA_DOVIRT:
+					retval = utimensat(vufs->vdirfd,
 							*path ? path : vufs->target,
 							times, flags | AT_SYMLINK_NOFOLLOW);
-          break;
-        case VUFSA_DOCOPY:
-          retval = vufs_copyfile(vufs, path, MAXSIZE);
-          // now virt file exists, no need for whiteout file
-          // maybe useless?
-          if (retval >=0)
-            vufs_dewhiteout(vufs->ddirfd, path);
-          break;
-        case VUFSA_ERR:
-          retval = -1;
-          break;
-      }
-    }
-    printkdebug(V, "UTIMENSAT path:%s retvalue:%d", path, retval);
-    return retval;
-  }
+					break;
+				case VUFSA_DOCOPY:
+					retval = vufs_copyfile(vufs, path, MAXSIZE);
+					// now virt file exists, no need for whiteout file
+					// maybe useless?
+					if (retval >=0)
+						vufs_dewhiteout(vufs->ddirfd, path);
+					break;
+				case VUFSA_ERR:
+					retval = -1;
+					break;
+			}
+		}
+		printkdebug(V, "UTIMENSAT path:%s retvalue:%d", path, retval);
+		return retval;
+	}
 }
 
 /* MODIFY STAT SYSCALLS */
@@ -674,11 +674,11 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 			case VUFSA_DOVIRT:
 				retval = fchmodat(vufs->vdirfd, path, mode, AT_EMPTY_PATH);
 				if (vufs->vdirfd >= 0) {
-          struct vu_stat statbuf = {.st_mode = mode};
+					struct vu_stat statbuf = {.st_mode = mode};
 					vufstat_update(vufs->ddirfd, path, &statbuf, VUFSTAT_MODE,
 							retval < 0 && (errno == EPERM || errno == ENOENT) ? O_CREAT : 0);
-          retval = 0;
-        }
+					retval = 0;
+				}
 				break;
 			case VUFSA_DOCOPY:
 				// copy on chmod?
@@ -697,19 +697,19 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-  int retval;
+	int retval;
 	const char *filepath;
 	mode_t oldmode = vu_mod_getmode();
-  pathname += 1;
+	pathname += 1;
 	if (flags == O_UNLINK) flags = O_PATH; //PATH+EXCL has the special meaning of UNLINK
-  vufsa_next vufsa_next = vufsa_select(vufs, flags);
-  while ((status = vufsa_next(status, vufs, pathname, retval)) != VUFSA_EXIT) {
-    switch (status) {
-      case VUFSA_DOREAL:
+	vufsa_next vufsa_next = vufsa_select(vufs, flags);
+	while ((status = vufsa_next(status, vufs, pathname, retval)) != VUFSA_EXIT) {
+		switch (status) {
+			case VUFSA_DOREAL:
 				filepath = *pathname ? pathname : vufs->target;
 				retval = openat(vufs->rdirfd, filepath, flags, mode);
-        break;
-      case VUFSA_DOVIRT:
+				break;
+			case VUFSA_DOVIRT:
 				filepath = *pathname ? pathname : vufs->source;
 				if ((flags & O_CREAT) && oldmode == 0) {
 					vufs_create_path(vufs->vdirfd, filepath, vufs_copyfile_create_path_cb, vufs);
@@ -718,8 +718,8 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 						vufs_destroy_path(vufs->vdirfd, filepath);
 				} else
 					retval = openat(vufs->vdirfd, filepath, flags, mode);
-        break;
-      case VUFSA_DOCOPY:
+				break;
+			case VUFSA_DOCOPY:
 				retval = vufs_copyfile(vufs, pathname, flags & O_TRUNC ? 0 : MAXSIZE);
 				break;
 			case VUFSA_FINAL:

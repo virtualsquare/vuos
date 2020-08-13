@@ -89,7 +89,7 @@ static void merge_timespec(struct timespec *ts, const char *s) {
 		nts.tv_nsec = 0;
 	if (nts.tv_sec > ts->tv_sec ||
 			(nts.tv_sec == ts->tv_sec && nts.tv_nsec > ts->tv_nsec))
-			*ts = nts;
+		*ts = nts;
 }
 
 static dev_t read_dev_t(const char *s) {

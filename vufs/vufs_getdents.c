@@ -34,23 +34,23 @@
 
 /* add an entry to the volatile stream for getdents */
 static int vufs_filldir_entry(FILE *f, const char *name, unsigned char type, __ino64_t ino) {
-  struct dirent64 entry = {
-    .d_ino = ino,
-    .d_type = type,
-    .d_off = ftello(f),
-  };
-  static char filler[7];
-  unsigned short int namelen = strlen(name) + 1;
-  unsigned short int reclen  = offsetof(struct dirent64, d_name) + namelen;
-  int ret_value;
-  snprintf(entry.d_name, 256, "%s", name);
-  /* entries are always 8 bytes aligned */
-  entry.d_reclen = (reclen + 7) & (~7);
-  ret_value = fwrite(&entry, reclen, 1, f);
-  /* add a filler to align the next entry */
-  if (entry.d_reclen > reclen)
-    ret_value += fwrite(filler, entry.d_reclen - reclen, 1, f);
-  return 0;
+	struct dirent64 entry = {
+		.d_ino = ino,
+		.d_type = type,
+		.d_off = ftello(f),
+	};
+	static char filler[7];
+	unsigned short int namelen = strlen(name) + 1;
+	unsigned short int reclen  = offsetof(struct dirent64, d_name) + namelen;
+	int ret_value;
+	snprintf(entry.d_name, 256, "%s", name);
+	/* entries are always 8 bytes aligned */
+	entry.d_reclen = (reclen + 7) & (~7);
+	ret_value = fwrite(&entry, reclen, 1, f);
+	/* add a filler to align the next entry */
+	if (entry.d_reclen > reclen)
+		ret_value += fwrite(filler, entry.d_reclen - reclen, 1, f);
+	return 0;
 }
 
 /* check if a name is in the list of already seen names*/
@@ -58,11 +58,11 @@ static int vufs_filldir_entry(FILE *f, const char *name, unsigned char type, __i
 	 an empty entry is the tag of the end of list */
 static int vufs_seen_entry(char *s, char *list) {
 	char *scan = list;
-  while (*scan) {
+	while (*scan) {
 		if (strcmp(s, scan) == 0)
 			return 1;
-    scan += strlen(scan) + 1;
-  }
+		scan += strlen(scan) + 1;
+	}
 	return 0;
 }
 
@@ -135,8 +135,8 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	int vufs_type = vufs->flags & VUFS_TYPEMASK;
-  if (vufs_type == VUFS_MOVE)
-    return syscall(__NR_getdents64, fd, dirp, count);
+	if (vufs_type == VUFS_MOVE)
+		return syscall(__NR_getdents64, fd, dirp, count);
 	else if (fdprivate != NULL) {
 		int retval;
 		pthread_mutex_lock(&(vufs->mutex));
@@ -192,7 +192,7 @@ static int skipdir(const char *name, int dotdelete) {
 
 static int vufs_enotempty_dir(int fd, int dfd, int dotdelete) {
 	DIR *dir;
-  struct dirent *de;
+	struct dirent *de;
 	int retval = 0;
 	int errno_copy;
 	dir = fdopendir(fd);
