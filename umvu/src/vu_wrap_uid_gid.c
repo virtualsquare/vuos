@@ -412,9 +412,10 @@ void wi_setgroups(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 		else
 			sd->ret_value = ret_value;
+		sd->action = SKIPIT;
 	} else if (nested) {
 		sd->ret_value = -ENOSYS;
-    sd->action = SKIPIT;
+		sd->action = SKIPIT;
 	} else { // !ht && !nested
 		sd->action = DOIT_CB_AFTER;
 	}
