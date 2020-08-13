@@ -81,6 +81,12 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 							return -1;
 						}
 						break;
+					case STRCASE(n,o,c,h,c,o,p,y):
+						if (args[i] != NULL) {
+							printk(KERN_ERR "vufs: %s need no args\n", tags[i]);
+							return -1;
+						}
+						break;
 					default:
 						printk(KERN_ERR "vufs: %s unknown tag\n", tags[i]);
 						return -1;
@@ -108,6 +114,9 @@ static int set_mount_options(const char *input, struct vufs_t *vufs) {
 						break;
 					case STRCASE(m,i,n,c,o,w):
 						vufs->flags |= VUFS_MINCOW;
+						break;
+					case STRCASE(n,o,c,h,c,o,p,y):
+						vufs->flags |= VUFS_NOCHCOPY;
 						break;
 				}
 			}

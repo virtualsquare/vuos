@@ -648,8 +648,8 @@ int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdp
 				}
 				break;
 			case VUFSA_DOCOPY:
-				// copy on chown?
-				// retval = vufs_copyfile(vufs, pathname, flags & O_TRUNC ? 0 : MAXSIZE);
+				if ((vufs->flags & VUFS_NOCHCOPY) == 0)
+					retval = vufs_copyfile(vufs, path, MAXSIZE);
 				break;
 			case VUFSA_ERR:
 				retval = -1;
@@ -681,8 +681,8 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 				}
 				break;
 			case VUFSA_DOCOPY:
-				// copy on chmod?
-				// retval = vufs_copyfile(vufs, pathname, flags & O_TRUNC ? 0 : MAXSIZE);
+				if ((vufs->flags & VUFS_NOCHCOPY) == 0)
+					retval = vufs_copyfile(vufs, path, MAXSIZE);
 				break;
 			case VUFSA_ERR:
 				retval = -1;

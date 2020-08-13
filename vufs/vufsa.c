@@ -105,7 +105,7 @@ static vufsa_status vufsa_rdonly(vufsa_status status,
 	return VUFSA_EXIT;
 }
 
-static vufsa_status vufsa_move(vufsa_status status,
+static vufsa_status vufsa_bind(vufsa_status status,
 		struct vufs_t *vufs, const char *path, int rv) {
 	switch (status) {
 		case VUFSA_START:
@@ -354,8 +354,8 @@ static vufsa_status vufsa_err(vufsa_status status,
 
 vufsa_next vufsa_select(struct vufs_t *vufs, int open_flags) {
 	int vufs_type = vufs->flags & VUFS_TYPEMASK;
-	if (vufs_type == VUFS_MOVE)
-		return vufsa_move;
+	if (vufs_type == VUFS_BIND)
+		return vufsa_bind;
 	if (vufs_type == VUFS_MERGE) {
 		if (o_is_creat_excl(open_flags))
 			return vufsa_merge;

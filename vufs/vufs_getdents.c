@@ -135,7 +135,7 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	int vufs_type = vufs->flags & VUFS_TYPEMASK;
-	if (vufs_type == VUFS_MOVE)
+	if (vufs_type == VUFS_BIND)
 		return syscall(__NR_getdents64, fd, dirp, count);
 	else if (fdprivate != NULL) {
 		int retval;
