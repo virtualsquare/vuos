@@ -254,7 +254,7 @@ static vufsa_status vufsa_mincow(vufsa_status status,
 			else
 				return VUFSA_DOREAL;
 		case VUFSA_DOREAL:
-			if (rv < 0 && errno == EACCES)
+			if (rv < 0 && (errno == EACCES || errno == EPERM))
 				return VUFSA_DOCOPY;
 			else
 				return VUFSA_FINAL;
@@ -287,7 +287,7 @@ static vufsa_status vufsa_mincow_creat(vufsa_status status,
 			} else
 				return VUFSA_DOREAL;
 		case VUFSA_DOREAL:
-			if (rv < 0 && (errno == EACCES || errno == ENOENT))
+			if (rv < 0 && (errno == EACCES || errno == ENOENT || errno == EPERM))
 				return VUFSA_DOVIRT;
 			else
 				return VUFSA_FINAL;
@@ -320,7 +320,7 @@ static vufsa_status vufsa_mincow_unlink(vufsa_status status,
 				return VUFSA_ERR;
 			}
 		case VUFSA_DOREAL:
-			if (rv < 0 && errno == EACCES)
+			if (rv < 0 && (errno == EACCES || errno == EPERM))
 				return VUFSA_VUNLINK;
 			else
 				return VUFSA_FINAL;

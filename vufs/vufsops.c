@@ -517,10 +517,8 @@ int vu_vufs_rename (const char *oldpath, const char *newpath, int flags) {
 							if (retval < 0) {
 								unlinkat(vufs->vdirfd, oldpath, 0);
 								vufstat_unlink(vufs->ddirfd, oldpath);
-							} else {
-								int rv = vufs_whiteout(vufs->ddirfd, oldpath);
-								printk("vufs_whiteout ret %d\n", rv);
-							}
+							} else
+								vufs_whiteout(vufs->ddirfd, oldpath);
 						}
 					}
 					if (retval >= 0)
