@@ -40,6 +40,7 @@
 #include <service.h>
 #include <path_utils.h>
 #include <vu_wrapper_utils.h>
+#include <vu_access_emu.h>
 
 /* lstat stat fstat fstatat/newfstatat */
 void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
@@ -138,26 +139,36 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int ret_value;
 		/* args */
 		int mode;
-		int flags;
+		/* flag = 0. faccessat syscall has three args.
+			 left here hoping that a future syscall will be POSIX 2008 compliant */
+		int flags = 0;
 		/* local bufs */
 		/* fetch args */
 		switch (syscall_number) {
 			case __NR_access:
 				mode = sd->syscall_args[1];
-				flags = 0;
 				break;
 			case __NR_faccessat:
 				mode = sd->syscall_args[2];
-				flags = 0;
 				break;
 		}
 		/* call */
 		sd->action = SKIPIT;
+		/* Alternative #1: try the module's implementation of access and
+			 fall back on access emu if the module does not implement it. */
 		ret_value = service_syscall(ht, __VU_access)(sd->extra->mpath, mode, flags);
 		if (ret_value < 0) {
-			sd->ret_value = -errno;
-			return;
+			if (errno == ENOSYS)
+				ret_value = vu_access_emu(&sd->extra->statbuf, mode, flags);
+			else {
+				sd->ret_value = -errno;
+				return;
+			}
 		}
+		/* Alternative #2: use the emulator anyway. */
+#if 0
+		ret_value = vu_access_emu(&sd->extra->statbuf, mode, flags);
+#endif
 		/* store results */
 		sd->ret_value = ret_value;
 	}

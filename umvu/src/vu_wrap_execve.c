@@ -47,6 +47,7 @@
 #include <vu_wrapper_utils.h>
 #include <vu_mod_inheritance.h>
 #include <vu_fnode_copy.h>
+#include <vu_access_emu.h>
 #include <vu_chroot_exec.h>
 
 /* management of execve */
@@ -227,10 +228,7 @@ static int existence_check(struct syscall_descriptor_t *sd, struct vu_stat *buf)
 
 static int xok_check(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path) {
 	int ret_value;
-	if (ht)
-		ret_value = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, path), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-	else
-		ret_value = r_faccessat(AT_FDCWD, path, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
+	ret_value = vu_access_emu(&sd->extra->statbuf, X_OK, AT_EACCESS);
 	if (ret_value != 0) {
 		sd->ret_value = -errno;
 		sd->action = SKIPIT;

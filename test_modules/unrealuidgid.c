@@ -156,11 +156,13 @@ int vu_unrealuidgid_getgroups(int size, gid_t list[], void *private) {
 	if (vu_uid_gid != NULL) {
     pthread_rwlock_rdlock(&vu_uid_gid->lock);
 		ret_value = vu_uid_gid->ngroups;
-		if (size < vu_uid_gid->ngroups) {
-			ret_value = -1;
-			errno = EINVAL;
-		} else
-			memcpy(list, vu_uid_gid->groups, vu_uid_gid->ngroups * sizeof(gid_t));
+		if (size != 0) {
+			if (size < vu_uid_gid->ngroups) {
+				ret_value = -1;
+				errno = EINVAL;
+			} else
+				memcpy(list, vu_uid_gid->groups, vu_uid_gid->ngroups * sizeof(gid_t));
+		}
 		pthread_rwlock_unlock(&vu_uid_gid->lock);
 		return ret_value;
 	} else

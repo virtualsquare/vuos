@@ -157,10 +157,12 @@ int vu_vunet_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void
 	return 0;
 }
 
-//int vu_vunet_access(char *path, int mode, int flags) {
-//	/* access control */
-//	return 0;
-//}
+#if 0
+int vu_vunet_access(char *path, int mode, int flags) {
+	/* access control */
+	return 0;
+}
+#endif
 
 int vu_vunet_chmod(const char *pathname, mode_t mode, int fd, void *fdprivate) {
 	struct vunet *vunet = vu_get_ht_private_data();

@@ -39,6 +39,7 @@
 #include <vu_log.h>
 #include <path_utils.h>
 #include <vu_execute.h>
+#include <vu_access_emu.h>
 
 #define DEFAULT_REALPATH_FLAGS (PERMIT_NONEXISTENT_LEAF | CHECK_S_IXALL_ON_DIRS)
 
@@ -214,16 +215,6 @@ static inline mode_t get_lmode(struct vuht_entry_t *ht,
 	return buf->st_mode;
 }
 
-static inline mode_t get_dirxok(struct vuht_entry_t *ht,
-    const char *pathname) {
-	int retval;
-	if (ht)
-		retval = service_syscall(ht,__VU_access)(vuht_path2mpath(ht, pathname), X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-	else
-		retval = r_faccessat(AT_FDCWD, pathname, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW);
-	return retval == 0 ? S_IXALL : 0;
-}
-	
 static mode_t vu_lmode(const char *pathname, void *private) {
 	struct vuht_entry_t *ht;
 	struct realpath_arg_t *arg = private;
@@ -236,8 +227,17 @@ static mode_t vu_lmode(const char *pathname, void *private) {
 
 	retval = get_lmode(ht, pathname, arg->statbuf);
 
-	if (S_ISDIR(retval) && (retval & S_IXALL) != S_IXALL)
-		retval |= get_dirxok(ht, pathname);
+	/* ALTERNATIVE #1: use vu_access_emu to decide if the dir is XOK */
+#if 0
+	if (S_ISDIR(retval) && (retval & S_IXALL) != S_IXALL &&
+			vu_access_emu(buf, X_OK, AT_EACCESS | AT_SYMLINK_NOFOLLOW) == 0)
+		retval |= S_IXALL;
+#endif
+
+	/* ALTERNATIVE #2: mimic root 
+		 ok to cd is it is OKX for somebody */
+	if (S_ISDIR(retval) && (retval & S_IXALL) != 0)
+		retval |= S_IXALL;
 
 	if (ht) {
 		arg->need_rewrite = 1;

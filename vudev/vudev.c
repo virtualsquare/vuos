@@ -192,9 +192,11 @@ ssize_t vu_vudev_pwrite64(int fd, const void *buf, size_t count, off_t offset, i
 	return retval;
 }
 
+#if 0
 int vu_vudev_access(char *path, int mode, int flags) {
 	return 0;
 }
+#endif
 
 off_t vu_vudev_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;

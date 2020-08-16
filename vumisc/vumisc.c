@@ -173,9 +173,11 @@ int vu_vumisc_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, voi
 		return errno = ENOENT, -1;
 }
 
+#if 0
 int vu_vumisc_access(char *path, int mode, int flags) {
 	return 0;
 }
+#endif
 
 ssize_t vu_vumisc_readlink(char *path, char *buf, size_t bufsiz) {
 	struct vumisc_t *vumisc = vu_get_ht_private_data();

@@ -62,10 +62,12 @@ ssize_t vu_mountreal_readlink(char *path, char *buf, size_t bufsiz) {
 	return readlink(unwrap(path, pathbuf, PATH_MAX), buf, bufsiz);
 }
 
+#if 0
 int vu_mountreal_access(char *path, int mode, int flags) {
 	char pathbuf[PATH_MAX];
 	return faccessat(AT_FDCWD, unwrap(path, pathbuf, PATH_MAX), mode, flags);
 }
+#endif
 
 int vu_mountreal_open(const char *pathname, int flags, mode_t mode, void **private) {
 	char pathbuf[PATH_MAX];

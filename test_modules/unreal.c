@@ -65,9 +65,11 @@ int vu_unreal_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int co
 	return syscall(__NR_getdents64, fd, dirp, count);
 }
 
+#if 0
 int vu_unreal_access(char *path, int mode, int flags) {
 	return faccessat(AT_FDCWD, path, mode, flags);
 }
+#endif
 
 static struct vuht_entry_t *ht1,*ht2;
 

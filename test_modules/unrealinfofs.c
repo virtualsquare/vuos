@@ -187,9 +187,11 @@ int vu_unrealinfofs_lstat(char *pathname, struct vu_stat *buf, int flags, int sf
 	}
 }
 
+#if 0
 int vu_unrealinfofs_access(char *path, int mode, int flags) {
 	return 0;
 }
+#endif
 
 ssize_t vu_unrealinfofs_readlink(char *path, char *buf, size_t bufsiz) {
 	return pseudofile_readlink_fill(infofs_getinfo(path)->upcall_private, buf, bufsiz);
