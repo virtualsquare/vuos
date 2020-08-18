@@ -680,8 +680,9 @@ ssize_t vu_vufuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, 
 }
 
 static int vufuse_common_filldir(FILE *f, const char *name, unsigned char type, __ino64_t ino) {
+	/* glibc hides enries having d_ino == 0 */
 	struct dirent64 entry = {
-		.d_ino = ino,
+		.d_ino = ino == 0 ? (ino_t) -1 : ino,
 		.d_type = type,
 		.d_off = ftello(f),
 	};
