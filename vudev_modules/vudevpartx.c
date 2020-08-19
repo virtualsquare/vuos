@@ -357,11 +357,13 @@ int vumbr_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vde
 
 void *vumbr_init(const char *source, unsigned long flags, const char *args, struct vudev_t *vudev) {
 	struct vumbr_t *vumbr;
+	int open_flags =
+		(flags & MS_RDONLY) ? O_RDONLY|O_CLOEXEC : O_RDWR|O_CLOEXEC;
 	if((vumbr = calloc(1, sizeof(struct vumbr_t))) == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	if((vumbr->fd = open(source, O_RDWR|O_CLOEXEC)) == -1) {
+	if((vumbr->fd = open(source, open_flags)) == -1) {
 		free(vumbr);
 		return NULL;
 	}

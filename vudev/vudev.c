@@ -415,7 +415,7 @@ err_init_null:
 		pthread_mutex_unlock(&(new->mutex));
 		free(new);
 		dlclose(dlhandle);
-		errno = EINVAL;
+		if (errno == 0) errno = EINVAL;
 		return -1;
 err_nomem_dev:
 		dlclose(dlhandle);
