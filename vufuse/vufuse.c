@@ -73,8 +73,17 @@ static void *fusethread(void *vsmo) {
 int vu_vufuse_mount(const char *source, const char *target,
 		const char *filesystemtype, unsigned long mountflags,
 		const void *data) {
+	void *dlhandle;
 
-	void *dlhandle = vu_mod_dlopen(filesystemtype, RTLD_NOW);
+	if ((dlhandle = vu_mod_dlopen(filesystemtype, RTLD_NOW | RTLD_NOLOAD)) != NULL) {
+		if (dlsym(dlhandle, "fuse_reentrant_tag") == NULL) {
+			printk("non-reentrant vufuse submodule %s already loaded\n", filesystemtype);
+			errno = EBUSY;
+			return -1;
+		}
+	}
+
+	dlhandle = vu_mod_dlopen(filesystemtype, RTLD_NOW);
 	int (*pmain)(int argc, char **argv);
 
 	//printk("vu_vufuse_mount %s %s %s 0x%x %s\n", source, target, filesystemtype, mountflags, data);

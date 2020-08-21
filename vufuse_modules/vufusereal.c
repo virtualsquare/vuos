@@ -43,6 +43,8 @@
 #define PATH_MAX 4096
 #endif
 
+int fuse_reentrant_tag = 0;
+
 #define GETPATH(source, path) \
 	char path ## _fullpath [PATH_MAX]; \
 	sprintf( (path ## _fullpath) , "%s%s", (strcmp(source,"/")) ? source : "", path); \
