@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <string.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -101,6 +102,7 @@ int vu_vufuse_mount(const char *source, const char *target,
 		new_fuse->mountflags = mountflags;
 		new_fuse->fuseflags = 0;
 		new_fuse->inuse = WAITING_FOR_LOOP;
+		new_fuse->fake_chan_fd = -1;
 
 		new_fuse->private_data = NULL;
 
@@ -170,6 +172,8 @@ static void vufuse_umount_internal(struct fuse *fuse) {
 
 	pthread_mutex_lock( &condition_mutex );
 	fuse->inuse= EXITING;
+	if (fuse->fake_chan_fd != -1)
+		close(fuse->fake_chan_fd);
 	pthread_cond_signal(&fuse->endloop);
 	pthread_mutex_unlock( &condition_mutex );
 	pthread_join(fuse->thread, NULL);
@@ -267,7 +271,6 @@ struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
 	return vu_get_ht_private_data();
 }
 
-
 void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
 {
 	return;
@@ -340,7 +343,6 @@ int fuse_loop(struct fuse *f)
 	return 0;
 }
 
-
 void fuse_exit(struct fuse *f)
 {
 	/**
@@ -358,8 +360,38 @@ int fuse_loop_mt(struct fuse *f)
 	return fuse_loop(f);
 }
 
+/* other dummy functions. useless for vufuse */
+struct fuse_session *fuse_get_session(struct fuse *f) {
+  return NULL;
+}
 
+int fuse_set_signal_handlers(struct fuse_session *se) {
+  return 0;
+}
 
+void fuse_remove_signal_handlers(struct fuse_session *se) {
+}
+
+int fuse_daemonize(int foreground) {
+  return 0;
+}
+
+int fuse_parse_cmdline(struct fuse_args *args, char **mountpoint,
+		int *multithreaded, int *foreground) {
+  *mountpoint = strdup("");
+  *multithreaded = 0;
+  *foreground = 1;
+	return 0;
+}
+
+int fuse_chan_fd(struct fuse_chan *ch) {
+	struct fuse *fuse = vu_get_ht_private_data();
+	if (fuse->fake_chan_fd == -1)
+		fuse->fake_chan_fd = open("/", O_PATH);
+	return fuse->fake_chan_fd;
+}
+
+/* constructor / destructor */
 __attribute__((constructor))
 	static void init(void) {
 		debug_set_name(F, "VUFUSE");
