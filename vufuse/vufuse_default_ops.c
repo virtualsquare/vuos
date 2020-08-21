@@ -234,6 +234,24 @@ static int vustd_fgetattr (const char *path, struct stat *buf, struct fuse_file_
 	return -ENOSYS;
 }
 
+static int vustd_lock (const char *path, struct fuse_file_info *fileinfo, int cmd, struct flock *fl)
+{
+	printkdebug(F,"DEFAULT lock %s\n", path);
+	return -ENOSYS;
+}
+
+static int vustd_utimens(const char *path, const struct timespec tv[2])
+{
+  printkdebug(F,"DEFAULT utimens %s\n", path);
+  return -ENOSYS;
+}
+
+static int vustd_bmap (const char *path, size_t blocksize, uint64_t *idx)
+{
+  printkdebug(F,"DEFAULT bmap %s\n", path);
+  return -ENOSYS;
+}
+
 struct fuse_operations vufuse_default_ops = {
 	.getattr = vustd_getattr,
 	.readlink = vustd_readlink,
@@ -271,4 +289,7 @@ struct fuse_operations vufuse_default_ops = {
 	.create = vustd_create,
 	.ftruncate = vustd_ftruncate,
 	.fgetattr = vustd_fgetattr,
+	.lock = vustd_lock,
+	.utimens = vustd_utimens,
+	.bmap = vustd_bmap,
 };

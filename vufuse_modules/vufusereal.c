@@ -256,7 +256,7 @@ int op_utimens(const char *path, const struct timespec tv[2]){
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
 
-	int rv = utimensat(-1,path,tv,0);
+	int rv = utimensat(AT_FDCWD,path,tv,0);
 
 	RETURN(rv);
 }

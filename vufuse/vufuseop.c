@@ -874,3 +874,33 @@ int vu_vufuse_rename (const char *target, const char *linkpath, int flags) {
 	} else
 		return rv;
 }
+
+int vu_vufuse_utimensat(int dirfd, const char *pathname,
+		const struct timespec times[2], int flags, int fd, void *private) {
+	int rv;
+  struct fuse_context fc, *ofc;
+	ofc = fuse_push_context(&fc);
+	if (fc.fuse->mountflags & MS_RDONLY) {
+    fuse_pop_context(ofc);
+    errno = EROFS;
+    return -1;
+  }
+  pthread_mutex_lock(&(fc.fuse->mutex));
+
+	rv = fc.fuse->fops.utimens(pathname, times);
+	if (rv == -ENOSYS) {
+		struct utimbuf utimes = {times[0].tv_sec, times[1].tv_sec}; 
+		rv = fc.fuse->fops.utime(pathname, &utimes);
+	}
+
+  fuse_pop_context(ofc);
+	pthread_mutex_unlock(&(fc.fuse->mutex));
+
+  printkdebug(F,"UTIME path:%s", pathname);
+
+  if (rv < 0) {
+    errno = -rv;
+    return -1;
+  } else
+    return rv;
+}
