@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <link.h>
 #include <vufuse.h>
 #include <vufuse_startmain.h>
 #include <vufuse_default_ops.h>
@@ -70,13 +71,34 @@ static void *fusethread(void *vsmo) {
 	return NULL;
 }
 
+
+/* There are two ways to notify vufuse that the submodule is reentrant:
+	 MAIN MODE: there is a symbol "fuse_reentrant_tag" in the library
+	 e.g int fuse_reentrant_tag = 0;
+	 SECONDARY/BACKUP MODE: add a file vdefusexxxxx.re ins the same directory where
+	 vdefusexxxxx.so is loaded */
+static int secondary_reentrancy_test(void *handle) {
+	struct link_map *lm;
+	if (dlinfo(handle, RTLD_DI_LINKMAP, &lm) == 0) {
+		int pathlen = strlen(lm->l_name) + 1;
+		char tagpath[pathlen];
+		struct stat buf;
+		snprintf(tagpath, pathlen, "%*.*s.re", pathlen - 4, pathlen - 4, lm->l_name);
+		//printk("SECONDARY %s %s\n", lm->l_name, tagpath);
+		if (stat(tagpath, &buf) == 0)
+			return 1;
+	}
+	return 0;
+}
+
 int vu_vufuse_mount(const char *source, const char *target,
 		const char *filesystemtype, unsigned long mountflags,
 		const void *data) {
 	void *dlhandle;
 
 	if ((dlhandle = vu_mod_dlopen(filesystemtype, RTLD_NOW | RTLD_NOLOAD)) != NULL) {
-		if (dlsym(dlhandle, "fuse_reentrant_tag") == NULL) {
+		if (dlsym(dlhandle, "fuse_reentrant_tag") == NULL &&
+				secondary_reentrancy_test(dlhandle) == 0) {
 			printk("non-reentrant vufuse submodule %s already loaded\n", filesystemtype);
 			errno = EBUSY;
 			return -1;
