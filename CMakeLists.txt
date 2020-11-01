@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.13)
 project("vuos")
 
 include(GNUInstallDirs)
@@ -10,9 +10,9 @@ add_definitions(-D_GNU_SOURCE)
 execute_process(COMMAND echo ${add_definitions} RESULT_VARIABLE rv)
 execute_process(COMMAND pwd RESULT_VARIABLE rv)
 
-set(MODULES_INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/lib/vu/modules)
-set(CONFIGURATION_DIR_PATH ${CMAKE_INSTALL_PREFIX}/etc)
-set(HEADERS_INSTALL_PATH ${CMAKE_INSTALL_PREFIX}/include)
+set(MODULES_INSTALL_PATH ${CMAKE_INSTALL_FULL_LIBDIR}/vu/modules)
+set(CONFIGURATION_DIR_PATH ${CMAKE_INSTALL_FULL_SYSCONFDIR})
+set(HEADERS_INSTALL_PATH ${CMAKE_INSTALL_FULL_INCLUDEDIR})
 set(VU_HEADERS ${PROJECT_SOURCE_DIR}/include)
 set(VU_DYN_SOURCE_PATH ${CMAKE_BINARY_DIR}/umvu_dynsrc)
 set(VU_DYN_HEADER_PATH ${CMAKE_BINARY_DIR}/include)
@@ -49,3 +49,6 @@ add_subdirectory(vufuse_modules)
 add_subdirectory(vudev_modules)
 add_subdirectory(vumisc_modules)
 add_subdirectory(man)
+
+add_custom_target(uninstall
+  "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/Uninstall.cmake")
