@@ -2,32 +2,48 @@
 import sys
 import os
 
-syscall_names = {}
+syscall_names = []
 for line in sys.stdin:
 	fields = line.split()
 	if len(fields) == 3 and fields[0] == '#define':
-		name, value = fields[1:3]
+		name = fields[1]
 		if name[:5] == '__NR_':
-			syscall_names[int(value)] = name[5:]
+			syscall_names.insert(0, name[5:])
 
-print('''#define UNKNOWN_SYSTEM_CALL "unknown"
+print('''#include<sys/syscall.h>
+#include<stddef.h>
+struct syscallname {
+  int sysno;
+  char *syscall_name;
+  struct syscallname *next;
+};
 
-static const char *syscallname_table[] = {''')
-if syscall_names:
-	nmax = max(syscall_names.keys())
-	for i in range(nmax + 1):
-		if i in syscall_names:
-			print(f'\t"{syscall_names[i]}",')
-		else:
-			print('UNKNOWN_SYSTEM_CALL,')
-else:
-			print('UNKNOWN_SYSTEM_CALL,')
-print('''};
+static struct syscallname syscallname_table[] = {''')
+for name in syscall_names:
+  print('''#ifdef __NR_{0}
+			{{__NR_{0}, "{0}", NULL}},
+#endif'''.format(name))
+print('};')
+print('''
+#define SYSCALLNAME_TABLE_LEN (sizeof(syscallname_table) / sizeof(*syscallname_table))
+#define SYSCALLNAME_HASHMASK 255
+static struct syscallname *syscall_name_hash[SYSCALLNAME_HASHMASK + 1];
 
-#define SYSCALL_NAME_TABLE_SIZE (sizeof(syscallname_table)/sizeof(*syscallname_table))
 const char *syscallname(int sysno) {
-  if (sysno >= 0 && sysno < (int) SYSCALL_NAME_TABLE_SIZE)
-    return syscallname_table[sysno];
-  else
-    return UNKNOWN_SYSTEM_CALL;
+	int key = sysno & SYSCALLNAME_HASHMASK;
+	struct syscallname *scan;
+	for (scan = syscall_name_hash[key]; scan != NULL; scan = scan->next)
+		if (sysno == scan->sysno)
+			return scan->syscall_name;
+	return "unknown";
+}
+
+__attribute__((constructor))
+	static void init (void) {
+		unsigned int i;
+		for (i = 0; i < SYSCALLNAME_TABLE_LEN; i++) {
+			int key = syscallname_table[i].sysno & SYSCALLNAME_HASHMASK;
+			syscallname_table[i].next = syscall_name_hash[key];
+			syscall_name_hash[key] = &syscallname_table[i];
+		}
 }''')
