@@ -89,7 +89,6 @@ static void *module_dlopen(const char *modname, int flags)
 	if ((handle = dlopen(modname, flags)))
 		return handle;
 
-	TRY_DLOPEN("%s%s", modname, MODULES_EXT);
 	TRY_DLOPEN("%s%s/%s", homedir, USER_MODULES_PATH, modname);
 	TRY_DLOPEN("%s%s/%s%s", homedir, USER_MODULES_PATH, modname, MODULES_EXT);
 	TRY_DLOPEN("%s/%s", MODULES_INSTALL_PATH, modname);
