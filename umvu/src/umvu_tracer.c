@@ -75,7 +75,7 @@ static struct sock_filter seccomp_filter[] = {
   BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_restart_syscall, 0, 1),
   BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
 
-  BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_poll, 0, 3),
+  BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ppoll, 0, 3),
   BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, args[0])),
   BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 1, 0, 1),
   BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
@@ -195,10 +195,11 @@ static void block_tracee(pid_t tid, struct user_regs_struct *regs)
 	 * actually it uses poll((struct pollfd *)1, 0, -1):
 	 *        the first arg is ignored as the second is zero.
 	 *        the first arg is a tag for the BPF program */
-	sys_modified.syscall_number = __NR_poll;
+	sys_modified.syscall_number = __NR_ppoll;
 	sys_modified.syscall_args[0] = 1;
 	sys_modified.syscall_args[1] = 0;
-	sys_modified.syscall_args[2] = -1;
+	sys_modified.syscall_args[2] = 0; // NULL
+	sys_modified.syscall_args[3] = 0; // NULL
 	umvu_poke_syscall(regs, &sys_modified, POKE_ARGS);
 	P_SETREGS_NODIE(tid, regs);
 	sys_orig.prog_counter -= SYSCALL_INSTRUCTION_LEN;

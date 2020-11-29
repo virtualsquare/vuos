@@ -107,11 +107,12 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			} else {
 				sd->inout = fnode;
 				sd->ret_value = ret_value;
-				/* change the call to "open(vopen, O_CREAT | O_RDWR, 0600)" */
-				sd->syscall_number = __NR_open;
+				/* change the call to "openat(AT_FDCWD, vopen, O_CREAT | O_RDWR, 0600)" */
+				sd->syscall_number = __NR_openat;
+				sd->syscall_args[0] = AT_FDCWD;
 				rewrite_syspath(sd, vu_fnode_get_vpath(fnode));
-				sd->syscall_args[1] = O_CREAT | O_RDWR | (flags & O_CLOEXEC);
-				sd->syscall_args[2] = 0600;
+				sd->syscall_args[2] = O_CREAT | O_RDWR | (flags & O_CLOEXEC);
+				sd->syscall_args[3] = 0600;
 				sd->action = DOIT_CB_AFTER;
 			}
 		}

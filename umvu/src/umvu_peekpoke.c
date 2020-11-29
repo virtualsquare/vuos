@@ -122,10 +122,11 @@ void umvu_unblock(void) {
 }
 
 void umvu_block(struct syscall_descriptor_t *sd) {
-	sd->syscall_number = __NR_poll;
+	sd->syscall_number = __NR_ppoll;
 	sd->syscall_args[0] = 0;
 	sd->syscall_args[1] = 0;
-	sd->syscall_args[2] = -1;
+	sd->syscall_args[2] = 0; //NULL
+	sd->syscall_args[3] = 0; //NULL
 }
 
 /* return len or the offset of the next page boundary, whatever
