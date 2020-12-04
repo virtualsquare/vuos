@@ -165,10 +165,10 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name) 
 
 void module_unload(struct vu_service_t *service)
 {
-	printkdebug(m, "Unloading %s", service->mod->name);
 	fatal(service);
-	xfree(service);
+	printkdebug(m, "Unloading %s", service->mod->name);
 	dlclose(service->dlhandle);
+	xfree(service);
 }
 
 voidfun *module_getsym(struct vu_service_t *service, char *symbol) {
