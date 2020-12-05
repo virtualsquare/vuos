@@ -56,6 +56,40 @@ static __thread struct vu_fd_table_t *vu_fd = NULL;
 
 #define VU_FD_TABLE(nested) (nested ? vu_n_fd : vu_fd)
 
+#ifdef VU_N_FD_LOCK_DEBUG
+
+#define pthread_rwlock_rdlock(X) do { \
+	if (X == &vu_n_fd->lock) { \
+		printk("pthread_rwlock_rdlock %d\n", __LINE__); \
+		pthread_rwlock_rdlock(X); \
+		printk("pthread_rwlock_rdlock done %d\n", __LINE__); \
+	} \
+	else \
+	pthread_rwlock_rdlock(X); \
+} while(0)
+
+#define pthread_rwlock_wrlock(X) do { \
+  if (X == &vu_n_fd->lock) { \
+    printk("pthread_rwlock_wrlock %d\n", __LINE__); \
+    pthread_rwlock_wrlock(X); \
+    printk("pthread_rwlock_wrlock done %d\n", __LINE__); \
+  } \
+  else \
+  pthread_rwlock_wrlock(X); \
+} while(0)
+
+#define pthread_rwlock_unlock(X) do { \
+  if (X == &vu_n_fd->lock) { \
+    printk("pthread_rwlock_unlock %d\n", __LINE__); \
+    pthread_rwlock_unlock(X); \
+    printk("pthread_rwlock_unlock done %d\n", __LINE__); \
+  } \
+  else \
+  pthread_rwlock_unlock(X); \
+} while(0)
+
+#endif
+
 static struct vu_fd_table_t *vu_fd_create(void) {
 	struct vu_fd_table_t *newfd;
 
