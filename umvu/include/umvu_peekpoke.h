@@ -3,22 +3,23 @@
 
 /* umvu_peekpoke: exchange data with the traced/virtualized process */
 
+#include <sys/user.h>
+#include <sys/types.h>
+#include <stdint.h>
+
 /*Architecture dependent part*/
 #if defined(__x86_64__) || defined(__i386__)
 
 #define SYSCALL_ARG_NR 6
 typedef unsigned long int syscall_arg_t;
 #define SYSCALL_INSTRUCTION_LEN 2
+typedef struct user_regs_struct arch_regs_struct;
 
 #else
 
 #error Unsupported architecture
 
 #endif
-
-#include <sys/user.h>
-#include <sys/types.h>
-#include <stdint.h>
 
 /* helper Macros */
 #define SYSARG(type, sd, i) (type) sd->syscall_args[i]
@@ -138,7 +139,7 @@ void umvu_unblock(void);
 	 otherwise (PEEKPOKE_RETVALUE)
 	 get orig_ret_value
  */
-void umvu_peek_syscall(struct user_regs_struct *regs,
+void umvu_peek_syscall(arch_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		peekpokeop_t op);
 
@@ -155,7 +156,7 @@ void umvu_peek_syscall(struct user_regs_struct *regs,
 	 else (PEEKPOKE_RETVALUE)
 	 store just the return value.
  */
-int umvu_poke_syscall(struct user_regs_struct *regs,
+int umvu_poke_syscall(arch_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		peekpokeop_t op);
 

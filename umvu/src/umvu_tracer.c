@@ -92,7 +92,7 @@ static struct sock_fprog seccomp_prog = {
 
 #include <sys/auxv.h>
 static void disable_vdso(pid_t tid) {
-	struct user_regs_struct regs;
+	arch_regs_struct regs;
 	struct syscall_descriptor_t sys_orig;
 	uintptr_t addr;
 	uintptr_t string;
@@ -157,17 +157,17 @@ static void wait4termination(void) {
 /* struct definitions */
 typedef struct tracer_args {
 	pid_t tracee_tid;
-	struct user_regs_struct regs;
+	arch_regs_struct regs;
 	void *inherited_args[];
 } tracer_args;
 
-static void unblock_tracee(pid_t tid, struct user_regs_struct *regs)
+static void unblock_tracee(pid_t tid, arch_regs_struct *regs)
 {
 	P_INTERRUPT(tid, 0L);
 	r_wait4(tid, NULL, __WALL, NULL);
 	P_SETREGS(tid, regs);
 	// P_SYSCALL if legacy, P_CONT if SECCOMP
-	PTRACE(ptrace_next_syscall, tid, 0L);
+	PTRACE(ptrace_next_syscall, tid, 0L, 0L);
 }
 
 static void *spawn_tracer(void *arg)
@@ -185,7 +185,7 @@ static void *spawn_tracer(void *arg)
 	return NULL;
 }
 
-static void block_tracee(pid_t tid, struct user_regs_struct *regs)
+static void block_tracee(pid_t tid, arch_regs_struct *regs)
 {
 	struct syscall_descriptor_t sys_orig, sys_modified;
 	P_GETREGS_NODIE(tid, regs);
@@ -212,7 +212,7 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	pthread_attr_t thread_attr;
 	tracer_args *t_args = (tracer_args *)
 		malloc(sizeof(tracer_args) + vu_inheritance_inout_size());
-	struct user_regs_struct *regs;
+	arch_regs_struct *regs;
 
 	fatal(t_args);
 	regs = &(t_args->regs);
@@ -233,7 +233,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 {
 	int wstatus, sig_tid;
 	syscall_state_t syscall_state = IN_SYSCALL;
-	struct user_regs_struct regs;
+	arch_regs_struct regs;
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
 	//printk("new thread for %d\n", tracee_tid);
@@ -345,7 +345,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 static int umvu_trace_seccomp(pid_t tracee_tid)
 {
 	int wstatus, sig_tid;
-	struct user_regs_struct regs;
+	arch_regs_struct regs;
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
 	//printk("new seccomp thread for %d\n", tracee_tid);
@@ -449,7 +449,7 @@ int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int mai
 	nproc_update(1);
 	P_SEIZE(childpid, PTRACE_STD_OPTS);
 	// P_SYSCALL if legacy, P_CONT if SECCOMP
-	PTRACE(ptrace_next_syscall, childpid, 0L);
+	PTRACE(ptrace_next_syscall, childpid, 0L, 0L);
 	if (syscall_handler_arg != NULL)
 		syscall_handler = syscall_handler_arg;
 	umvu_settid(childpid);

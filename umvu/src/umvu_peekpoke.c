@@ -40,7 +40,7 @@ static unsigned long page_mask;
 static __thread unsigned int tracee_tid;
 
 #if defined(__x86_64__)
-void umvu_peek_syscall(struct user_regs_struct *regs,
+void umvu_peek_syscall(arch_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		peekpokeop_t op)
 {
@@ -61,7 +61,7 @@ void umvu_peek_syscall(struct user_regs_struct *regs,
 	}
 }
 
-int umvu_poke_syscall(struct user_regs_struct *regs,
+int umvu_poke_syscall(arch_regs_struct *regs,
 		struct syscall_descriptor_t *syscall_desc,
 		peekpokeop_t op)
 {
