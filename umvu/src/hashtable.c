@@ -155,7 +155,12 @@ static inline int trailnum(char *s)
 	return nonzero;
 }
 
-/* during the scan: search in the hash table if this returns 1 */
+/* vuht_internal_search computes the hash value adding one byte at a time.
+	 At each iteration it calls vuht_scan_stop to check if the current sequence
+	 is a valid node to be searched or not.
+	 This function returns 1 when the sequence is a logical subsequence for the
+	 type of object (a path prefix for pathnames, a heading subsequence if it is
+	 array of integers and so on */
 static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 {
 	switch (type) {
@@ -249,6 +254,10 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 	epoch_t e;
 
 	pthread_rwlock_rdlock(&vuht_rwlock);
+	/* scan the object one byte at a time, and check the hash table for
+		 each meaningful heading subsequence. The most specific (and more recent)
+		 matches are preferred. Hash eleemnts may have exceptions: during
+		 this phase the scan generates a "carrot" of possible matches */
 	while (1) {
 		if (vuht_scan_stop(type, objc, len, exact)) {
 			hash = hashmod(sum);
@@ -275,6 +284,8 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		objc++;
 		len++;
 	}
+	/* if there is at least one (possbile) match,
+		 scan the "carrot" to confirm the match against exceptions */
 	if (carh != NULL) {
 		struct confirm_arg args = {
 			.type = type,
@@ -289,6 +300,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 	return rv;
 }
 
+/* search fuctions specific to eleemnt types */
 static inline struct vuht_entry_t *vuht_pathsearch(uint8_t type, void *obj,
 		int exact)
 {

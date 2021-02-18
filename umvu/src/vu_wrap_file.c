@@ -92,12 +92,13 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			return;
 		} else {
 			struct vu_fnode_t *fnode;
-			if (sd->extra->statbuf.st_mode == 0) /* new file just created */
+			/* if the file has just been created by the service's open, the stat info must be updated */
+			if (sd->extra->statbuf.st_mode == 0)
 				service_syscall(ht, __VU_lstat)(sd->extra->mpath, &sd->extra->statbuf, AT_SYMLINK_NOFOLLOW, ret_value, private);
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, flags, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
-				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized */
+				/* do not use DOIT_CB_AFTER: open must be real, not further virtualized, wo_open won't be called. */
 				int fd;
 				sd->ret_value = fd = r_open(vu_fnode_get_vpath(fnode), O_CREAT | O_RDWR, 0600);
 				if (fd >= 0)
@@ -107,6 +108,7 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			} else {
 				sd->inout = fnode;
 				sd->ret_value = ret_value;
+				/* The iuser process opens a fake file in /tmp/.vu_... */
 				/* change the call to "openat(AT_FDCWD, vopen, O_CREAT | O_RDWR, 0600)" */
 				sd->syscall_number = __NR_openat;
 				sd->syscall_args[0] = AT_FDCWD;
@@ -126,12 +128,18 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		struct vu_fnode_t *fnode = sd->inout;
 		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 		if (fd >= 0) {
+			/* the user process has opened the fake file in /tmp/.vu....
+			 * update teh fdtable */
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
 		} else {
+			/* the user process failed to open the fake file. close the virt-file */
 			vu_fnode_close(fnode);
 			vuht_drop(ht);
 		}
 	} else {
+		/* an entry in the file table is kept also when the user process opens real files.
+		 * the pathname of an open file is needed to support fchdir or the *at system calls
+		 * (like openat, fstatat...) */
 		if (fd >= 0) {
 			struct vu_fnode_t *fnode;
 			int fdflags;
@@ -153,6 +161,11 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* close */
+/* the kernel must effectilvely close the file anyway. it does not matter if the file is
+ * real or virtual. When it is virtual it coses the fake file in /tmp/.vu.... */
+/* vu_fd_close closes the fd in the fd table, then it cleans the element in the
+ * file table if no more fds point to the file, then again the vnode is deallocated
+ * and the fake file removed if no file table entries refer to the file */
 void wi_close(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (nested) {
@@ -190,6 +203,8 @@ static void _file_wx_read(struct vuht_entry_t *ht, struct syscall_descriptor_t *
 	int fd = sd->syscall_args[0];
 	int nested = sd->extra->nested;
 	void *private = NULL;
+	/* sfd is the "service file descriptor": the int value returned by the service
+	 * implementation of open */
 	int sfd = vu_fd_get_sfd(fd, &private, nested);
 	if (sd->syscall_number == __NR_read) {
 		uintptr_t addr =  sd->syscall_args[1];
@@ -462,6 +477,8 @@ void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (ret_value < 0)
 			sd->ret_value = -errno;
 		else {
+			/* The modules implement getdents64 only. umvu supports the (obsolete)
+			 * getdent using the mudule's getdents64 and converting the returned buffer */
 			if (sd->syscall_number == __NR_getdents)
 				dirent64_to_dirent(buf, ret_value);
 			vu_poke_arg(addr, buf, ret_value, nested);
@@ -473,6 +490,8 @@ void wi_getdents64(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* dup, dup2, dup3 */
+/* dup is implemented as a builtin functionnality. Nested requests of dup
+ * are simply executed and the fd table updated */
 void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	if (nested) {
@@ -505,7 +524,8 @@ void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wo_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int newfd = sd->orig_ret_value;
 	int fd = sd->syscall_args[0];
-	if (newfd >= 0 && fd != newfd) { //dup2 does nothing if fd == newfd
+	/* dup2 does nothing if fd == newfd */
+	if (newfd >= 0 && fd != newfd) {
 		int flags = 0;
 		if (sd->syscall_number == __NR_dup3)
 			flags = sd->syscall_args[2];
@@ -514,6 +534,11 @@ void wo_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = newfd;
 }
 
+/* fcntl:
+ *  - F_[GS]ETFD, i.e. FD_CLOEXEC: it is a built-in feature, the fdtable support
+ *    closes the files when apporpriate on execs.
+ *  - F_[GS]ETFL, request forwarded to the module
+ *  - F_DUP*, it is similar to dup/dup2/dup3 here above */
 void wi_fcntl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
 	int fd = sd->syscall_args[0];

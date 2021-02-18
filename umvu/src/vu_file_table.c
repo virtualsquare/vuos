@@ -42,6 +42,9 @@ struct vu_fnode_t {
 	int flags;                // flags
 	int count;                // number of fd table entries sharing this element
 	/* module/service fields */
+	/* the values returned by the modules' implementations of open/socket/accept may not be real
+		 file descriptors. These values are just integers meaningful for the module itself:
+		 "service file descriptors", or sfd */
 	int sfd;                  // file descritor as known by the module
 	void *private;            // Private data for modules
 };
@@ -85,6 +88,10 @@ static int null_close_upcall(struct vuht_entry_t *ht, int sfd, void *private) {
 	return 0;
 }
 
+/* close a fnode. actually it decrements the usage count and effectively closes
+	 the fnode only when the usage count is zero.
+	 vu_fnode_close_upcall provides the right function to close each type of
+	 file (socket, file, directory etc. */
 int vu_fnode_close(struct vu_fnode_t *fnode) {
 	int ret_value;
 	pthread_rwlock_wrlock(&fnode->lock);
@@ -107,6 +114,7 @@ int vu_fnode_close(struct vu_fnode_t *fnode) {
 	return ret_value;
 }
 
+/* increment the usage count of an fnode */
 void vu_fnode_dup(struct vu_fnode_t *fnode) {
 	if (fnode != NULL) {
 		pthread_rwlock_wrlock(&fnode->lock);

@@ -20,9 +20,14 @@ struct carrot_t;
 
 /* Functions */
 void carrot_free(struct carrot_t *old);
+/* Create the list of possible ht elements to be returned. The list is created according to the timestamp. */
 struct carrot_t *carrot_insert(struct carrot_t *head, struct vuht_entry_t *elem, epoch_t time,
 		int (*has_exception)(struct vuht_entry_t *elem));
+
+/* Delete a specific element from the "carrot" */
 struct carrot_t *carrot_delete(struct carrot_t *head, struct vuht_entry_t *elem);
+
+/* Choose the ht element to be returned, the first confirmed match is returned.*/
 struct vuht_entry_t *carrot_check(struct carrot_t *head,
 		int (*confirm)(struct vuht_entry_t *elem, void *opaque), void *opaque);
 

@@ -48,6 +48,11 @@ static int umvu_trace_seccomp(pid_t tracee_tid);
 static int (*umvu_trace)(pid_t) = umvu_trace_legacy;
 static enum __ptrace_request ptrace_next_syscall = PTRACE_SYSCALL;
 
+/* pthread_create is processed by vu_nesting to support threads of the hypervisor
+	 started by modules.
+	 libc_pthread_create is the real pthread_create provided by the libc.
+	 The tracer threads created by the tracer for each user-level thread/process
+	 should not be processed by vu_nesting */
 static int (*libc_pthread_create)();
 
 static int nproc;
@@ -90,6 +95,11 @@ static struct sock_fprog seccomp_prog = {
 
 #ifdef DISABLE_VDSO
 
+/* vdso is a small memory chunk of memory shared with the kernel.
+ * syscalls like gettimeofday use vdso when available but in this way
+ * that syscalls cannnot be ptraced and thus virtualized.
+ * this code disables vdso support. It resets the value of the aux
+ * tag AT_SYSINFO_EHDR to 0 (it is the address of the vdso page). */
 #include <sys/auxv.h>
 static void disable_vdso(pid_t tid) {
 	arch_regs_struct regs;
@@ -147,6 +157,7 @@ static void nproc_update(int i) {
 	pthread_mutex_unlock(&nproc_mutex);
 }
 
+/* The hypervisor waits for the termination of oll the threads to exit */
 static void wait4termination(void) {
 	pthread_mutex_lock(&nproc_mutex);
 	while (nproc > 0)
@@ -154,13 +165,30 @@ static void wait4termination(void) {
 	pthread_mutex_unlock(&nproc_mutex);
 }
 
-/* struct definitions */
+/* This structure provides a new tracer thread with all the data needed */
 typedef struct tracer_args {
 	pid_t tracee_tid;
 	arch_regs_struct regs;
 	void *inherited_args[];
 } tracer_args;
 
+/* block/unblock_tracee are used:
+ *    * during the handoff between tracer threads
+ *    * to manage blocking system calls requests (like poll/select/accept or
+ *      read from devices or sockets.)
+ * management of blocking syscall requests (issued by user processes):
+ *    TRACEE: the syscall is changed into ppoll(1, 0, NULL, NULL)
+ *    TRACER: a waiting thread is created (its pid is in waiting_pid),
+ *            this thread waits the expected event using epoll, and then exits.
+ * This wait state can end in two different ways:
+ *    TRACER: the expected (virtual) event arrives, the waiting thread terminates. then
+ *            the tracer gets the child termination signal, the tracee is awaken
+ *            by a P_INTERRUPT
+ *    TRACEE: The ppoll syscall terminates for an external event (e.g. SIGINT).
+ *            (or for the virtualization of poll/select etc, when an awaited event
+ *            of a rea file descriptor arrives).
+ *            the tracers gets the completion of the ppoll and kills the waiting_pid.
+ */
 static void unblock_tracee(pid_t tid, arch_regs_struct *regs)
 {
 	P_INTERRUPT(tid, 0L);
@@ -192,7 +220,7 @@ static void block_tracee(pid_t tid, arch_regs_struct *regs)
 	umvu_peek_syscall(regs, &sys_orig, PEEK_ARGS);
 	sys_modified = sys_orig;
 	/* change syscall to poll(NULL, 0, -1);
-	 * actually it uses poll((struct pollfd *)1, 0, -1):
+	 * actually it uses ppoll((struct pollfd *)1, 0, NULL, NULL):
 	 *        the first arg is ignored as the second is zero.
 	 *        the first arg is a tag for the BPF program */
 	sys_modified.syscall_number = __NR_ppoll;
@@ -202,6 +230,7 @@ static void block_tracee(pid_t tid, arch_regs_struct *regs)
 	sys_modified.syscall_args[3] = 0; // NULL
 	umvu_poke_syscall(regs, &sys_modified, POKE_ARGS);
 	P_SETREGS_NODIE(tid, regs);
+	/* set the PC to execute again the original syscall */
 	sys_orig.prog_counter -= SYSCALL_INSTRUCTION_LEN;
 	umvu_poke_syscall(regs, &sys_orig, POKE_ARGS);
 }
@@ -220,6 +249,7 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	/*init args for new thread*/
 	t_args->tracee_tid = newtid;
 	vu_inheritance_call(INH_CLONE, t_args->inherited_args, &clone_flags);
+	/* This tracer thread won't follow (ptrace) the newtid, but delegate this task to a new tracer thread. */
 	P_DETACH_NODIE(newtid, 0L);
 	pthread_attr_init(&thread_attr);
 	pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
@@ -227,8 +257,8 @@ static void transfer_tracee(pid_t newtid, syscall_arg_t clone_flags)
 	pthread_attr_destroy(&thread_attr);
 }
 
-/* umvu_trace code is replicated for performance issues and
-	 readability */
+/* umvu_trace code is replicated for performance issues and readability */
+/* umvu_trace_legacy does not use seccomp/BPF code */
 static int umvu_trace_legacy(pid_t tracee_tid)
 {
 	int wstatus, sig_tid;
@@ -270,14 +300,18 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_FORK << 8))) {
 					/* the tracee is doing a clone */
+					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
 				}
 				P_SYSCALL(sig_tid, 0L);
 			} else if (sig_tid != tracee_tid) {
 				/*new tracee*/
+				/* The new process will starts with a PTRACE_EVENT_STOP because a P_SEIZE is used. */
 				if (wstatus >> 16 == PTRACE_EVENT_STOP) {
 					P_SYSCALL_NODIE(sig_tid, 0L);
 				} else {
+					/* This is the first syscall of the new processes.
+						 A new tracer thread must be created to manage it.*/
 					transfer_tracee(sig_tid, clone_flags);
 				}
 			} else if (WSTOPSIG(wstatus) == (SIGTRAP | 0x80)) {
@@ -294,6 +328,8 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 						umvu_poke_syscall(&regs, &sys_modified, POKE_ARGS);
 						P_SETREGS(sig_tid, &regs);
 					} else {
+						/* the syscall has been handled by the hypervisor.
+							 The kernel performs a useless, quick and harmless getpid */
 						if (syscall_desc.action & UMVU_SKIP)
 							syscall_desc.syscall_number = __NR_getpid;
 						if (umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS))
@@ -342,6 +378,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 	}
 }
 
+/* umvu_trace_seccomp: e more performant tracer using seccomp/BPF */
 static int umvu_trace_seccomp(pid_t tracee_tid)
 {
 	int wstatus, sig_tid;
@@ -358,8 +395,11 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 			return -1;
 		} else if (WIFSTOPPED(wstatus)) {
 			if (WSTOPSIG(wstatus) == SIGTRAP) {
+				/* PTRACE_EVENT_SECCOMP: this is the IN phase for a new syscall */
 				if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_SECCOMP << 8))) {
 					if (sig_tid != tracee_tid) {
+						/* This is the first syscall of the new processes.
+							 A new tracer thread must be created to manage it.*/
 						transfer_tracee(sig_tid, clone_flags);
 					} else {
 						syscall_desc.action = DOIT;
@@ -373,6 +413,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 							umvu_poke_syscall(&regs, &sys_modified, POKE_ARGS);
 							P_SETREGS(sig_tid, &regs);
 						} else if (syscall_desc.action & UMVU_SKIP) {
+							/* SKIP_SETRETVALUE means: set syscall number to -1 -> skip the syscall */
 							umvu_poke_syscall(&regs, &syscall_desc, SKIP_SETRETVALUE);
 							P_SETREGS(sig_tid, &regs);
 						} else {
@@ -408,6 +449,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_FORK << 8))) {
 					/* the tracee is doing a clone */
+					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
 					P_CONT(sig_tid, 0L);
 				} else
@@ -444,9 +486,12 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 	}
 }
 
+/* start the tracer */
 int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int main) {
 	int wstatus;
-	nproc_update(1);
+	if (main)
+		nproc_update(1);
+	/* the tracer seizes the tracee and then restarts it */
 	P_SEIZE(childpid, PTRACE_STD_OPTS);
 	// P_SYSCALL if legacy, P_CONT if SECCOMP
 	PTRACE(ptrace_next_syscall, childpid, 0L, 0L);
@@ -459,6 +504,8 @@ int umvu_tracepid(pid_t childpid, syscall_handler_t syscall_handler_arg, int mai
 	return wstatus;
 }
 
+/* wrapper to fork to set-up for the tracer (parent) and
+	 for the tracee root process */
 int umvu_tracer_fork(int seccomp) {
 	pid_t childpid;
 
@@ -466,7 +513,9 @@ int umvu_tracer_fork(int seccomp) {
 	switch (childpid) {
 		case 0:
 			/* child */
+			/* wait for the tracer */
 			raise(SIGSTOP);
+			/* load the seccomp filter */
 			if (seccomp) {
 				if (r_prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
 					perror("prctl(PR_SET_NO_NEW_PRIVS)");
@@ -484,6 +533,7 @@ int umvu_tracer_fork(int seccomp) {
 				umvu_trace = umvu_trace_seccomp;
 				ptrace_next_syscall = PTRACE_CONT;
 			}
+			/* the child reached the "raise(SIGSTOP)" */
 			r_wait4(-1, NULL, WUNTRACED, NULL);
 			return childpid;
 		case -1:
@@ -491,6 +541,7 @@ int umvu_tracer_fork(int seccomp) {
 	}
 }
 
+/* check if seccomp/BPF is supported */
 int umvu_tracer_test_seccomp(void) {
   pid_t childpid;
   int status;
@@ -525,6 +576,7 @@ int umvu_tracer_test_seccomp(void) {
 
 __attribute__((constructor))
 	static void init(void) {
+		/* init the libc_pthread_create pointer */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 		libc_pthread_create = dlsym (RTLD_NEXT, "pthread_create");

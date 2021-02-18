@@ -28,6 +28,10 @@
  * warning: local_arg macros define a local var.
  */
 
+/* the callers of nested system calls run in the memory space of the
+ * hypervisor, thus pointers can be simply used as such, there is no need to
+ * allocate memory or copy data */
+
 #define vu_alloc_arg(addr, var, size, nested) \
 	do { \
 		if (nested) { \

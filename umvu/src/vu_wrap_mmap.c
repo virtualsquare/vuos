@@ -56,7 +56,7 @@ void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct vu_fnode_t *fnode = sd->inout;
 	if (fnode != NULL) {
 		uintptr_t addr = sd->orig_ret_value;
-		if (addr != (uintptr_t) -1) {
+		if (addr != (uintptr_t) -1) { //* if mmap has not failed */
 			size_t length = sd->syscall_args[1];
 			__attribute__((unused)) int prot = sd->syscall_args[2];
 			__attribute__((unused)) int flags = sd->syscall_args[3];
@@ -65,6 +65,7 @@ void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			if (sd->syscall_number == __NR_mmap2)
 				offset = offset * umvu_get_pagesize();
 #endif
+			/* A specific data structure records the mapped areas.*/
 			vu_mmap_mmap(addr, length, fnode, offset);
 			//printk("mmap %x %d %d %p\n", addr, length, offset, fnode);
 		} else

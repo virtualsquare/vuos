@@ -25,6 +25,11 @@
 #include <syscall_table.h>
 #include <vu_execute.h>
 
+/* Read and write have specific behaviors depending upon the file type, e.g. ordinary files,
+ * devices and network sockets. This module dispatches the read/write requests to
+ * implementations specific to each type of file descriptor */
+/* Umvu supports 16 file types as defined in umvu/include/xstat.h */
+
 wrapf_t wi_NULL, wd_NULL, wo_NULL;
 static wrapf_t wi_einval;
 static wrapf_t *x_wi_read[S_TYPES] = {S_TYPES_INIT(wi_einval)};

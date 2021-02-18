@@ -15,6 +15,8 @@ struct vuht_entry_t;
 struct vu_service_t;
 
 #define PSEUDO_CHECK 0x80
+
+/* Supported object types */
 #define CHECKMODULE 0        // Module name
 #define CHECKPATH 1          // Path
 #define CHECKSOCKET 2        // Address Family
@@ -23,7 +25,7 @@ struct vu_service_t;
 #define CHECKSC 5            // Syscall #
 #define CHECKIOCTL 6         // ioctl request
 #define CHECKBINFMT 7        // Binfmt search
-#define CHECKFSALIAS 8       // FSAlias (just a string->string matching) */
+#define CHECKFSALIAS 8       // FSAlias (just a string->string matching)
 #define NCHECKS 9
 #define CHECKFSTYPE (PSEUDO_CHECK | CHECKMODULE)
 #define CHECKPATHEXACT (PSEUDO_CHECK | CHECKPATH)
@@ -43,8 +45,8 @@ struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
 		struct vu_service_t *service, confirmfun_t confirmfun,
 		void *private_data, int permanent);
 
-/* add a path element to the hashtable: path elements have more
- * arguments (to create a virtual mount-table */
+/* add a path element to the hashtable: This function is similar to vuht_add
+ * extra parameters are provided to generate teh mounttab line (see /proc/mounts) */
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
@@ -62,7 +64,12 @@ int vuht_del(struct vuht_entry_t *hte, int umountflags);
 	 of the hashtable element to check if it is in use and to implemented
 	 delayed delection */
 struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct stat *st, int setepoch);
+
+/* increment the usage count of the hash table element */
 void vuht_pick_again(struct vuht_entry_t *hte);
+
+/* decrement the usage count of the hash table element.
+ * the element is deallocated when count is 0 */
 void vuht_drop(struct vuht_entry_t *hte);
 
 void forall_vuht_do(uint8_t type,

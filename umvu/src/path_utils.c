@@ -234,7 +234,7 @@ static mode_t vu_lmode(const char *pathname, void *private) {
 		retval |= S_IXALL;
 #endif
 
-	/* ALTERNATIVE #2: mimic root 
+	/* ALTERNATIVE #2: mimic root
 		 ok to cd is it is OKX for somebody */
 	if (S_ISDIR(retval) && (retval & S_IXALL) != 0)
 		retval |= S_IXALL;

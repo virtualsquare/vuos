@@ -28,6 +28,9 @@ struct vu_service_t {
 };
 
 struct vuht_entry_t *vu_mod_getht(void);
+
+/* A static thread variable records the module hash table element chosen by the hypervisor,
+ so that the module can access it */
 void vu_mod_setht(struct vuht_entry_t *ht);
 
 /* hash table and epoch wrapper:

@@ -81,6 +81,8 @@ static void usage_n_exit(void) {
 	r_exit(1);
 }
 
+/* First scan of the arg list to manage some option before the reloading of
+	 umvu (to enable purelibc and thus the nested virtualization) */
 static void early_args(int argc, char *argv[]) {
 	int c;
 	int nesting __attribute__((unused)) = 1;
@@ -99,6 +101,7 @@ static void early_args(int argc, char *argv[]) {
 								break;
 		}
 	}
+	/* enable nested virtualization: reload umvu */
 	if (nesting)
 		vu_nesting_init(argc, argv);
 }

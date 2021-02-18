@@ -55,6 +55,9 @@
 
 static __thread struct vu_fnode_t *tmp_fnode;
 
+/* execve needs a real file. In order to support execve for virtual files, umvu makes a
+ * temporary copy of the executable and then runs execve on the copy.
+ * the following function rewrites the path of the execve system call */
 static void rewrite_execve_filename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd, char *path, struct vu_stat *statbuf) {
 	char *tmp_path;
 	tmp_fnode = vu_fnode_create(ht, path, statbuf, 0, -1, NULL);
@@ -128,7 +131,6 @@ int interpreter_fill_args(struct binfmt_req_t *req, char *argv[2]) {
   *term = 0;
 	argv[0] = interpreter;
 	argv[1] = extra_arg;
-	
 	return *extra_arg == '\0' ? 1 : 2;
 }
 

@@ -74,6 +74,8 @@ static inline void set_extra (
 	extra->epoch = get_vepoch();
 }
 
+/* when the syscall execution is complete:
+	 decrement the usage count of the hashtable element, and free the canonicalized path */
 static inline void execute_cleanup (struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht != NULL)
 		vuht_drop(ht);
@@ -91,6 +93,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 	ssd = set_thread_sd(sd);
 	if (sd->syscall_number >= 0) {
 		int sysno = vu_arch_table[sd->orig_syscall_number];
+		/* retrieve the entry from vu_syscall_table (see syscall_table.h) */
 		const struct syscall_tab_entry *tab_entry = &vu_syscall_table[sysno];
 		switch (state) {
 			case IN_SYSCALL:
@@ -128,9 +131,15 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				break;
 		}
 	} else {
+		/* vuos extends the set of system calls by adding some vuos specific
+			 system calls. Vuos syscalls have negative sysno.
+			 These system calls are always "virtualized" as the corresponding system
+			 calls are not provided by the kernel.
+		 */
 		int vsysno = - sd->syscall_number;
 		sd->ret_value = -ENOSYS;
 		if (vsysno < VVU_NR_SYSCALLS) {
+			/* retrieve the entry from vvu_syscall_table (see syscall_table.h) */
 			const struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
 			set_extra(&extra, sd, get_vsyspath);
 			printkdebug(s, "VIRSYSCALL %d (%d) %d %s %ld", umvu_gettid(), native_syscall(__NR_gettid),

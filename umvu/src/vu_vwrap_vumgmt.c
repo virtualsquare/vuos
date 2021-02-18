@@ -72,6 +72,10 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		return;
 	}
 
+	/* insert the module as CHECKMODULE element in the hashtable.
+	 * - to maange the list of the currently available module
+	 * - "mount": CHECKFSTYPE chooses the module matching the module's name
+	 *   as a prefix. */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	cleanup = module_getsym(service, "cleanup");

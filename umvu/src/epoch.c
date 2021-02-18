@@ -25,11 +25,14 @@
 
 /* per thread time keeping */
 __thread epoch_t virtual_epoch;
-/* epoch now is a (uint64_t) counter, it is used to timestamp all the state
- * changes in the system */
+
+/* epoch now is a (uint64_t) counter, it is used to timestamp all the state changes in the system
+ * This global counter is incremented at each operation which modifies the "view".
+ * Each value of the eposh is like a virtualization layer, this approach allows the support of
+ * nested virtualization. See comments in epoch.h */
 static epoch_t epoch_now = 2;
 
-/* one tick of the global timestap clock epoch_now */
+/* one tick of the global timestamp clock epoch_now */
 epoch_t update_epoch(void)
 {
 	return __sync_fetch_and_add(&epoch_now, 1);

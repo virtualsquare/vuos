@@ -61,6 +61,7 @@ void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int protocol;
 		int flags = 0;
 		void *private = NULL;
+		/* fetch args */
 		switch (syscall_number) {
 			case __NR_socket:
 				domain = sd->syscall_args[0];
@@ -225,12 +226,15 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		socklen_t *addrlen;
 		int flags = 0;
 		int fflags = 0;
+		/* accept can be a blocking syscall. The hypervisor checks if there are pending
+		 * connections, i.e. if accept would block or not. */
 		if (!nested) {
 			int fd = sd->syscall_args[0];
 			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
       if (sc != NULL) {
 				sd->inout = sc;
 				if (vu_slowcall_test(sc) <= 0) {
+					/* BLOCKIT implies UMVU_CB_AFTER, the "during" wrapper waits for a connection request */
 					sd->action = BLOCKIT;
 					return;
 				} else
@@ -257,6 +261,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->extra->statbuf.st_mode = (sd->extra->statbuf.st_mode & ~S_IFMT) | S_IFSOCK;
 			sd->extra->statbuf.st_dev = 0;
 			sd->extra->statbuf.st_ino = ret_value;
+			/* the service module has created a new socket, create the fnode element */
 			fnode = vu_fnode_create(ht, sd->extra->path, &sd->extra->statbuf, fflags, ret_value, private);
 			vuht_pick_again(ht);
 			if (nested) {
@@ -268,6 +273,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				else
 					vu_fnode_close(fnode);
 			} else {
+				/* the user processes opens a fake file in /tmp/.vu.... instead */
 				sd->inout = fnode;
 				sd->ret_value = ret_value;
 				/* change the call to "openat(AT_FDCWD, vopen, O_CREAT | O_RDWR, 0600)" */
@@ -306,6 +312,7 @@ void wo_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				return;
 			}
 		}
+		/* now te fs is ready for reeading (accepting), restart the syscall */
 		sd->action = DO_IT_AGAIN;
 	} else {
 		int fd = sd->orig_ret_value;
@@ -394,6 +401,8 @@ static int get_send_recv_flags(struct syscall_descriptor_t *sd) {
 }
 
 /* sendto, send, sendmsg, sendmmsg */
+/* The call is processed only in the out phase when surely it won't block.
+ * wrap in and wrap during functions are used to wait until the socket is ready.*/
 void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
@@ -568,6 +577,8 @@ void wo_sendto(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 /* recvfrom, recv, recvmsg, recvmmsg */
+/* The call is processed only in the out phase when surely it won't block.
+ * wrap in and wrap during functions are used to wait until the socket is ready.*/
 void wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd);
 void wi_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;

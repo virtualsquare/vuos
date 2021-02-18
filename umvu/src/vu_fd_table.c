@@ -51,7 +51,7 @@ struct vu_fd_table_t {
 static struct vu_fd_table_t *vu_n_fd = NULL;
 
 /* thread private fd table
-	 (shared by threads created by CLONE_FILES */
+	 (shared by threads created by CLONE_FILES) */
 static __thread struct vu_fd_table_t *vu_fd = NULL;
 
 #define VU_FD_TABLE(nested) (nested ? vu_n_fd : vu_fd)
@@ -108,12 +108,16 @@ static void *vu_fd_clone(void *arg) {
 	struct vu_fd_table_t *newfd;
 
 	if (flags & CLONE_FILES) {
+		/* the new thread shares the fd table */
 		pthread_rwlock_wrlock(&vu_fd->lock);
 		newfd = vu_fd;
 		newfd->count++;
 		pthread_rwlock_unlock(&vu_fd->lock);
 		return newfd;
 	} else {
+		/* create a new fd table.
+			 update the usage count of fnode elements
+		 */
 		int i;
 		newfd = malloc(sizeof(struct vu_fd_table_t));
 		fatal(newfd);
@@ -185,6 +189,13 @@ static void vu_fd_table_resize(struct vu_fd_table_t *fd_table, int fd) {
   }
 }
 
+/* "connect" a fd to its fnode.
+	 The creation of a virtualized file descriptor has four steps:
+	 1* the module opens the file (or socket)
+	 2* create the fnode (vu_fnode_create)
+	 3* the user level opens a "fake" file
+	 4* connect the fd as seen by the user process to the fnode.
+	 this is *4 */
 void vu_fd_set_fnode(int fd, int nested, struct vu_fnode_t *fnode, int fdflags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   fatal(fd_table);
@@ -343,6 +354,9 @@ void vu_fd_set_flflags(int fd, int nested, int flags) {
 	pthread_rwlock_unlock(&fd_table->lock);
 }
 
+/* madules can define their own file descriptors (that may not be real file
+	 descriptors, just integers values meaningful for the module itself).
+	 This function returns the sfd correspoding to a fd */
 int vu_fd_get_sfd(int fd, void **pprivate, int nested) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
 	struct vu_fnode_t *fnode;

@@ -49,8 +49,10 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			/* change the call to "chdir(fakedir)" */
 			sd->syscall_number = __NR_chdir;
 			if (ht)
-				rewrite_syspath(sd, "/"); /* this directory should always exist */
+				/* If it's virtualized the chdir target is a dir that should always exist "/".*/
+				rewrite_syspath(sd, "/");
 			else
+				/* Not virtualized, so chdir on the actual directory.*/
 				rewrite_syspath(sd, sd->extra->path);
 			sd->action = DOIT_CB_AFTER;
 		} else {
@@ -67,6 +69,8 @@ void wi_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 void wo_chdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int ret_value = sd->orig_ret_value;
+	/* The path of the new cwd must be saved to support path canonicalization.
+	 * the current working dir changed only if the chdir syscall succeded */
 	if (ret_value >= 0)
 		vu_fs_set_cwd(sd->extra->path);
 	sd->ret_value = sd->orig_ret_value;

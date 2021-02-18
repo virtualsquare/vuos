@@ -33,6 +33,8 @@
 #include <r_table.h>
 
 /* create a temporary copy of a virtual file */
+/* some system calls need the file to be real (execve, mmap).
+	 this function creates a copy of a virtual file in tmp_path (usually in /tmp/.vu_....) */
 static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
   int fdin, fdout;
 	ssize_t n;

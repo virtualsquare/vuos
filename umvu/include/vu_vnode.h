@@ -29,7 +29,7 @@ void vu_vnode_close(struct vu_vnode_t *vnode);
 
 /* this is the pathname of a real file, local "image" of a virtual file.
 	 it is often an empty file used to open "something" in the user process to
-	 alocate a file descriptor.
+	 allocate a file descriptor.
 	 The original contents of the file is loaded to support mmap or execve */
 char *vu_vnode_getvpath(struct vu_vnode_t *vnode);
 

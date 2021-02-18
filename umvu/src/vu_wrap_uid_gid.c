@@ -164,6 +164,7 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 				new_ruid = -1;
 				new_euid = sd->syscall_args[0];
 				new_suid = -1;
+				/* If the caller is root the set both ,ruid and suid. */
 				if (new_euid != (uid_t) -1 && euid == 0)
 					new_ruid = new_suid = new_euid;
 				break;

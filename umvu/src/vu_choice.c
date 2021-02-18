@@ -22,7 +22,11 @@
 	 A choice function chooses which module have to process a system call.
 	 The mapping between the system call type and the choice function to use
 	 is defined in vu_syscalls.conf (used to generate the array vu_syscall_table
-	 in the file syscall_table.c) */
+	 in the file syscall_table.c)
+
+	 When a choice function returns NULL the syscall is not processed by a
+	 service/module. It is sent to the kernel. */
+
 #include <string.h>
 #include <limits.h>
 #include <hashtable.h>
@@ -139,6 +143,7 @@ struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
   int nested = sd->extra->nested;
 	if (nested)
+		/* nested calls cannot be further virtualized */
 		return NULL;
 	else {
 		struct syscall_extra_t *extra = sd->extra;
@@ -156,6 +161,7 @@ struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
 struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
   int nested = sd->extra->nested;
 	if (nested)
+		/* nested calls cannot be further virtualized */
 		return NULL;
 	else {
 		struct syscall_extra_t *extra = sd->extra;

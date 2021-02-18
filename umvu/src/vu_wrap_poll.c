@@ -191,16 +191,21 @@ void wi_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 	sd->action = DOIT_CB_AFTER;
 }
 
+/* The process has just done the epoll_create. The file descriptor returend by epoll is used
+ * by the process in the next epoll calls. The hypervisor uses it to refer to the fnode and
+ * to its internal epoll fd. */
 void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int nested = sd->extra->nested;
   int fd = sd->orig_ret_value;
   if (fd >= 0) {
+		/* standard args */
 		int syscall_number = sd->syscall_number;
      /* args */
     int flags;
     int epfd;
     struct vu_fnode_t *fnode;
     struct epoll_info *info = epoll_info_create(nested);
+		/* fetch args */
     switch (syscall_number) {
       case __NR_epoll_create:
         flags = 0;
@@ -374,10 +379,14 @@ void wi_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct epoll_info *info;
   __attribute__((unused)) int epfd = vu_fd_get_sfd(pepfd, (void **) &info, nested);
 	//printk("wi_epoll_wait n%d %d %p %p\n", nested, epfd, info, epoll_tab_head(info->tab));
+	/* if there are already pending events do not stop and skip to the wo */
 	if (epoll_tab_head(info->tab) != NULL)
 		sd->action = DOIT_CB_AFTER;
 }
 
+/* Blocking syscall: the process needs to wait for events (maybe on both real and virtual fds)
+ * The hypervisor cannnot be blocked, so a new process waits for events on virtualized fds on
+ * the epoll file descriptor (the sfd corresponding to the user's fd) */
 void wd_epoll_wait(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int pepfd = sd->syscall_args[0];
   struct epoll_info *info;
@@ -519,6 +528,7 @@ void wi_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   }
 }
 
+/* Blocking syscall: start a "waiting process" as explained for wd_epoll_wait here above */
 void wd_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
   struct poll_inout *pollio = sd->inout;
   vu_poll_wait_thread(sd, pollio->epfd);
@@ -551,7 +561,7 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	for (i = 0; i < nfds; i++) {
 		if (pollio->orig_fd[i] >= 0) fds[i].fd = pollio->orig_fd[i];
 	}
-	/* the user level poll terminated first: evens on real fd only */
+	/* the user level poll terminated first: events on real fds only */
 	if (sd->waiting_pid != 0)
     sd->ret_value = orig_ret_value;
 	else {
@@ -699,6 +709,7 @@ void wi_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+/* Blocking syscall: start a "waiting process" as explained for wd_epoll_wait here above */
 void wd_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	struct select_inout *selectio = sd->inout;
   vu_poll_wait_thread(sd, selectio->epfd);

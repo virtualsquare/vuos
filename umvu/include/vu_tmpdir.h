@@ -1,8 +1,8 @@
 #ifndef VU_TMPDIR_h
 #define VU_TMPDIR_h
 
-/* This is the path of the directory where umvu stores
-	 temporary files */
+/* Each umvu instance uses a hidden directory in /tmp to store temporary files.
+	 This function returns the path of that directory */
 char *vu_tmpdirpath(void);
 
 #endif

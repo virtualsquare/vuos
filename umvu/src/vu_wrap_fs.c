@@ -42,6 +42,9 @@
 #include <vu_wrapper_utils.h>
 #include <vu_access_emu.h>
 
+/* several similar system calls are processed by the same wrapper.
+ * e.g. lstat stat fstat fstatat/newfstatat use the same wrapper.
+ * the arg, fetching section of the wrapper takes the specific arguments of each system call */
 /* lstat stat fstat fstatat/newfstatat */
 void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
@@ -194,6 +197,7 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* call */
 		sd->action = SKIPIT;
+		/* If the AT_REMOVEDIR flag is specified, the unlink syscall acts as a rmdir */
 		if (flags & AT_REMOVEDIR)
 			ret_value = service_syscall(ht, __VU_rmdir)(sd->extra->mpath);
 		else
@@ -533,6 +537,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
       return;
     }
 		e = set_vepoch(sd->extra->epoch);
+		/* old/src path must be canonicalized */
 		oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL, nested);
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
@@ -541,6 +546,8 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		vuht_drop(htold);
+		/* oldpath and newpath are managed by different service modules.
+		 * link returns EXDEV as for paths on different mounted partitions */
 		set_vepoch(e);
 		if (ht != htold) {
 			xfree(oldpath);
@@ -608,6 +615,7 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		sd->action = SKIPIT;
 		e = set_vepoch(sd->extra->epoch);
+		/* old/src path must be canonicalized */
 		oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL, nested);
 		if (oldpath == NULL) {
 			sd->ret_value = -errno;
@@ -617,6 +625,8 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		htold = vuht_pick(CHECKPATH, oldpath, NULL, 0);
 		vuht_drop(htold);
 		set_vepoch(e);
+		/* oldpath and newpath are managed by different service modules.
+		 * rename returns EXDEV as for paths on different mounted partitions */
 		if (ht != htold) {
 			xfree(oldpath);
 			sd->ret_value = -EXDEV;

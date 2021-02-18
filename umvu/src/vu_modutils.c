@@ -115,7 +115,8 @@ struct vu_service_t *module_load(const char *modname)
 		return NULL;
 	}
 
-	/* populate umview_service_t structure */
+	/* populate vu_service_t structure, so that
+		 the hypervisor can access and call the function implemented by the module. */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 	if ((module = dlsym(handle, "vu_module"))) {

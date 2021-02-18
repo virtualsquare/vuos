@@ -5,6 +5,10 @@
 #include <pthread.h>
 #include <xcommon.h>
 
+/* Thread safe implementation of the functions defined in vu_inheritance.h.
+   These functions ahve been designed for modules aiming to define and maintain
+   per thread data stuctures */
+
 struct mod_inheritance_elem_t {
   mod_inheritance_upcall_t upcall;
   struct mod_inheritance_elem_t *next;
