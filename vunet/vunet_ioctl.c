@@ -30,8 +30,10 @@ long vunet_ioctl_parms(unsigned long request) {
       return _IOR(' ', 0, int);
     case SIOCGIFCONF:
       return _IOWR(' ', 0, struct ifconf);
+#ifdef SIOCGSTAMP
     case SIOCGSTAMP:
       return _IOW(' ', 0, struct timeval);
+#endif
     case SIOCGIFNAME:
     case SIOCGIFFLAGS:
     case SIOCGIFADDR:
@@ -70,7 +72,9 @@ long vunet_ioctl_parms(unsigned long request) {
 int vunet_is_netdev_ioctl(unsigned long request) {
   switch (request) {
     case SIOCGIFCONF:
+#ifdef SIOCGSTAMP
     case SIOCGSTAMP:
+#endif
     case SIOCGIFNAME:
     case SIOCGIFFLAGS:
     case SIOCGIFADDR:
