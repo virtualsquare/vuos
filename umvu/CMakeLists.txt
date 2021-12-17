@@ -11,6 +11,7 @@ list(APPEND UMVU_SOURCES ${VU_DYN_SOURCES})
 
 include_directories(${UMVU_HEADERS} ${VU_DYN_HEADER_PATH} ${VU_HEADERS})
 add_executable(umvu ${UMVU_SOURCES})
+set_property(TARGET umvu PROPERTY ENABLE_EXPORTS 1)
 target_link_libraries(umvu pthread dl)
 
 install(TARGETS umvu
