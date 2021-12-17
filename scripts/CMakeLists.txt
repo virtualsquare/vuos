@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.13)
 
 set(VU_SYSCALL_CONF ${PROJECT_SOURCE_DIR}/vu_syscalls.conf)
 set(VU_SCRIPT_PATH ${PROJECT_SOURCE_DIR}/scripts)
