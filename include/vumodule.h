@@ -185,6 +185,9 @@ void vu_mod_poke_data(void *addr, void *buf, size_t datalen);
 mode_t vu_mod_getumask(void);
 mode_t vu_mod_getmode(void);
 
+int vu_mod_fd_get_sfd(int fd, void **fdprivate);
+struct vuht_entry_t *vu_mod_fd_get_ht(int fd);
+
 struct vu_service_t *vuht_get_service(struct vuht_entry_t *hte);
 __attribute__((always_inline))
 	static inline struct vu_service_t * vu_mod_getservice(void) {

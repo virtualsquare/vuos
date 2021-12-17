@@ -23,6 +23,7 @@
 #include <umvu_peekpoke.h>
 #include <vu_execute.h>
 #include <vu_fs.h>
+#include <vu_fd_table.h>
 #include <vu_thread_sd.h>
 #include <vumodule.h>
 
@@ -120,4 +121,21 @@ void vu_mod_poke_data(void *addr, void *buf, size_t datalen) {
 		memcpy(addr, buf, datalen);
 	else
 		umvu_poke_data((uintptr_t) addr, buf, datalen);
+}
+
+int vu_mod_fd_get_sfd(int fd, void **fdprivate) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	return vu_fd_get_sfd(fd, fdprivate, nested);
+}
+
+struct vuht_entry_t *vu_mod_fd_get_ht(int fd) {
+	struct syscall_descriptor_t *sd = get_thread_sd();
+	fatal(sd);
+	fatal(sd->extra);
+	int nested = sd->extra->nested;
+	struct vuht_entry_t *rv = vu_fd_get_ht(fd, nested);
+	return rv;
 }
