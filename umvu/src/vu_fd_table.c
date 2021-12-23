@@ -234,8 +234,8 @@ int vu_fd_close(int fd, int nested) {
 void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
 	struct vu_fd_table_t *fd_table = VU_FD_TABLE(nested);
   fatal(fd_table);
-  pthread_rwlock_wrlock(&fd_table->lock);
 	if (fd >= 0) {
+		pthread_rwlock_wrlock(&fd_table->lock);
 		vu_fd_table_resize(fd_table, fd);
 		if (fd_table->fnode[fd] != NULL)
 			vu_fnode_close(fd_table->fnode[fd]);
