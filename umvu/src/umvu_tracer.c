@@ -267,6 +267,8 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
 	//printk("new thread for %d\n", tracee_tid);
+	int cloning = 0;
+
 	while (1) {
 		sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
 		if (sig_tid == -1) {
@@ -280,7 +282,20 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 					/* tracee is about to exit */
 					unsigned long exit_status;
 					P_GETEVENTMSG(sig_tid, &exit_status);
-					P_DETACH(sig_tid, 0L);
+					while (cloning > 0) {
+						/* tracee_tid is terminating during cloning: wait for transfer_tracee */
+						sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
+						if (sig_tid == -1) break;
+						if (sig_tid != tracee_tid) {
+							if (wstatus >> 16 == PTRACE_EVENT_STOP) {
+								P_SYSCALL_NODIE(sig_tid, 0L);
+							} else {
+								transfer_tracee(sig_tid, clone_flags);
+								cloning--;
+							}
+						}
+					}
+					P_DETACH(tracee_tid, 0L);
 					vu_inheritance_call(INH_TERMINATE, NULL, NULL);
 					nproc_update(-1);
 					return exit_status;
@@ -302,6 +317,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 					/* the tracee is doing a clone */
 					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
+					cloning++;
 				}
 				P_SYSCALL(sig_tid, 0L);
 			} else if (sig_tid != tracee_tid) {
@@ -313,6 +329,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 					/* This is the first syscall of the new processes.
 						 A new tracer thread must be created to manage it.*/
 					transfer_tracee(sig_tid, clone_flags);
+					cloning--;
 				}
 			} else if (WSTOPSIG(wstatus) == (SIGTRAP | 0x80)) {
 				/*SYSCALL*/
@@ -385,6 +402,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 	arch_regs_struct regs;
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
 	syscall_arg_t clone_flags;
+	int cloning = 0;
 	//printk("new seccomp thread for %d\n", tracee_tid);
 	while (1) {
 		sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
@@ -401,6 +419,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 						/* This is the first syscall of the new processes.
 							 A new tracer thread must be created to manage it.*/
 						transfer_tracee(sig_tid, clone_flags);
+						cloning--;
 					} else {
 						syscall_desc.action = DOIT;
 						syscall_desc.waiting_pid = 0;
@@ -430,7 +449,20 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					/* tracee is about to exit */
 					unsigned long exit_status;
 					P_GETEVENTMSG(sig_tid, &exit_status);
-					P_DETACH(sig_tid, 0L);
+					while (cloning > 0) {
+						/* tracee_tid is terminating during cloning: wait for transfer_tracee */
+						sig_tid = r_wait4(-1, &wstatus, __WALL | __WNOTHREAD, NULL);
+						if (sig_tid == -1) break;
+						if (sig_tid != tracee_tid) {
+							if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_SECCOMP << 8))) {
+								transfer_tracee(sig_tid, clone_flags);
+								cloning--;
+							}
+							if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_STOP << 8)))
+								P_CONT(sig_tid, 0L);
+						}
+					}
+					P_DETACH(tracee_tid, 0L);
 					vu_inheritance_call(INH_TERMINATE, NULL, NULL);
 					nproc_update(-1);
 					return exit_status;
@@ -451,6 +483,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					/* the tracee is doing a clone */
 					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
+					cloning++;
 					P_CONT(sig_tid, 0L);
 				} else
 					P_CONT(sig_tid, 0L);
