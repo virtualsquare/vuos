@@ -134,7 +134,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-/* access, faccessat */
+/* access, faccessat, faccess2 */
 void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
@@ -142,8 +142,6 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int ret_value;
 		/* args */
 		int mode;
-		/* flag = 0. faccessat syscall has three args.
-			 left here hoping that a future syscall will be POSIX 2008 compliant */
 		int flags = 0;
 		/* local bufs */
 		/* fetch args */
@@ -153,6 +151,10 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				break;
 			case __NR_faccessat:
 				mode = sd->syscall_args[2];
+				break;
+			case __NR_faccessat2:
+				mode = sd->syscall_args[2];
+				flags = sd->syscall_args[3];
 				break;
 		}
 		/* call */
