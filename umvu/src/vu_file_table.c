@@ -104,7 +104,10 @@ int vu_fnode_close(struct vu_fnode_t *fnode) {
 		xfree(fnode->path);
 		pthread_rwlock_unlock(&fnode->lock);
 		/* it should never fail. */
-		ret_value = vu_fnode_close_upcall[S_MODE2TYPE(fnode->mode)](fnode->ht, fnode->sfd, fnode->private);
+		if (fnode->private == VU_FNODE_CLOSED)
+			ret_value = 0;
+		else
+			ret_value = vu_fnode_close_upcall[S_MODE2TYPE(fnode->mode)](fnode->ht, fnode->sfd, fnode->private);
 		pthread_rwlock_destroy(&fnode->lock);
 		xfree(oldfnode);
 	} else {
