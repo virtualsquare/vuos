@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <poll.h>
+#include <dlfcn.h>
 #include <sys/epoll.h>
 #include <sys/ptrace.h>
 
@@ -34,12 +35,18 @@
 #include <umvu_peekpoke.h>
 #include <vu_slow_calls.h>
 
-#define SIZEOF_SIGSET (_NSIG / 8)
-
+#define STACKSIZE 4096
 
 struct slowcall {
 	int epfd;
+	char stack[STACKSIZE];
 };
+static int (*libc_clone)();
+
+int vu_slowcall_test(struct slowcall *sc) {
+	struct pollfd pfd = {sc->epfd, POLLIN, 0};
+	return poll(&pfd, 1, 0);
+}
 
 struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
 	if (vu_fd_get_flflags(fd, nested) & O_NONBLOCK)
@@ -62,41 +69,37 @@ struct slowcall *vu_slowcall_in(struct vuht_entry_t *ht, int fd, uint32_t events
 	}
 }
 
-static void slow_thread(int epfd) {
-	//struct epoll_event useless;
-	struct pollfd pfd = {epfd, POLLIN, 0};
-	//printk("vu_slowcall_during... %d\n", epfd);
-	poll(&pfd, 1, -1);
-
-	//printk("vu_slowcall_wakeup %d %d\n", ret_value, errno);
-}	
-
-int vu_slowcall_test(struct slowcall *sc) {
+static int slow_thread(void *arg) {
+	struct slowcall *sc = arg;
 	struct pollfd pfd = {sc->epfd, POLLIN, 0};
-	return poll(&pfd, 1, 0);
+	//printk("vu_slowcall_during... %d\n", pfd);
+	poll(&pfd, 1, -1);
+	//printk("vu_slowcall_wakeup %d %d\n", errno);
+	return 0;
 }
 
 pid_t vu_slowcall_during(struct slowcall *sc) {
 	//printk(">>>>>>>>>%lu\n", pthread_self());
-
-	pid_t pid;
-	if ((pid = r_fork()) == 0) {
-		slow_thread(sc->epfd);
-		r_exit(1);
-	}
-
-	return pid;
-	//printk(">>>>>>>>> NEW %d\n", newthread);
+	return libc_clone(slow_thread, sc->stack + STACKSIZE,
+			CLONE_FILES | CLONE_VM | CLONE_CHILD_CLEARTID | CLONE_CHILD_SETTID | SIGCHLD,
+      sc);
 }
 
 void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {
 	void *private = NULL;
-  int sfd = vu_fd_get_sfd(fd, &private, nested);
-	//int rv = r_kill(sc->pid, SIGTERM);
+	int sfd = vu_fd_get_sfd(fd, &private, nested);
 	struct epoll_event event = {.events = events, .data.fd = fd};
 	//printk("vu_slowcall_wakeup...\n");
 	service_syscall(ht, __VU_epoll_ctl)(sc->epfd, EPOLL_CTL_DEL, sfd, &event, private);
 	r_close(sc->epfd);
 	free(sc);
-	//return rv;
 }
+
+__attribute__((constructor))
+	static void init(void) {
+		/* init the libc_clone pointer */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+		libc_clone = dlsym (RTLD_NEXT, "clone");
+#pragma GCC diagnostic pop
+	}

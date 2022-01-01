@@ -43,7 +43,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
   void *private;
 	struct stat fdoutstat;
 	//printk("COPY %s to %s\n",path,tmp_path);
-  fdout = r_open(tmp_path, O_WRONLY | O_CREAT, 0700);
+  fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0700);
   if (fdout < 0)
     return -1;
 	if (r_fstat(fdout, &fdoutstat) < 0) {
