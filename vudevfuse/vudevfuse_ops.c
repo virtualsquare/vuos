@@ -590,7 +590,6 @@ ssize_t vu_fuse_pread64(int fd, void *buf, size_t count, off_t offset, int flags
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
 		return vu_devfuse_nosys();
-	return vu_devfuse_read(fd, buf, count, fdprivate);
 	printkdebug(U,"PREAD %d count=%zd offset=%zd", fd, count, offset);
 	struct fusemount_t *fusemount = vuht_get_private_data(ht);
 	struct fusefile_t *fusefile = fdprivate;
@@ -962,7 +961,6 @@ int vu_fuse_truncate(const char *pathname, off_t length, int fd, void *fdprivate
 
 	fn_updatenode(fusemount->fnbuf, nodeid, &attrout);
 	return 0;
-
 }
 
 int vu_fuse_symlink(const char *target, const char *linkpath) {
