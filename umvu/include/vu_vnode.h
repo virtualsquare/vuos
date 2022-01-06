@@ -22,7 +22,7 @@ struct vuht_entry_t;
 	 otherwise it returns the pointer to the corresponding vnode (and increment
 	 the usage counter)
  */
-struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode);
+struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size);
 /* close decrements the usage counter, delete the local copy and free the vnode when
 	 the counter becomes zero) */
 void vu_vnode_close(struct vu_vnode_t *vnode);
@@ -38,5 +38,9 @@ typedef int (*copyfun) (struct vuht_entry_t *ht, char *path, char *tmp_path);
 int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp);
 
 void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length);
+
+/* VU_USE_PRW: get and set size + locking */
+off_t vu_vnode_get_size_lock(struct vu_vnode_t *vnode);
+void vu_vnode_set_size_unlock(struct vu_vnode_t *vnode, off_t size);
 
 #endif

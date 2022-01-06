@@ -67,4 +67,8 @@ int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp);
 /* trunc of the local copy */
 void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length);
 
+/* VU_USE_PRW */
+void vu_fnode_get_possize_lock(struct vu_fnode_t *v, off_t *pos, off_t *size);
+void vu_fnode_set_possize_unlock(struct vu_fnode_t *v, off_t pos, off_t size);
+
 #endif

@@ -39,6 +39,8 @@ struct vu_module_t {
        uint64_t filler;
 };
 
+#define VU_USE_PRW	1
+
 typedef unsigned long int syscall_arg_t;
 typedef long (*syscall_t)();
 extern const uint16_t vu_arch_table[];

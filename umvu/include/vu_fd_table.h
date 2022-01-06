@@ -47,4 +47,8 @@ void vu_fd_set_flflags(int fd, int nested, int flags);
 
 int vu_fd_get_sfd(int fd, void **pprivate, int nested);
 
+/* VU_USE_PRW */
+void vu_fd_get_possize_lock(int fd, int nested, off_t *pos, off_t *size);
+void vu_fd_set_possize_unlock(int fd, int nested, off_t pos, off_t size);
+
 #endif

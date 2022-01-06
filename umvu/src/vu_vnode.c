@@ -37,6 +37,7 @@ struct vu_vnode_t {
 	struct vuht_entry_t *ht;
 	dev_t dev;
 	ino_t inode;
+	off_t size;
 	char *vpath;
 	long usage_count;
 	long flags;
@@ -68,7 +69,7 @@ static struct vu_vnode_t **vnode_search(struct vuht_entry_t *ht, dev_t dev, ino_
 	return scan;
 }
 
-struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode) {
+struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size) {
 	struct vu_vnode_t **vnode_ptr;
 
 	pthread_mutex_lock(&vnode_mutex);
@@ -80,6 +81,7 @@ struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode
 		new_vnode->ht = ht;
 		new_vnode->dev = dev;
 		new_vnode->inode = inode;
+		new_vnode->size = size;
 		asprintf(&new_vnode->vpath, "%s/%p_%lx_%lx",
 				vu_tmpdirpath(), (void *) ht,
 				(unsigned long) dev, (unsigned long) inode);
@@ -135,6 +137,17 @@ void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
 	r_vu_lstat(vnode->vpath, buf);
 	if (length > buf->st_size)
 		r_truncate(vnode->vpath, length);
+	vnode->size = length;
+	pthread_mutex_unlock(&vnode_mutex);
+}
+
+off_t vu_vnode_get_size_lock(struct vu_vnode_t *vnode) {
+	pthread_mutex_lock(&vnode_mutex);
+	return vnode->size;
+}
+
+void vu_vnode_set_size_unlock(struct vu_vnode_t *vnode, off_t size) {
+	vnode->size = size;
 	pthread_mutex_unlock(&vnode_mutex);
 }
 
@@ -150,7 +163,6 @@ void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
 	 need to be suspended */
 
 __attribute__((constructor))
-  static void init(void) {
-    debug_set_name(v, "VNODE");
-  }
-
+	static void init(void) {
+		debug_set_name(v, "VNODE");
+	}

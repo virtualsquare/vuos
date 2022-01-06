@@ -37,10 +37,11 @@ struct vu_fnode_t {
 	pthread_rwlock_t lock;
 	struct vuht_entry_t *ht;  // ht entry of the module (NULL if the file is not virtualized)
 	char *path;               // absolute, canonicalized path of the file
-	struct vu_vnode_t *vnode; // pointeer to the vnode
+	struct vu_vnode_t *vnode; // pointer to the vnode
 	mode_t mode;              // mode (including file type)
 	int flags;                // flags
 	int count;                // number of fd table entries sharing this element
+	off_t pos;                // file position for VU_USE_PRW
 	/* module/service fields */
 	/* the values returned by the modules' implementations of open/socket/accept may not be real
 		 file descriptors. These values are just integers meaningful for the module itself:
@@ -68,7 +69,7 @@ struct vu_fnode_t *vu_fnode_create(
 	fnode->ht = ht;
 	fnode->path = xstrdup(path);
 	if (stat != NULL) {
-		fnode->vnode = vu_vnode_open(ht, stat->st_dev, stat->st_ino);
+		fnode->vnode = vu_vnode_open(ht, stat->st_dev, stat->st_ino, stat->st_size);
 		fnode->mode = stat->st_mode;
 	} else {
 		fnode->vnode = NULL;
@@ -76,6 +77,7 @@ struct vu_fnode_t *vu_fnode_create(
 	}
 	fnode->flags = flags;
 	fnode->count = 1;
+	fnode->pos = 0;
 	fnode->sfd = sfd;
 	fnode->private = private;
 	printkdebug(f, "open %s (%p)", fnode->path, ht);
@@ -193,6 +195,18 @@ int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp) {
 void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length) {
 	pthread_rwlock_rdlock(&v->lock);
 	vu_vnode_setminsize(v->vnode, length);
+	pthread_rwlock_unlock(&v->lock);
+}
+
+void vu_fnode_get_possize_lock(struct vu_fnode_t *v, off_t *pos, off_t *size) {
+	pthread_rwlock_wrlock(&v->lock);
+	*pos = v->pos;
+	*size = vu_vnode_get_size_lock(v->vnode);
+}
+
+void vu_fnode_set_possize_unlock(struct vu_fnode_t *v, off_t pos, off_t size) {
+	v->pos = pos;
+	vu_vnode_set_size_unlock(v->vnode, size);
 	pthread_rwlock_unlock(&v->lock);
 }
 

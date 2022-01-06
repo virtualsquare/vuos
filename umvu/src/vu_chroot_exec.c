@@ -37,6 +37,20 @@
 
 static char *elf_magic = "\177ELF";
 
+static int exec_chroot_pread(struct vuht_entry_t *ht, int fd, void *buf, size_t count, off_t offset,
+		void *private) {
+	if (service_getflags(ht) & VU_USE_PRW) {
+		if (service_syscall(ht, __VU_pread64)(fd, buf, count, offset, 0, private) != ((int) count))
+			return -1;
+	} else {
+		if (service_syscall(ht, __VU_lseek)(fd, offset, SEEK_SET, private) < 0)
+			return -1;
+		if (service_syscall(ht, __VU_read)(fd, buf, count, private) != ((int) count))
+			return -1;
+	}
+	return 0;
+}
+
 void exec_chroot_rewrite_interpreter(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 	char *e_ident = req->filehead;
 	void *private = NULL;
@@ -57,32 +71,8 @@ void exec_chroot_rewrite_interpreter(struct vuht_entry_t *ht, struct binfmt_req_
 		if (e_ident[EI_CLASS] == 01) {
 			// virtual 32
 			Elf32_Ehdr *hdr = (Elf32_Ehdr *) req->filehead;
-			if (service_syscall(ht, __VU_lseek)(fd, hdr->e_phoff, SEEK_SET, private) < 0)
-        goto close_return_ht;
-      Elf32_Phdr phdr[hdr->e_phnum];
-      if (service_syscall(ht, __VU_read)(fd, phdr, sizeof(phdr), private) != ((int) sizeof(phdr)))
-        goto close_return_ht;
-      for (i = 0; i < hdr->e_phnum; i++) {
-        if (phdr[i].p_type == PT_INTERP)
-          break;
-      }
-      if (i >= hdr->e_phnum)
-        goto close_return_ht;
-      int interlen = strlen(interpath);
-      if (interlen + phdr[i].p_filesz >= sizeof(interpath))
-        goto close_return_ht;
-      if (service_syscall(ht, __VU_lseek)(fd, phdr[i].p_offset, SEEK_SET, private) < 0)
-        goto close_return_ht;
-      if (service_syscall(ht, __VU_read)
-					(fd, interpath + interlen, phdr[i].p_filesz, private) != ((int) phdr[i].p_filesz))
-        goto close_return_ht;
-		} else if (e_ident[EI_CLASS] == 02) {
-			// virtual 64
-			Elf64_Ehdr *hdr = (Elf64_Ehdr *) req->filehead;
-			if (service_syscall(ht, __VU_lseek)(fd, hdr->e_phoff, SEEK_SET, private) < 0)
-				goto close_return_ht;
-			Elf64_Phdr phdr[hdr->e_phnum];
-			if (service_syscall(ht, __VU_read)(fd, phdr, sizeof(phdr), private) != ((int) sizeof(phdr)))
+			Elf32_Phdr phdr[hdr->e_phnum];
+			if (exec_chroot_pread(ht, fd, phdr, sizeof(phdr), hdr->e_phoff, private) < 0)
 				goto close_return_ht;
 			for (i = 0; i < hdr->e_phnum; i++) {
 				if (phdr[i].p_type == PT_INTERP)
@@ -93,10 +83,24 @@ void exec_chroot_rewrite_interpreter(struct vuht_entry_t *ht, struct binfmt_req_
 			int interlen = strlen(interpath);
 			if (interlen + phdr[i].p_filesz >= sizeof(interpath))
 				goto close_return_ht;
-      if (service_syscall(ht, __VU_lseek)(fd, phdr[i].p_offset, SEEK_SET, private) < 0)
+			if (exec_chroot_pread(ht, fd, interpath + interlen, phdr[i].p_filesz, phdr[i].p_offset, private) < 0)
 				goto close_return_ht;
-      if (service_syscall(ht, __VU_read)
-					(fd, interpath + interlen, phdr[i].p_filesz, private) != ((int) phdr[i].p_filesz))
+		} else if (e_ident[EI_CLASS] == 02) {
+			// virtual 64
+			Elf64_Ehdr *hdr = (Elf64_Ehdr *) req->filehead;
+			Elf64_Phdr phdr[hdr->e_phnum];
+			if (exec_chroot_pread(ht, fd, phdr, sizeof(phdr), hdr->e_phoff, private) < 0)
+				goto close_return_ht;
+			for (i = 0; i < hdr->e_phnum; i++) {
+				if (phdr[i].p_type == PT_INTERP)
+					break;
+			}
+			if (i >= hdr->e_phnum)
+				goto close_return_ht;
+			int interlen = strlen(interpath);
+			if (interlen + phdr[i].p_filesz >= sizeof(interpath))
+				goto close_return_ht;
+			if (exec_chroot_pread(ht, fd, interpath + interlen, phdr[i].p_filesz, phdr[i].p_offset, private) < 0)
 				goto close_return_ht;
 		} else
 			goto close_return_ht;
@@ -108,25 +112,25 @@ close_return_ht:
 			return;
 		if (e_ident[EI_CLASS] == 01) {
 			// real 32
-      Elf32_Ehdr *hdr = (Elf32_Ehdr *) req->filehead;
-      if (r_lseek(fd, hdr->e_phoff, SEEK_SET) < 0)
-        goto close_return;
-      Elf32_Phdr phdr[hdr->e_phnum];
-      if (r_read(fd, phdr, sizeof(phdr)) != ((int) sizeof(phdr)))
-        goto close_return;
-      for (i = 0; i < hdr->e_phnum; i++) {
-        if (phdr[i].p_type == PT_INTERP)
-          break;
-      }
-      if (i >= hdr->e_phnum)
-        goto close_return;
-      int interlen = strlen(interpath);
-      if (interlen + phdr[i].p_filesz >= sizeof(interpath))
-        goto close_return;
-      if (lseek(fd, phdr[i].p_offset, SEEK_SET) < 0)
-        goto close_return;
-      if (r_read(fd, interpath + interlen, phdr[i].p_filesz) != ((int) phdr[i].p_filesz))
-        goto close_return;
+			Elf32_Ehdr *hdr = (Elf32_Ehdr *) req->filehead;
+			if (r_lseek(fd, hdr->e_phoff, SEEK_SET) < 0)
+				goto close_return;
+			Elf32_Phdr phdr[hdr->e_phnum];
+			if (r_read(fd, phdr, sizeof(phdr)) != ((int) sizeof(phdr)))
+				goto close_return;
+			for (i = 0; i < hdr->e_phnum; i++) {
+				if (phdr[i].p_type == PT_INTERP)
+					break;
+			}
+			if (i >= hdr->e_phnum)
+				goto close_return;
+			int interlen = strlen(interpath);
+			if (interlen + phdr[i].p_filesz >= sizeof(interpath))
+				goto close_return;
+			if (lseek(fd, phdr[i].p_offset, SEEK_SET) < 0)
+				goto close_return;
+			if (r_read(fd, interpath + interlen, phdr[i].p_filesz) != ((int) phdr[i].p_filesz))
+				goto close_return;
 		} else if (e_ident[EI_CLASS] == 02) {
 			// real 64
 			Elf64_Ehdr *hdr = (Elf64_Ehdr *) req->filehead;
