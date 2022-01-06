@@ -63,5 +63,11 @@ __attribute__((always_inline))
 		return service->module_syscall[vu_syscall_number];
 	}
 
+/* inline function: it is here for performance.
+        it returns the flags of the module */
+__attribute__((always_inline))
+       static inline uint64_t service_getflags(struct vuht_entry_t *ht) {
+               return ht ? vuht_get_service(ht)->mod->flags : 0;
+       }
 #endif
 

@@ -33,8 +33,10 @@ struct vu_service_t;
 struct vuht_entry_t;
 
 struct vu_module_t {
-  char *name;
-  char *description;
+       char *name;
+       char *description;
+       uint64_t flags;
+       uint64_t filler;
 };
 
 typedef unsigned long int syscall_arg_t;
