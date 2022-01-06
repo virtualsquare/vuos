@@ -98,7 +98,8 @@ int vu_devfuse_close(int fd, void *fdprivate) {
 	(void) fd;
 	struct fusemount_t *fusemount = fdprivate;
 	printkdebug(U,"DEV CLOSE -> %p", fusemount);
-	sem_close(fusemount->sem);
+	if (fusemount->sem >= 0)
+		sem_close(fusemount->sem);
 	fusemount->sem = -1;
 	fusemount_free(fusemount);
 	return 0;
@@ -208,8 +209,10 @@ ssize_t vu_devfuse_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct fusereq *req = fusereq_dequeue(&fusemount->reqq);
 	// printk("read req %p\n", req);
 	if (req == NULL) { // umount-> EOF on dev
+		sem_close(fusemount->sem);
+		fusemount->sem = -1;
 		pthread_mutex_unlock(&(fusemount->mutex));
-		return 0;
+		return errno = ENODEV, -1;
 	}
 	struct fuse_in_header *h = buf;
 	*h = req->reqh;

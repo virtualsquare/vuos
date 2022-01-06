@@ -413,33 +413,40 @@ static void fuse_filldir(FILE *f, const char *name, unsigned short int namelen,
 		ret_value += fwrite(filler, entry.d_reclen - reclen, 1, f);
 }
 
+#define FUSE_INBUF_LEN 4080
 static void populate_dir(struct fusemount_t *fusemount, struct fusefile_t *fusefile) {
-	off_t offset = 0;
-	size_t retcount;
-	size_t count = 8192;
-	uint8_t buf[count];
+	char *buf = NULL;
+	size_t buflen = 0;
+	if ((fusefile->dir = volstream_open()) == NULL)
+		return;
+	FILE *fmem = open_memstream(&buf, &buflen);
+	if (fmem == NULL)
+		return;
+
 	struct fuse_read_in readin = {
 		.fh = fusefile->fh,
-		.size = count,
+		.size = FUSE_INBUF_LEN
 	};
 
-	fusefile->dir = volstream_open();
-
-	for(;;) {
-		readin.offset = offset;
+	size_t retcount;
+	for(readin.offset = 0; ; readin.offset += retcount) {
+		char inbuf[FUSE_INBUF_LEN];
 		int err = vu_devfuse_conversation(fusemount, FUSE_READDIR, fusefile->nodeid,
 				IOV1(&readin, sizeof(readin)),
-				IOV1(buf, count), &retcount);
+				IOV1(inbuf, FUSE_INBUF_LEN), &retcount);
 		if (retcount == 0 || err < 0)
 			break;
 
-		for (struct fuse_dirent *fde = (void *) buf;
-				(uint8_t *) fde < (buf + retcount);
-				fde = (void *)(((char *)(fde + 1)) + ((fde->namelen + 7) & (~7))) )  {
-			fuse_filldir(fusefile->dir, fde->name, fde->namelen, fde->type, fde->ino);
-		}
-		offset += retcount;
+		fwrite(inbuf, 1, retcount, fmem);
 	}
+	fclose(fmem);
+
+	for (struct fuse_dirent *fde = (void *) buf;
+			(char *) fde < (buf + buflen);
+			fde = (void *)(((char *)(fde + 1)) + ((fde->namelen + 7) & (~7))) )  {
+		fuse_filldir(fusefile->dir, fde->name, fde->namelen, fde->type, fde->ino);
+	}
+	free(buf);
 }
 
 int vu_fuse_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
@@ -628,7 +635,7 @@ ssize_t vu_fuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, in
 		.size = count,
 		.flags = flags
 	};
-	struct fuse_write_in writeout;
+	struct fuse_write_out writeout;
 
 	int err = vu_devfuse_conversation(fusemount, FUSE_WRITE, fusefile->nodeid,
 			IOV2(&writein, sizeof(writein), buf, count),
