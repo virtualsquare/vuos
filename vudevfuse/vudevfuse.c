@@ -42,7 +42,7 @@ VU_PROTOTYPES(fuse)
 	struct vu_module_t vu_module = {
 		.name = "fuse",
 		.description = "vu fuse device",
-		//.flags = VU_USE_PRW
+		.flags = VU_USE_PRW
 	};
 
 static int parse_mount_fd(const char *input) {

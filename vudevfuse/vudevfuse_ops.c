@@ -174,6 +174,13 @@ static int fuse_lstat(struct fusemount_t *fusemount, const char *path,
 	return 0;
 }
 
+static void fuse_invalidate_attr(struct fusemount_t *fusemount, uint64_t nodeid)  {
+	struct fuse_attr_out attrout = {
+		.attr_valid = -1
+	};
+	fn_updatenode(fusemount->fnbuf, nodeid, &attrout);
+}
+
 int vu_fuse_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void *fdprivate) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
@@ -312,6 +319,7 @@ int vu_fuse_close(int fd, void *fdprivate) {
 	if (fusefile->dir != NULL)
 		fclose(fusefile->dir);
 
+	fuse_invalidate_attr(fusemount, fusefile->nodeid);
 	pthread_mutex_unlock(&(fusefile->mutex));
 	pthread_mutex_destroy(&(fusefile->mutex));
 	free(fusefile);
