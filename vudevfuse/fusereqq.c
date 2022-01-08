@@ -29,7 +29,7 @@ void fusereq_enqueue(struct fusereq *req, struct fusereq **tail) {
 	if (last == NULL)
 		req->next = req;
 	else {
-		req->next = last;
+		req->next = last->next;
 		last->next = req;
 	}
 	*tail = req;
@@ -49,21 +49,17 @@ struct fusereq *fusereq_dequeue(struct fusereq **tail) {
 }
 
 struct fusereq *fusereq_outqueue(uint64_t unique, struct fusereq **tail) {
-	struct fusereq *retvalue = NULL;
-	if (*tail != NULL) {
-		struct fusereq **scan;
-		for (scan = &((*tail)->next);
-				*scan != *tail;
-				scan = &((*scan)->next))
-			if ((*scan)->reqh.unique == unique)
-				break;
-		if ((*scan)->reqh.unique == unique) {
-			retvalue = *scan;
-			if (*scan == *tail)
-				*tail = (*tail == retvalue->next) ? NULL : retvalue->next;
-			*scan = retvalue->next;
-			retvalue->next = NULL;
-		}
-	}
-	return retvalue;
+	struct fusereq *prev, *this;
+	for (prev = *tail, this = prev->next;
+			this != *tail;
+			prev = this, this = prev->next)
+		if (this->reqh.unique == unique)
+			break;
+	if (this->reqh.unique == unique) {
+		if (this == *tail)
+			*tail = (prev == *tail) ? NULL : prev;
+		prev->next = this->next;
+		return this;
+	} else
+		return NULL;
 }
