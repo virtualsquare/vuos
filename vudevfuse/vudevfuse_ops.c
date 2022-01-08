@@ -46,8 +46,10 @@ VU_PROTOTYPES(fuse)
 		uint64_t fh;
 		int flags;
 		uint32_t open_flags;
+#if !(VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
 		off_t pos;
 		off_t size;
+#endif
 		FILE *dir;
 	};
 
@@ -280,8 +282,10 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 	fusefile->fh = openout.fh;
 	fusefile->flags = flags;
 	fusefile->open_flags = openout.open_flags;
+#if !(VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
 	fusefile->size = statbuf.st_size;
 	fusefile->pos = 0;
+#endif
 	fusefile->dir = NULL;
 
 	*fdprivate = fusefile;
@@ -338,6 +342,9 @@ ssize_t vu_fuse_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
 		return vu_devfuse_read(fd, buf, count, fdprivate);
+#if (VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
+	return vu_devfuse_nosys();
+#else
 	printkdebug(U,"READ %d count=%zd", fd, count);
 	struct fusemount_t *fusemount = vuht_get_private_data(ht);
 	struct fusefile_t *fusefile = fdprivate;
@@ -360,12 +367,16 @@ ssize_t vu_fuse_read(int fd, void *buf, size_t count, void *fdprivate) {
 
 	pthread_mutex_unlock(&(fusefile->mutex));
 	return count;
+#endif
 }
 
 ssize_t vu_fuse_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
 		return vu_devfuse_write(fd, buf, count, fdprivate);
+#if (VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
+	return vu_devfuse_nosys();
+#else
 	printkdebug(U,"WRITE %d count=%zd", fd, count);
 	struct fusemount_t *fusemount = vuht_get_private_data(ht);
 	struct fusefile_t *fusefile = fdprivate;
@@ -399,6 +410,7 @@ ssize_t vu_fuse_write(int fd, const void *buf, size_t count, void *fdprivate) {
 
 	pthread_mutex_unlock(&(fusefile->mutex));
 	return count;
+#endif
 }
 
 static void fuse_filldir(FILE *f, const char *name, unsigned short int namelen,
@@ -552,21 +564,21 @@ int vu_fuse_statfs (const char *pathname, struct statfs *buf, int fd, void *fdpr
 	return 0;
 }
 
-/* XXX fix: concurrent access */
+#if !(VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
 off_t vu_fuse_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	(void) fd;
 	if (ht == devfuse_ht)
 		return vu_devfuse_nosys();
+/* XXX fix: concurrent access */
 	printkdebug(U,"LSEEK %d offset=%zd whence=%d", offset, whence);
-	// struct fusemount_t *fusemount = vuht_get_private_data(ht);
 	struct fusefile_t *fusefile = fdprivate;
 	pthread_mutex_lock(&(fusefile->mutex));
 
 	switch (whence) {
 		case SEEK_SET: fusefile->pos = offset; break;
 		case SEEK_CUR: fusefile->pos += offset; break;
-		case SEEK_END: fusefile->pos = fusefile->pos + offset; break;
+		case SEEK_END: fusefile->pos = fusefile->size + offset; break;
 		default: return errno = EINVAL, -1;
 	}
 
@@ -575,6 +587,7 @@ off_t vu_fuse_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 	pthread_mutex_unlock(&(fusefile->mutex));
 	return fusefile->pos;
 }
+#endif
 
 #if 0 // access  can be emulated using stat
 int vu_fuse_access(char *path, int mode, int flags) {
@@ -654,9 +667,11 @@ ssize_t vu_fuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, in
 
 	count = writeout.size;
 
+#if !(VUDEVFUSE_MODULE_FLAGS & VU_USE_PRW)
 	off_t cksize = offset + count;
 	if (cksize > fusefile->size)
 		fusefile->size = cksize;
+#endif
 
 	return count;
 }

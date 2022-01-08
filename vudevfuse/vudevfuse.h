@@ -3,9 +3,11 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <linux/fuse.h>
+#include <vumodule.h>
 #include <fusereqq.h>
 #include <fusenode.h>
 
+#define VUDEVFUSE_MODULE_FLAGS (VU_USE_PRW)
 #define FUSENODE_BUFSIZE 256
 
 extern struct vuht_entry_t *devfuse_ht;
