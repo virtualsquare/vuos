@@ -39,7 +39,11 @@ struct vu_module_t {
        uint64_t filler;
 };
 
-#define VU_USE_PRW	1
+/* flsgs:
+ *      + VU_USE_PRW: use pread/pwrite intead of read/write. vuos core keeps track of the file
+ *        current offset and current size.
+ */
+#define VU_USE_PRW	      (1L << 0)
 
 typedef unsigned long int syscall_arg_t;
 typedef long (*syscall_t)();
