@@ -33,11 +33,14 @@
 #include <vumodule.h>
 #include <vudev.h>
 
+#define VUDEV_VUMODULE_FLAGS (VU_USE_PRW)
+
 VU_PROTOTYPES(vudev)
 
 	struct vu_module_t vu_module = {
 		.name = "vudev",
-		.description = "vu virtual devices"
+		.description = "vu virtual devices",
+		.flags = VUDEV_VUMODULE_FLAGS
 	};
 
 #define VUDEVFLAGS_DEVID 1
@@ -118,6 +121,37 @@ int vu_vudev_close(int fd, void *fdprivate) {
 	return retval;
 }
 
+#if (VUDEV_VUMODULE_FLAGS & VU_USE_PRW)
+ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
+  struct vudevfd_t *vudevfd = fdprivate;
+  struct vudev_t *vudev = vudevfd->vudev;
+  ssize_t retval;
+  printkdebug(D,"READ %d %p", fd, vudevfd);
+  if((vudevfd->flags & O_WRONLY) != 0) {
+    errno = EBADF;
+    return -1;
+  }
+  pthread_mutex_lock(&(vudev->mutex));
+	retval = vudev->devops->read(fd, buf, count, vudevfd);
+  pthread_mutex_unlock(&(vudev->mutex));
+  return retval;
+}
+
+ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
+  struct vudevfd_t *vudevfd = fdprivate;
+  struct vudev_t *vudev = vudevfd->vudev;
+  ssize_t retval;
+  printkdebug(D,"WRITE %d %p", fd, vudevfd);
+  if((vudevfd->flags & O_RDONLY) != 0) {
+    errno = EBADF;
+    return -1;
+  }
+  pthread_mutex_lock(&(vudev->mutex));
+	retval = vudev->devops->write(fd, buf, count, vudevfd);
+  pthread_mutex_unlock(&(vudev->mutex));
+  return retval;
+}
+#else
 ssize_t vu_vudev_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
 	struct vudev_t *vudev = vudevfd->vudev;
@@ -155,12 +189,15 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	else {
 		retval = vudev->devops->pwrite ?
 			vudev->devops->pwrite(fd, buf, count, vudevfd->offset, vudevfd) : (errno = ENOSYS, -1);
+#if !(VUDEV_VUMODULE_FLAGS & VU_USE_PRW)
 		if (retval > 0)
 			vudevfd->offset += retval;
+#endif
 	}
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
 }
+#endif
 
 ssize_t vu_vudev_pread64(int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vudevfd_t *vudevfd = fdprivate;
