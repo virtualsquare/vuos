@@ -747,23 +747,34 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int whence = sd->syscall_args[2];
 		/* call */
 		sd->action = SKIPIT;
+		/* VU_USE_PRW */
 		if (service_getflags(ht) & VU_USE_PRW) {
 			off_t pos, size;
-			off_t newpos;
-			errno = 0;
+			off_t modsize;
 			vu_fd_get_possize_lock(fd, nested, &pos, &size);
 			switch (whence) {
-				case SEEK_SET: newpos = offset; break;
-				case SEEK_CUR: newpos = pos + offset; break;
-				case SEEK_END: newpos = size + offset; break;
-				default: newpos = -1;
+				case SEEK_SET: ret_value = offset;
+											 break;
+				case SEEK_CUR: ret_value = pos + offset;
+											 break;
+				case SEEK_END: modsize = service_syscall(ht, __VU_lseek)(sfd, 0, SEEK_END, private);
+											 if (modsize >= 0)
+												 ret_value = modsize + offset;
+											 else
+												 ret_value = size + offset;
+											 break;
+				default: ret_value = -EINVAL;
 			}
-			if (newpos >= 0) pos = newpos;
+			if (ret_value >= 0) {
+				off_t modpos = service_syscall(ht, __VU_lseek)(sfd, ret_value, SEEK_SET, private);
+				if (modpos >= 0)
+					ret_value = modpos;
+				else if (errno != ENOSYS)
+					ret_value = -errno;
+			}
+			if (ret_value >= 0) pos = ret_value;
 			vu_fd_set_possize_unlock(fd, nested, pos, size);
-			if (newpos < 0)
-				sd->ret_value = -EINVAL;
-			else
-				sd->ret_value = pos;
+			sd->ret_value = ret_value;
 		} else {
 			ret_value = service_syscall(ht, __VU_lseek)(sfd, offset, whence, private);
 			if (ret_value < 0)

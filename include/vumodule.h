@@ -39,9 +39,24 @@ struct vu_module_t {
        uint64_t filler;
 };
 
-/* flsgs:
- *      + VU_USE_PRW: use pread/pwrite intead of read/write. vuos core keeps track of the file
+/* flags:
+ *      + VU_USE_PRW: use pread/pwrite instead of read/write. vuos core keeps track of the file
  *        current offset and current size.
+ *        The module read/write methods are not used (can be omitted except for char devices)
+ *        The 'seek' method can be safely omitted. When defined it confirms the consistency of the
+ *           file position (e.g. for seekable devices max size)
+ *
+ *           off_t modulename_lseek(int fd, off_t offset, int whence, void *fdprivate) {
+ *             ...
+ *             switch (whence) {
+ *               case SEEK_SET: if (offset <= device_size)
+ *                                return offset;
+ *                              else
+ *                                return errno = EINVAL, -1;
+ *               case SEEK_END: return device_size;
+ *               default:       return errno = EINVAL, -1;
+ *             }
+ *           }
  */
 #define VU_USE_PRW	      (1L << 0)
 
