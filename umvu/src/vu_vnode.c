@@ -44,6 +44,17 @@ struct vu_vnode_t {
 	struct vu_vnode_t *next;
 };
 
+/* XXX flags field has been added for mmap support
+	 when mmapped the file must be copied.
+	 read and mmap will then take place on the fake file in the tmpdir.
+
+	 a "dirty" bit can be used to support write ops on mmap.
+	 if the file is dirty it will need to be copied back.
+
+	 a rwlock seems to be needed to implement mmap.
+	 during the file copy (to the tmp dir) any I/O operation on the file
+	 need to be suspended */
+
 #define VU_VNODE_HASH_SIZE 256
 #define VU_VNODE_HASH_MASK (VU_VNODE_HASH_SIZE - 1)
 
@@ -131,16 +142,6 @@ int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
 	return ret_value;
 }
 
-void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length) {
-	struct vu_stat buf[1];
-	pthread_mutex_lock(&vnode_mutex);
-	r_vu_lstat(vnode->vpath, buf);
-	if (length > buf->st_size)
-		r_truncate(vnode->vpath, length);
-	vnode->size = length;
-	pthread_mutex_unlock(&vnode_mutex);
-}
-
 off_t vu_vnode_get_size_lock(struct vu_vnode_t *vnode) {
 	pthread_mutex_lock(&vnode_mutex);
 	return vnode->size;
@@ -151,16 +152,24 @@ void vu_vnode_set_size_unlock(struct vu_vnode_t *vnode, off_t size) {
 	pthread_mutex_unlock(&vnode_mutex);
 }
 
-/* XXX flags field has been added for mmap support
-	 when mmapped the file must be copied.
-	 read and mmap will then take place on the fake file in the tmpdir.
-
-	 a "dirty" bit can be used to support write ops on mmap.
-	 if the file is dirty it will need to be copied back.
-
-	 a rwlock seems to be neede to implement mmap.
-	 during the file copy (to the tmp dir) any I/O operation on the file
-	 need to be suspended */
+off_t vu_vnode_getset_size(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size) {
+	off_t ret_value;
+	struct vu_vnode_t **vnode_ptr;
+	pthread_mutex_lock(&vnode_mutex);
+	vnode_ptr = vnode_search(ht, dev, inode);
+	struct vu_vnode_t *this = *vnode_ptr;
+	if (this == NULL)
+		ret_value = -1;
+	else {
+		ret_value = this->size;
+		if (size >= 0) {
+			/* r_truncate(this->vpath, size); */ /* truncate the local copy? */
+			this->size = size;
+		}
+	}
+	pthread_mutex_unlock(&vnode_mutex);
+	return ret_value;
+}
 
 __attribute__((constructor))
 	static void init(void) {

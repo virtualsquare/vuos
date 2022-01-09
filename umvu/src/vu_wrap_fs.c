@@ -34,6 +34,7 @@
 #include <hashtable.h>
 #include <arch_table.h>
 #include <vu_fd_table.h>
+#include <vu_file_table.h>
 #include <vu_fs.h>
 #include <syscall_defs.h>
 #include <vu_execute.h>
@@ -86,6 +87,12 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (ret_value < 0) {
 			sd->ret_value = -errno;
 			return;
+		}
+		/* update st_size of currently open files */
+		if (S_ISREG(statbuf->st_mode) && (service_getflags(ht) & VU_USE_PRW)) {
+				off_t opensize = vu_fnode_getset_size(ht, statbuf, -1);
+				if (opensize >= 0)
+					statbuf->st_size = opensize;
 		}
 		/* store results */
 		vu_poke_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
@@ -241,6 +248,10 @@ void wi_truncate(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			sd->ret_value = -errno;
 			return;
 		}
+		struct vu_stat *stat = &sd->extra->statbuf;
+		/* update the size of open files */
+		if (S_ISREG(stat->st_mode) && (service_getflags(ht) & VU_USE_PRW))
+			vu_fnode_getset_size(ht, stat, length);
 		sd->ret_value = ret_value;
 	}
 }

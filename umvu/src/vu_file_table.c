@@ -60,7 +60,7 @@ void vu_fnode_set_close_upcall(mode_t mode, close_upcall_t close_upcall) {
 struct vu_fnode_t *vu_fnode_create(
 		struct vuht_entry_t *ht,
 		const char *path,
-		struct stat *stat,
+		struct vu_stat *stat,
 		int flags,
 		int sfd,
 		void *private) {
@@ -150,6 +150,7 @@ char *vu_fnode_get_vpath(struct vu_fnode_t *v) {
 	ret_value = vu_vnode_getvpath(v->vnode);
 	pthread_rwlock_unlock(&v->lock);
 	return ret_value;
+
 }
 
 mode_t vu_fnode_get_mode(struct vu_fnode_t *v) {
@@ -192,12 +193,6 @@ int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp) {
 	return ret_value;
 }
 
-void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length) {
-	pthread_rwlock_rdlock(&v->lock);
-	vu_vnode_setminsize(v->vnode, length);
-	pthread_rwlock_unlock(&v->lock);
-}
-
 void vu_fnode_get_possize_lock(struct vu_fnode_t *v, off_t *pos, off_t *size) {
 	pthread_rwlock_wrlock(&v->lock);
 	*pos = v->pos;
@@ -208,6 +203,13 @@ void vu_fnode_set_possize_unlock(struct vu_fnode_t *v, off_t pos, off_t size) {
 	v->pos = pos;
 	vu_vnode_set_size_unlock(v->vnode, size);
 	pthread_rwlock_unlock(&v->lock);
+}
+
+off_t vu_fnode_getset_size(struct vuht_entry_t *ht, struct vu_stat *stat, off_t size) {
+	if (stat == NULL)
+		return -1;
+	else
+		return vu_vnode_getset_size(ht, stat->st_dev, stat->st_ino, size);
 }
 
 __attribute__((constructor))

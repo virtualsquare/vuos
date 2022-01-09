@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <linux_32_64.h>
 #include <vu_file_table.h>
 #include <hashtable.h>
 #include <syscall_defs.h>
@@ -41,7 +42,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	size_t filesize = 0;
   char *buf[BUFSIZ];
   void *private;
-	struct stat fdoutstat;
+	struct vu_stat fdoutstat;
 	//printk("COPY %s to %s\n",path,tmp_path);
   fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0700);
   if (fdout < 0)

@@ -37,10 +37,9 @@ typedef int (*copyfun) (struct vuht_entry_t *ht, char *path, char *tmp_path);
 
 int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp);
 
-void vu_vnode_setminsize(struct vu_vnode_t *vnode, off_t length);
-
 /* VU_USE_PRW: get and set size + locking */
 off_t vu_vnode_get_size_lock(struct vu_vnode_t *vnode);
 void vu_vnode_set_size_unlock(struct vu_vnode_t *vnode, off_t size);
+off_t vu_vnode_getset_size(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size);
 
 #endif

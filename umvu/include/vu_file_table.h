@@ -1,6 +1,7 @@
 #ifndef VU_FILE_TABLE_H
 #define VU_FILE_TABLE_H
 #include<stdio.h>
+#include<linux_32_64.h>
 #include<sys/stat.h>
 
 /* This if the table of open files.
@@ -32,7 +33,7 @@ void vu_fnode_set_close_upcall(mode_t mode, close_upcall_t close_upcall);
 struct vu_fnode_t *vu_fnode_create(
 		struct vuht_entry_t *ht,
 		const char *path,
-		struct stat *stat,
+		struct vu_stat *stat,
 		int flags,
 		int sfd,
 		void *private);
@@ -64,11 +65,9 @@ int vu_fnode_get_sfd(struct vu_fnode_t *v, void **pprivate);
 typedef int (*copyfun) (struct vuht_entry_t *ht, char *path, char *tmp_path);
 int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp);
 
-/* trunc of the local copy */
-void vu_fnode_setminsize(struct vu_fnode_t *v, off_t length);
-
 /* VU_USE_PRW */
 void vu_fnode_get_possize_lock(struct vu_fnode_t *v, off_t *pos, off_t *size);
 void vu_fnode_set_possize_unlock(struct vu_fnode_t *v, off_t pos, off_t size);
+off_t vu_fnode_getset_size(struct vuht_entry_t *ht, struct vu_stat *stat, off_t size);
 
 #endif
