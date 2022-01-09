@@ -189,10 +189,8 @@ ssize_t vu_vudev_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	else {
 		retval = vudev->devops->pwrite ?
 			vudev->devops->pwrite(fd, buf, count, vudevfd->offset, vudevfd) : (errno = ENOSYS, -1);
-#if !(VUDEV_VUMODULE_FLAGS & VU_USE_PRW)
 		if (retval > 0)
 			vudevfd->offset += retval;
-#endif
 	}
 	pthread_mutex_unlock(&(vudev->mutex));
 	return retval;
