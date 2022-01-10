@@ -69,7 +69,8 @@ struct vu_fnode_t *vu_fnode_create(
 	fnode->ht = ht;
 	fnode->path = xstrdup(path);
 	if (stat != NULL) {
-		fnode->vnode = vu_vnode_open(ht, stat->st_dev, stat->st_ino, stat->st_size);
+		fnode->vnode = vu_vnode_open(ht, stat->st_dev, stat->st_ino, stat->st_size,
+				!!(flags & O_TRUNC));
 		fnode->mode = stat->st_mode;
 	} else {
 		fnode->vnode = NULL;

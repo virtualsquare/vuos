@@ -131,7 +131,7 @@ void wo_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int fdflags = sd->syscall_args[1] & O_CLOEXEC ? FD_CLOEXEC : 0;
 		if (fd >= 0) {
 			/* the user process has opened the fake file in /tmp/.vu....
-			 * update teh fdtable */
+			 * update the fdtable */
 			vu_fd_set_fnode(fd, VU_NOT_NESTED, fnode, fdflags);
 		} else {
 			/* the user process failed to open the fake file. close the virt-file */

@@ -22,7 +22,8 @@ struct vuht_entry_t;
 	 otherwise it returns the pointer to the corresponding vnode (and increment
 	 the usage counter)
  */
-struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size);
+struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size,
+		int trunc);
 /* close decrements the usage counter, delete the local copy and free the vnode when
 	 the counter becomes zero) */
 void vu_vnode_close(struct vu_vnode_t *vnode);

@@ -80,7 +80,7 @@ static struct vu_vnode_t **vnode_search(struct vuht_entry_t *ht, dev_t dev, ino_
 	return scan;
 }
 
-struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size) {
+struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size, int trunc) {
 	struct vu_vnode_t **vnode_ptr;
 
 	pthread_mutex_lock(&vnode_mutex);
@@ -104,6 +104,7 @@ struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode
 	} else {
 		struct vu_vnode_t *this = *vnode_ptr;
 		this->usage_count++;
+		if (trunc) this->size = 0;
 		printkdebug(v, "vnode open %s count %d", this->vpath, this->usage_count);
 	};
 	pthread_mutex_unlock(&vnode_mutex);
