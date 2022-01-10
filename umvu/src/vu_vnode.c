@@ -144,13 +144,13 @@ int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
 }
 
 off_t vu_vnode_get_size_lock(struct vu_vnode_t *vnode) {
-	pthread_mutex_lock(&vnode_mutex);
+	pthread_mutex_lock(&vnode->mutex);
 	return vnode->size;
 }
 
 void vu_vnode_set_size_unlock(struct vu_vnode_t *vnode, off_t size) {
 	vnode->size = size;
-	pthread_mutex_unlock(&vnode_mutex);
+	pthread_mutex_unlock(&vnode->mutex);
 }
 
 off_t vu_vnode_getset_size(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_t size) {
@@ -162,11 +162,13 @@ off_t vu_vnode_getset_size(struct vuht_entry_t *ht, ino_t dev, ino_t inode, off_
 	if (this == NULL)
 		ret_value = -1;
 	else {
+		pthread_mutex_lock(&this->mutex);
 		ret_value = this->size;
 		if (size >= 0) {
 			/* r_truncate(this->vpath, size); */ /* truncate the local copy? */
 			this->size = size;
 		}
+		pthread_mutex_unlock(&this->mutex);
 	}
 	pthread_mutex_unlock(&vnode_mutex);
 	return ret_value;
