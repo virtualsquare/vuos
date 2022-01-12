@@ -141,7 +141,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
-/* access, faccessat, faccess2 */
+/* access, faccessat, faccessat2 */
 void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
@@ -159,10 +159,12 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_faccessat:
 				mode = sd->syscall_args[2];
 				break;
+#ifdef __NR_faccessat2
 			case __NR_faccessat2:
 				mode = sd->syscall_args[2];
 				flags = sd->syscall_args[3];
 				break;
+#endif
 		}
 		/* call */
 		sd->action = SKIPIT;
