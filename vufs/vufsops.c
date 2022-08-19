@@ -196,7 +196,7 @@ int vu_vufs_lstat(char *pathname, struct vu_stat *buf, int flags, int sfd, void 
 int vu_vufs_access(char *path, int mode, int flags) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -223,7 +223,7 @@ int vu_vufs_access(char *path, int mode, int flags) {
 ssize_t vu_vufs_readlink(char *path, char *buf, size_t bufsiz) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -249,7 +249,7 @@ int vu_vufs_statfs (const char *path, struct statfs *buf, int sfd, void *fdpriva
 	} else {
 		struct vufs_t *vufs = vu_get_ht_private_data();
 		vufsa_status status = VUFSA_START;
-		int retval;
+		int retval = 0;
 		path += 1;
 		vufsa_next vufsa_next = vufsa_select(vufs, O_RDONLY);
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -286,7 +286,7 @@ int vu_vufs_statfs (const char *path, struct statfs *buf, int sfd, void *fdpriva
 int vu_vufs_unlink (const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_UNLINK);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -316,7 +316,7 @@ int vu_vufs_unlink (const char *path) {
 int vu_vufs_rmdir(const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	if (vufs_enotempty_ck(vufs, path) < 0)
 		retval = -1;
@@ -351,7 +351,7 @@ int vu_vufs_rmdir(const char *path) {
 int vu_vufs_mkdir (const char *path, mode_t mode) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -383,7 +383,7 @@ int vu_vufs_mkdir (const char *path, mode_t mode) {
 int vu_vufs_symlink (const char *target, const char *path) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -416,7 +416,7 @@ int vu_vufs_symlink (const char *target, const char *path) {
 int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -455,7 +455,7 @@ int vu_vufs_mknod (const char *path, mode_t mode, dev_t dev) {
 int vu_vufs_link (const char *oldpath, const char *newpath) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	newpath += 1;
 	oldpath += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_CREAT | O_EXCL);
@@ -498,7 +498,7 @@ int vu_vufs_link (const char *oldpath, const char *newpath) {
 int vu_vufs_rename (const char *oldpath, const char *newpath, int flags) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	newpath += 1;
 	oldpath += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
@@ -556,7 +556,7 @@ int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
 	} else {
 		struct vufs_t *vufs = vu_get_ht_private_data();
 		vufsa_status status = VUFSA_START;
-		int retval;
+		int retval = 0;
 		path += 1;
 		vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -591,7 +591,7 @@ int vu_vufs_utimensat (int dirfd, const char *path,
 	} else {
 		struct vufs_t *vufs = vu_get_ht_private_data();
 		vufsa_status status = VUFSA_START;
-		int retval;
+		int retval = 0;
 		path += 1;
 		vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -627,7 +627,7 @@ int vu_vufs_utimensat (int dirfd, const char *path,
 int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -663,7 +663,7 @@ int vu_vufs_lchown(const char *path, uid_t owner, gid_t group, int fd, void *fdp
 int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	path += 1;
 	vufsa_next vufsa_next = vufsa_select(vufs, O_RDWR);
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
@@ -697,7 +697,7 @@ int vu_vufs_chmod(const char *path, mode_t mode, int fd, void *fdprivate) {
 int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
 	vufsa_status status = VUFSA_START;
-	int retval;
+	int retval = 0;
 	const char *filepath;
 	mode_t oldmode = vu_mod_getmode();
 	pathname += 1;
@@ -751,7 +751,7 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 
 int vu_vufs_close(int fd, void *fdprivate) {
 	struct vufs_t *vufs = vu_get_ht_private_data();
-	int retval;
+	int retval = 0;
 	pthread_mutex_lock(&(vufs->mutex));
 	retval = close(fd);
 	if (retval == 0 && fdprivate != NULL) {

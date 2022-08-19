@@ -47,7 +47,7 @@ int fuse_reentrant_tag = 0;
 
 #define GETPATH(source, path) \
 	char path ## _fullpath [PATH_MAX]; \
-	sprintf( (path ## _fullpath) , "%s%s", (strcmp(source,"/")) ? source : "", path); \
+	snprintf((path ## _fullpath), PATH_MAX, "%s%s", (strcmp(source,"/")) ? source : "", path); \
 	path = path ## _fullpath
 
 #define RETURN(retvalue) return ((retvalue < 0) ? -errno : retvalue)
@@ -133,18 +133,19 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 	struct dirent* de;
 	DIR * dr = fdopendir((int)fi->fh);
 
-
 	if(dr == NULL) return -errno;
 
 	while ((de = readdir(dr)) != NULL){
 		struct stat stbuf ;
 		char filename[PATH_MAX];
-		sprintf( filename , "%s%s",(strcmp(path,"/")) ? path : "",de->d_name) ;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+		snprintf(filename, PATH_MAX, "%s%s", (strcmp(path,"/")) ? path : "", de->d_name) ;
+#pragma GCC diagnostic pop
 
 		//ignoring offset
 		if (lstat(filename, &stbuf) >=  0){
 			filler(buf,de->d_name,&stbuf,0);
-
 		} else filler(buf,de->d_name,NULL,0);
 		//test for return value 1 ?
 	}

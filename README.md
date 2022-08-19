@@ -261,11 +261,11 @@ Modules register their `boundary of responsibility` to the core hypervisor: i.e.
 etc. they are responsible for.
 The API of modules consists of a subset of the system call API. When a process uses a read system call on a virtualized
 file (e.g. a file in a vumounted partition), the corresponding module receives a read request having the same signature
-of the standard system call. As an example the test module test_modules/unreal.c, provides a *view* of the entire file
+of the standard system call. As an example the test module test\_modules/unreal.c, provides a *view* of the entire file
 system in `/unreal`  and in `/unreal/unreal` simply using the system calls as module methods. (e.g. the function to implement
 lstat in the module is lstat, and so on. The only two function that had to be defined were: `getdents64` as gliibc does not provide an interface to it and `access` as it lacks a `flags` argument).
 
-Tha API between modules and submodules is tailored to the specific requirements. The API for filesystems has been chose to
+The API between modules and submodules is tailored to the specific requirements. The API for filesystems has been chose to
 provide source level compatibility with FUSE modules.
 
 ## Installing umvu ##
