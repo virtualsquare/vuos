@@ -435,38 +435,31 @@ static void fuse_filldir(FILE *f, const char *name, unsigned short int namelen,
 
 #define FUSE_INBUF_LEN 4080
 static void populate_dir(struct fusemount_t *fusemount, struct fusefile_t *fusefile) {
-	char *buf = NULL;
-	size_t buflen = 0;
 	if ((fusefile->dir = volstream_open()) == NULL)
-		return;
-	FILE *fmem = open_memstream(&buf, &buflen);
-	if (fmem == NULL)
 		return;
 
 	struct fuse_read_in readin = {
 		.fh = fusefile->fh,
-		.size = FUSE_INBUF_LEN
+		.size = FUSE_INBUF_LEN,
+		.offset = 0
 	};
 
-	size_t retcount;
-	for(readin.offset = 0; ; readin.offset += retcount) {
+	for (;;) {
 		char inbuf[FUSE_INBUF_LEN];
+		size_t retcount;
 		int err = vu_devfuse_conversation(fusemount, FUSE_READDIR, fusefile->nodeid,
 				IOV1(&readin, sizeof(readin)),
 				IOV1(inbuf, FUSE_INBUF_LEN), &retcount);
-		if (retcount == 0 || err < 0)
+		if (retcount <= 0 || err < 0)
 			break;
 
-		fwrite(inbuf, 1, retcount, fmem);
+		for (struct fuse_dirent *fde = (void *) inbuf;
+				(char *) fde < (inbuf + retcount);
+				fde = (void *)(((char *)(fde + 1)) + ((fde->namelen + 7) & (~7))) )  {
+			fuse_filldir(fusefile->dir, fde->name, fde->namelen, fde->type, fde->ino);
+			readin.offset++;
+		}
 	}
-	fclose(fmem);
-
-	for (struct fuse_dirent *fde = (void *) buf;
-			(char *) fde < (buf + buflen);
-			fde = (void *)(((char *)(fde + 1)) + ((fde->namelen + 7) & (~7))) )  {
-		fuse_filldir(fusefile->dir, fde->name, fde->namelen, fde->type, fde->ino);
-	}
-	free(buf);
 }
 
 int vu_fuse_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int count, void *fdprivate) {
