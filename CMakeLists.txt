@@ -2,6 +2,27 @@ cmake_minimum_required(VERSION 3.13)
 project("vuos")
 
 include(GNUInstallDirs)
+include(CheckIncludeFile)
+include(CheckSymbolExists)
+
+set(LIBS_REQUIRED stropt volatilestream execs vdeplug fuse)
+set(HEADERS_REQUIRED stropt.h strcase.h volatilestream.h execs.h libvdeplug.h fuse.h pthread.h)
+set(CMAKE_REQUIRED_DEFINITIONS -D_FILE_OFFSET_BITS=64)
+
+foreach(THISLIB IN LISTS LIBS_REQUIRED)
+  find_library(LIB${THISLIB}_OK ${THISLIB})
+  if(NOT LIB${THISLIB}_OK)
+    message(FATAL_ERROR "library lib${THISLIB} not found")
+  endif()
+endforeach(THISLIB)
+
+foreach(HEADER IN LISTS HEADERS_REQUIRED)
+  check_include_file(${HEADER} ${HEADER}_OK)
+  if(NOT ${HEADER}_OK)
+    message(FATAL_ERROR "header file ${HEADER} not found")
+  endif()
+endforeach(HEADER)
+unset(CMAKE_REQUIRED_DEFINITIONS)
 
 set(CMAKE_C_FLAGS
 		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
