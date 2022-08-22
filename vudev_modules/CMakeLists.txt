@@ -6,7 +6,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 file(GLOB VUDEV_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 
 foreach(VUDEV_MOD ${VUDEV_MODULES})
-    string(REPLACE ".c" "" VUDEV_MOD_FILE ${VUDEV_MOD})
+    string(REGEX REPLACE "\.c$" "" VUDEV_MOD_FILE ${VUDEV_MOD})
     get_filename_component(VUDEV_MOD_TARGET ${VUDEV_MOD_FILE} NAME)
     add_library(${VUDEV_MOD_TARGET} SHARED ${VUDEV_MOD})
     set_target_properties(${VUDEV_MOD_TARGET} PROPERTIES PREFIX "")
