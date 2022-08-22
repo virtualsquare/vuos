@@ -14,7 +14,7 @@ struct vu_service_t {
 	// pointer to a static structure named "vu_module" defined in the module
 	// this structure defines the name and a short description of the module
 	// the presence of such a structure is used as a test (that the module
-	// has been designed for vuos.
+	// has been designed for vuos).
 	struct vu_module_t *mod;
 	// modules are loaded as dynamic library plug-ins.
 	// this is the handle returned by dl_open

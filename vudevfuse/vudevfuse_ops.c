@@ -457,7 +457,7 @@ static void populate_dir(struct fusemount_t *fusemount, struct fusefile_t *fusef
 				(char *) fde < (inbuf + retcount);
 				fde = (void *)(((char *)(fde + 1)) + ((fde->namelen + 7) & (~7))) )  {
 			fuse_filldir(fusefile->dir, fde->name, fde->namelen, fde->type, fde->ino);
-			readin.offset++;
+			readin.offset = fde->off;
 		}
 	}
 }
