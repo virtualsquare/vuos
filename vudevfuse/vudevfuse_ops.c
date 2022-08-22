@@ -77,7 +77,7 @@ static void fuse2stat(struct vu_stat *buf, struct fuse_attr *fa) {
 }
 
 static void fuse2statfs(struct statfs *buf, struct fuse_kstatfs *fs) {
-	buf->f_blocks = FUSE_SUPER_MAGIC;
+	buf->f_type = FUSE_SUPER_MAGIC;
 	buf->f_blocks = fs->blocks;
 	buf->f_bfree = fs->bfree;
 	buf->f_bavail = fs->bavail;
