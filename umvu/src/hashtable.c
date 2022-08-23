@@ -227,9 +227,14 @@ struct confirm_arg {
 static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
 	confirmfun_t confirm = ht->confirmfun;
 	if (confirm && ht->type != CHECKMODULE) {
+		int rv;
 		struct confirm_arg *args = opaque;
 		epoch_t epoch = set_vepoch(ht->timestamp);
-		int rv = confirm(args->type, args->checkobj, args->len, ht);
+		if (ht->type == CHECKPATH) {
+			char *path = args->checkobj;
+			rv = confirm(args->type, path + ht->objlen, args->len, ht);
+		} else
+			rv = confirm(args->type, args->checkobj, args->len, ht);
 		set_vepoch(epoch);
 		return rv;
 	} else

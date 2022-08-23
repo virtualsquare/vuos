@@ -34,8 +34,7 @@
 
 static int vufs_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
 	struct vufs_t *vufs = vuht_get_private_data(ht);
-	char *path = arg;
-	char *shortpath = path + vuht_get_objlen(ht);
+	char *shortpath = arg;
 	char **exception;
 
 	for (exception = vufs->except; *exception; exception++) {

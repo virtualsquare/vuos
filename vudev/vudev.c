@@ -306,7 +306,7 @@ int vu_vudev_chmod(const char *pathname, mode_t mode, int fd, void *fdprivate) {
 static int vudev_confirm_path(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
 	struct vudev_t *vudev = vuht_get_private_data(ht);
 	char *path = arg;
-	int subdev = strtoul(path + vuht_get_objlen(ht), NULL, 0);
+	int subdev = strtoul(path, NULL, 10);
 	if (subdev < 0)
 		return 0;
 	else if (vudev->devops->confirm_subdev)
