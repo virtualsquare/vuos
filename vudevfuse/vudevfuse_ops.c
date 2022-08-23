@@ -582,7 +582,9 @@ off_t vu_fuse_lseek(int fd, off_t offset, int whence, void *fdprivate) {
 }
 #endif
 
-#if 0 // access  can be emulated using stat
+/* access could be emulated using stat but local uid/gid may not be
+	 consistent with Fuse filesytem's uid/gid */
+
 int vu_fuse_access(char *path, int mode, int flags) {
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
@@ -605,7 +607,6 @@ int vu_fuse_access(char *path, int mode, int flags) {
 		return errno = -err, -1;
 	return 0;
 }
-#endif
 
 ssize_t vu_fuse_pread64(int fd, void *buf, size_t count, off_t offset, int flags, void *fdprivate) {
 	struct vuht_entry_t *ht = vu_mod_getht();
