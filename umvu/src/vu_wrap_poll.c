@@ -49,8 +49,12 @@
 #include <vu_file_table.h>
 #include <vu_fd_table.h>
 #include <vu_wrapper_utils.h>
+#ifndef ERESTARTNOHAND
 #define ERESTARTNOHAND 514
+#endif
+#ifndef ERESTART_RESTARTBLOCK
 #define ERESTART_RESTARTBLOCK 516
+#endif
 
 /* epoll table:
  * it stores the list of virtual fds for epoll, poll and select */
@@ -68,7 +72,7 @@ struct epoll_tab {
 	struct epoll_tab_elem *head;
 };
 
-/* epoll info: this is foe epoll only,
+/* epoll info: this is for epoll only,
 	 the private field of the file table element of an epoll file
 	 points to this */
 struct epoll_info {
@@ -540,7 +544,7 @@ static inline int poll_add_events(int nfds, struct pollfd *fds, int fd, uint32_t
 	for (i = 0; i < nfds; i++) {
 		if (fds[i].fd == fd) {
 			uint32_t revents = events & fds[i].events;
-			if (fds[i].events == 0 && revents != 0)
+			if (fds[i].revents == 0 && revents != 0)
 				count++;
 			fds[i].revents |= revents;
 		}
@@ -559,14 +563,18 @@ void wo_poll(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	int i;
 	/* restore file descriptors */
 	for (i = 0; i < nfds; i++) {
-		if (pollio->orig_fd[i] >= 0) fds[i].fd = pollio->orig_fd[i];
+		if (pollio->orig_fd[i] >= 0) {
+			fds[i].fd = pollio->orig_fd[i]; // fds[i].fd was set to -1, virt fd
+			fds[i].revents = 0; // it should already be 0, set here again for safety
+		}
 	}
 	/* the user level poll terminated first: events on real fds only */
 	if (sd->waiting_pid != 0)
     sd->ret_value = orig_ret_value;
 	else {
 		/* EINTR/ERESTARTNOHAND are not error for us, just the watchdog terminated */
-		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND)
+		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND ||
+				orig_ret_value == -ERESTART_RESTARTBLOCK)
 			orig_ret_value = 0;
 		if (orig_ret_value < 0)
 			sd->ret_value = orig_ret_value;
@@ -729,7 +737,8 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		uintptr_t writefdsaddr = sd->syscall_args[2];
 		uintptr_t exceptfdsaddr = sd->syscall_args[3];
 		fd_set readfds, writefds, exceptfds;
-		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND) {
+		if (orig_ret_value == -EINTR || orig_ret_value == -ERESTARTNOHAND ||
+				orig_ret_value == -ERESTART_RESTARTBLOCK) {
 			/* interrupted syscall: virtual events only. */
 			peek_fd_set(0, &readfds, nfds, nested);
 			peek_fd_set(0, &writefds, nfds, nested);
@@ -741,8 +750,9 @@ void wo_select(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			peek_fd_set(exceptfdsaddr, &exceptfds, nfds, nested);
 		}
 		if (orig_ret_value < 0) {
-			/* restore the original fd_sets, as the mannual says:
-				 On error, -1 is returned, and errno is set to indicate the  error;  the file descriptor sets are unmodified */
+			/* restore the original fd_sets, as the manual says:
+				 On error, -1 is returned, and errno is set to indicate the
+				 error;  the file descriptor sets are unmodified */
 			for (scan = epoll_tab_head(selectio->tab); scan != NULL; scan = scan->next)
 				events2fd_set(scan->fd, scan->event.events, EPOLL_SELECT_SET, &readfds, &writefds, &exceptfds);
 			sd->ret_value = orig_ret_value;
