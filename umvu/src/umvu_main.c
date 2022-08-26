@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
 		}
 
 		execvp(argv[0], argv);
+		printk(KERN_ERR "%s: %s\n", argv[0], strerror(errno));
 		return 1;
 	}
 }
