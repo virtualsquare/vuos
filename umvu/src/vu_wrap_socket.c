@@ -285,7 +285,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->action = DOIT_CB_AFTER;
 			}
 			vu_poke_arg(addraddr, addr, ret_value, nested);
-			vu_poke_arg(paddrlen, addrlen, sizeof(addrlen), nested);
+			vu_poke_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
 			sd->ret_value = ret_value;
 		}
 	}
@@ -630,9 +630,9 @@ void _wo_recvfrom(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		sd->ret_value = -errno;
 	else {
 		sd->ret_value = ret_value;
-		vu_poke_arg(addr, buf, bufsize, nested);
-		vu_poke_arg(src_addraddr, src_addr, ret_value, nested);
-		vu_poke_arg(paddrlen, addrlen, sizeof(addrlen), nested);
+		vu_poke_arg(addr, buf, ret_value, nested);
+		vu_poke_arg(src_addraddr, src_addr, *addrlen, nested);
+		vu_poke_arg(paddrlen, addrlen, sizeof(socklen_t), nested);
 	}
 	vu_free_arg(buf, nested);
 }
