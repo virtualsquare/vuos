@@ -382,6 +382,15 @@ int vu_vunet_close(int sockfd, void *fdprivate) {
     return current_vnetfd->vunet->netops->close(sockfd);
 }
 
+int vu_vunet_fcntl(int sockfd, int cmd, long arg, void *fdprivate) {
+  current_vnetfd = fdprivate;
+  printkdebug(N, "fcntl %p %d", current_vnetfd, sockfd);
+  if (current_vnetfd->vunet->netops->fcntl == NULL)
+    return errno = ENOSYS, -1;
+  else
+    return current_vnetfd->vunet->netops->fcntl(sockfd, cmd, arg);
+}
+
 int vu_vunet_mount(const char *source, const char *target,
 		const char *filesystemtype, unsigned long mountflags,
 		const void *data) {
