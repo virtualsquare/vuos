@@ -790,6 +790,11 @@ void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = -ENOSYS;
 }
 
+void wi_copy_file_range(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->action = SKIPIT;
+	sd->ret_value = -ENOSYS;
+}
+
 __attribute__((constructor))
 	static void init(void) {
 		vu_fnode_set_close_upcall(S_IFREG, file_close_upcall);
