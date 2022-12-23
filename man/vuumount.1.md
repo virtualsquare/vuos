@@ -1,6 +1,3 @@
-vu_rmmod(1) -- user-mode implementation of VUOS
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -25,32 +22,36 @@ vu_rmmod(1) -- user-mode implementation of VUOS
 .\" MA 02110-1301 USA.
 .\"
 -->
+# NAME
 
-## SYNOPSIS
+`vuumount` -- unmount a filesystem or a resource
 
-`vu_rmmod` [<options> ...] <vu_module> [<vu_module>]
+# SYNOPSIS
 
-## DESCRIPTION
+`vuumount` [*options* ...] *source* *destination*
 
-*This is a VUOS command. It works only inside a vuos virtual namespace* see `umvu`(1).
+# DESCRIPTION
 
-This command removes one or more modules currently loaded in umvu.
+`vuumount` is just a command interface to `umount`(2).
+It has been designed for VUOS but can be used to run the `umount`
+system call directly, without all the other management actions provided by 
+`umount`(8). `vuumount` is not setuid root (viceversa `umount` is setuid root).
 
-## OPTIONS
+# OPTIONS
 
-  * `-h`, `--help`:
-    Print a short help message and exit.
+  `-h`, `--help`
+: Print a short help message and exit.
 
-## EXAMPLE
+  `-f`, `--force`
+: force unmount (e.g. in case of an unreachable NFS system)
 
-  The following command removes vudev (virtual devices) and vunet (virtual networking).
+  `-d`, `--detach-loop`
+: if mounted loop device, also free this loop device
+	
 
-    vu_rmmod vudev vunet
+# SEE ALSO
+umvu(1), vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vumount(1), udebug(1)
 
-## SEE ALSO
-umvu(1), vu_insmod(1), vu_lsmod(1)
-
-## AUTHOR
+# AUTHOR
 
 VirtualSquare. Project leader: Renzo Davoli
-

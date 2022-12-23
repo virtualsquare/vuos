@@ -1,21 +1,20 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.7)
 
-set(RONN_ORGANIZATION "VirtualSquare-VUOS")
-set(RONN_ARGS --organization=${RONN_ORGANIZATION})
+set(PANDOC_ORG "VirtualSquare-VUOS")
 
-# ### ronn pages
+# ### pandoc pages
 
-file(GLOB VU_RONN_PAGES ${CMAKE_CURRENT_SOURCE_DIR}/*.[1-8].ronn)
+file(GLOB VU_PANDOC_PAGES ${CMAKE_CURRENT_SOURCE_DIR}/*.[1-8].md)
 set(VU_MAN_FILES)
-foreach(VU_RONN_PATH IN LISTS VU_RONN_PAGES)
-# VU_RONNPAGE: basename of VU_RONN_PATH
-	get_filename_component(VU_RONNPAGE ${VU_RONN_PATH} NAME)
-# VU_MANPAGE: VU_RONNPAGE without the suffix
-	string(REGEX REPLACE "\.ronn$" "" VU_MANPAGE ${VU_RONNPAGE})
+foreach(VU_PANDOC_PATH IN LISTS VU_PANDOC_PAGES)
+# VU_PANDOCPAGE: basename of VU_PANDOC_PATH
+	get_filename_component(VU_PANDOCPAGE ${VU_PANDOC_PATH} NAME)
+# VU_MANPAGE: VU_PANDOCPAGE without the suffix
+	string(REGEX REPLACE "\.md$" "" VU_MANPAGE ${VU_PANDOCPAGE})
 	list(APPEND VU_MAN_FILES ${VU_MANPAGE})
-endforeach(VU_RONN_PATH)
+endforeach(VU_PANDOC_PATH)
 
-add_custom_target(${PROJECT_NAME}_manpages ALL make RONN_ARGS="${RONN_ARGS}"  ${VU_MAN_FILES}
+add_custom_target(${PROJECT_NAME}_manpages ALL make PANDOC_ORG="${PANDOC_ORG}"  ${VU_MAN_FILES}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ### man pages

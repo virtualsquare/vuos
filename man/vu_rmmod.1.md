@@ -1,6 +1,3 @@
-vu_lsmod(1) -- user-mode implementation of VUOS
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -26,32 +23,37 @@ vu_lsmod(1) -- user-mode implementation of VUOS
 .\"
 -->
 
-## SYNOPSIS
+# NAME
 
-`vu_lsmod` [<options> ...] <vu_module> [<vu_module>]
+`vu_rmmod` -- user-mode implementation of VUOS
 
-## DESCRIPTION
+# SYNOPSIS
+
+`vu_rmmod` [*options* ...] *vu_module* [*vu_module*]
+
+# DESCRIPTION
 
 *This is a VUOS command. It works only inside a vuos virtual namespace* see `umvu`(1).
 
-This command lists the modules currently loaded.
+This command removes one or more modules currently loaded in umvu.
 
-## OPTIONS
+# OPTIONS
 
-  * `-h`, `--help`:
-    Print a short help message and exit.
+  `-h`, `--help`
+: Print a short help message and exit.
 
-## EXAMPLE
+# EXAMPLE
 
-    $ vu_lsmod vufuse
-    vufuse: vu virtual file systems (user level FUSE)
-    vudev: vu virtual devices
-    vunet: vu virtual networking
+  The following command removes vudev (virtual devices) and vunet (virtual networking).
 
-## SEE ALSO
-umvu(1), vu_insmod(1), vu_rmmod(1)
+```
+vu_rmmod vudev vunet
+```
 
-## AUTHOR
+# SEE ALSO
+umvu(1), vu_insmod(1), vu_lsmod(1)
+
+# AUTHOR
 
 VirtualSquare. Project leader: Renzo Davoli
 

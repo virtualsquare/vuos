@@ -1,6 +1,3 @@
-vu_insmod(1) -- user-mode implementation of VUOS
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -25,35 +22,39 @@ vu_insmod(1) -- user-mode implementation of VUOS
 .\" MA 02110-1301 USA.
 .\"
 -->
+# NAME
 
-## SYNOPSIS
+`vu_lsmod` -- user-mode implementation of VUOS
 
-`vu_insmod` [<options> ...] <vu_module> [<vu_module>]
+# SYNOPSIS
 
-## DESCRIPTION
+`vu_lsmod` [*options* ...] *vu_module* [*vu_module*]
+
+# DESCRIPTION
 
 *This is a VUOS command. It works only inside a vuos virtual namespace* see `umvu`(1).
 
-This command adds one or more modules to umvu.
+This command lists the modules currently loaded.
 
-## OPTIONS
+# OPTIONS
 
-  * `-h`, `--help`:
-    Print a short help message and exit.
+  `-h`, `--help`
+: Print a short help message and exit.
 
-  * `-p`, `--permanent`:
-    permanently inserted modules cannot be removed.
 
-## EXAMPLE
+# EXAMPLE
 
-  The following command adds vufuse (file system virtualization), vudev (virtual devices) and vunet (virtual networking).
+```
+$ vu_lsmod vufuse
+vufuse: vu virtual file systems (user level FUSE)
+vudev: vu virtual devices
+vunet: vu virtual networking
+```
 
-    vu_insmod vufuse vudev vunet
+# SEE ALSO
+umvu(1), vu_insmod(1), vu_rmmod(1)
 
-## SEE ALSO
-umvu(1), vu_lsmod(1), vu_rmmod(1)
-
-## AUTHOR
+# AUTHOR
 
 VirtualSquare. Project leader: Renzo Davoli
 

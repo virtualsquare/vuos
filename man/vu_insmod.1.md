@@ -1,6 +1,3 @@
-vuumount(1) -- unmount a filesystem or a resource
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -25,33 +22,40 @@ vuumount(1) -- unmount a filesystem or a resource
 .\" MA 02110-1301 USA.
 .\"
 -->
+# NAME
 
-## SYNOPSIS
+`vu_insmod` -- user-mode implementation of VUOS
 
-`vuumount` [<options> ...] <source> <destination>
+# SYNOPSIS
 
-## DESCRIPTION
+`vu_insmod` [*options* ...] *vu_module* [*vu_module*]
 
-`vuumount` is just a command interface to `umount`(2).
-It has been designed for VUOS but can be used to run the `umount`
-system call directly, without all the other management actions provided by 
-`umount`(8). `vuumount` is not setuid root (viceversa `umount` is setuid root).
+# DESCRIPTION
 
-## OPTIONS
+*This is a VUOS command. It works only inside a vuos virtual namespace* see `umvu`(1).
 
-  * `-h`, `--help`:
-    Print a short help message and exit.
+This command adds one or more modules to umvu.
 
-  * `-f`, `--force`:
-    force unmount (e.g. in case of an unreachable NFS system)
+# OPTIONS
 
-  * `-d`, `--detach-loop`:
-    if mounted loop device, also free this loop device
-	
+  `-h`, `--help`
+: Print a short help message and exit.
 
-## SEE ALSO
-umvu(1), vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vumount(1), udebug(1)
+  `-p`, `--permanent`
+: permanently inserted modules cannot be removed.
 
-## AUTHOR
+# EXAMPLE
+
+  The following command adds vufuse (file system virtualization), vudev (virtual devices) and vunet (virtual networking).
+
+```
+vu_insmod vufuse vudev vunet
+```
+
+# SEE ALSO
+umvu(1), vu_lsmod(1), vu_rmmod(1)
+
+# AUTHOR
 
 VirtualSquare. Project leader: Renzo Davoli
+

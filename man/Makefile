@@ -1,16 +1,18 @@
-RONN=ronn
-RONNOK := $(shell command -v ${RONN} 2> /dev/null)
+PANDOC=pandoc
+PANDOCOK := $(shell command -v ${PANDOC} 2> /dev/null)
 
 none:
 
-% : %.ronn
-ifdef RONNOK
+% : %.md
+ifdef PANDOCOK
 # copy copyright notice
 		grep "^\.\\\\\"" $< > $@ || true
-# run ronn
-		$(RONN) -r ${RONN_ARGS} --pipe $< >> $@
-# delete useless trailing "" in .TH
-		sed -i '/^\.TH /s/ ""$$//' $@
+# run pandoc
+		$(eval SECTION := $(subst .,,$(suffix $@)))
+		$(eval BASENAME := $(basename $@))
+		$(eval TITLE := $(shell echo "${BASENAME}\(${SECTION}\)" | tr [:lower:] [:upper:]))
+		$(eval HEADER := "$(shell man ${SECTION} intro | head -1 | sed -e 's/^[^[:blank:]]*[[:blank:]]*//' -e 's/[[:blank:]]*[^[:blank:]]*$$//' )")
+		$(PANDOC) -standalone -M title=${TITLE} -M section=${SECTION} -M header=${HEADER} -M footer=${PANDOC_ORG} -M "date=`date +\"%B %Y\"`" --to man $< >> $@
 else
-		echo "${RONN} is not available. Manpage $@ cannot be updated" >/dev/stderr >&2
+		echo "${PANDOC} is not available. Manpage $@ cannot be updated" >/dev/stderr >&2
 endif

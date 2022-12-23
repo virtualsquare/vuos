@@ -1,6 +1,3 @@
-vudebug(1) -- debug utility for umvu
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -25,31 +22,34 @@ vudebug(1) -- debug utility for umvu
 .\" MA 02110-1301 USA.
 .\"
 -->
+# NAME
 
-## SYNOPSIS
+`vudebug` -- debug utility for umvu
+
+# SYNOPSIS
 
 `vudebug` --help
 
-`vudebug` [<debarg> [<debarg> ...]] [ -- <command> [<args>]]
+`vudebug` [*debarg* [*debarg* ...]] [ -- *command* [*args*]]
 
-where <debarg> has the following syntax:
+where *debarg* has the following syntax:
 
-`+`[<tag>[<tag> ...]][`:`<colorspec>]
-
-or
-
-`-`[<tag>[<tag> ...]]
+`+`[*tag*[*tag* ...]][`:`*colorspec*]
 
 or
 
-`?`[<tag>[<tag> ...]]
+`-`[*tag*[*tag* ...]]
 
-and <colorspec> is a combination of the following characters: `nwrgbcmyNWRGBCMY+-_*#`
+or
 
-## DESCRIPTION
+`?`[*tag*[*tag* ...]]
+
+and *colorspec* is a combination of the following characters: `nwrgbcmyNWRGBCMY+-_*#`
+
+# DESCRIPTION
 
 vudebug enables or disables debug log messages. Log messages are
-classified into categories. Each category is identified by a <tag>
+classified into categories. Each category is identified by a *tag*
 (one alphanumeric character). By convention lowercase letters are for
 logging messages of the hypervisor, while capital letters are for modules.
 
@@ -58,69 +58,82 @@ command line arguments, logging is enabled for the execution of that command
 (and for all the subprocesses it eventually creates). Otherwise `vudebug`
 changes the categories to log globally, for all the processes.
 
-## OPTIONS
+# OPTIONS
 
-  * `--help`:
-    Print a short help message and exit.
+  `--help`
+: Print a short help message and exit.
 
-  * <debarg>:
-    each debug argument begins by `+`, `-` or `?` followed by zero, one or more
-    debug tags. (`+` enables log messages, `-` disables log messages, `?` check if the
-        log messages are enabled). When the debug argument has no tags, it is applied to all
-    the tags.
-    Log messages of different categories can be shown in different colors and font effects.
-    When `vudebug` is used to enable/re-enable tags (`+`) each <debarg> can be followed by a
-    semicolon (`:`) and a color specification. A color specification is a string composed by the
-    following characters:
+  *debarg*
+: each debug argument begins by `+`, `-` or `?` followed by zero, one or more
+: debug tags. (`+` enables log messages, `-` disables log messages, `?` check if the
+:     log messages are enabled). When the debug argument has no tags, it is applied to all
+: the tags.
+: Log messages of different categories can be shown in different colors and font effects.
+: When `vudebug` is used to enable/re-enable tags (`+`) each *debarg* can be followed by a
+: semicolon (`:`) and a color specification. A color specification is a string composed by the
+: following characters:
 
-    `n w r g b c m y`: set foreground color (black, white, red, green, blue, cyan, magenta or yellow)
+  ` `
+: `n w r g b c m y`: set foreground color (black, white, red, green, blue, cyan, magenta or yellow)
 
-    `N W R G B C M Y`: set background color (black, white, red, green, blue, cyan, magenta or yellow)
+  ` `
+: `N W R G B C M Y`: set background color (black, white, red, green, blue, cyan, magenta or yellow)
 
-    `+ - _ * #`: font effect (bright, dim,underlined, blinking, reverse video).
+  ` `
+: `+ - _ * #`: font effect (bright, dim,underlined, blinking, reverse video).
 
-## EXAMPLES
+# EXAMPLES
 
 Get a list of available logging categories:
 
-    $ vudebug ?
-    D -   VUDEV
-    F -   VUFUSE
-    N -   VUNET
-    a -   ACTION
-    c -   CHOICE
-    f -   FILETABLE
-    m -   MODULE
-    n -   NESTED
-    p -   PATH
-    s -   SYSCALL
-    v -   VNODE
+```
+$ vudebug ?
+D -   VUDEV
+F -   VUFUSE
+N -   VUNET
+a -   ACTION
+c -   CHOICE
+f -   FILETABLE
+m -   MODULE
+n -   NESTED
+p -   PATH
+s -   SYSCALL
+v -   VNODE
+```
 
 the list may vary depending on the version of the hypervisor and the modules currently loaded.
 
 Enable path resolution logging:
 
-    $ vudebug +p
+```
+$ vudebug +p
+```
 
 List some categories to see which ones are active:
 
-    $ vudebug ?ps
-    p +   PATH
-    s -   SYSCALL
+```
+$ vudebug ?ps
+p +   PATH
+s -   SYSCALL
+```
 
 PATH is active, SYSCALL is not active.
 
 Disable all the categories:
 
-    $ vudebug -
+```
+$ vudebug -
+```
 
 Launch a bash and log syscall requests in red, path resolution in bold-blue, module choice in reverse green:
 
-    $ vudebug +s:r +p:b+ +c:g# -- bash
+```
+$ vudebug +s:r +p:b+ +c:g# -- bash
+```
 
 
-## SEE ALSO
+# SEE ALSO
 umvu(1)
 
-## AUTHOR
+# AUTHOR
 VirtualSquare. Project leader: Renzo Davoli

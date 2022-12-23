@@ -1,6 +1,3 @@
-vumount(1) -- mount a filesystem or a resource
-====
-
 <!--
 .\" Copyright (C) 2019 VirtualSquare. Project Leader: Renzo Davoli
 .\"
@@ -25,19 +22,22 @@ vumount(1) -- mount a filesystem or a resource
 .\" MA 02110-1301 USA.
 .\"
 -->
+# NAME
 
-## SYNOPSIS
+`vumount` -- mount a filesystem or a resource
 
-`vumount` [<options> ...] <source> <destination>
+# SYNOPSIS
 
-## DESCRIPTION
+`vumount` [*options* ...] *source* *destination*
+
+# DESCRIPTION
 
 Everything is (or can be seen) as a file. It is part of the philosophy
 of UNIX.  The file hierarchy is the global naming facility.
 
 VUOS follows this principle: VUOS modules use `mount`(2) not only to
 mount virtual filesystems but also to activate other virual services.
-The mountpoint, <destination> in the synopsis, is the name
+The mountpoint, *destination* in the synopsis, is the name
 that will be used to identify the virtual entity/service.
 
 For example, in `vudev` it is possible to mount devices, in `vunet` the
@@ -56,35 +56,35 @@ set the virtual real uid to 0.
 system call directly, without all the other management actions provided by
 `mount`(8). `vumount` is not setuid root.
 
-## OPTIONS
+# OPTIONS
 
-  * `-h`, `--help`:
-    Print a short help message and exit.
+  `-h`, `--help`
+: Print a short help message and exit.
 
-  * `-o` <list>, `--options` <list>:
-    comma-separated list of mount options
+  `-o` *list*, `--options` *list*
+: comma-separated list of mount options
 
-  * `-t` <fstype>, `--types` <fstype>:
-    define the filesystem type
+  `-t` *fstype*, `--types` *fstype*
+: define the filesystem type
 
-  * `-r`, `--read-only`:
-    mount the filesystem read-only (same as -o ro)
+  `-r`, `--read-only`
+: mount the filesystem read-only (same as -o ro)
 
-  * `-w`, `--rw`, `--read-write`:
-    mount the filesystem read-write (default)
+  `-w`, `--rw`, `--read-write`
+: mount the filesystem read-write (default)
 
-  * `-B`, `--bind`:
-    mount a subtree somewhere else (same as -o bind)
+  `-B`, `--bind`
+: mount a subtree somewhere else (same as -o bind)
 
-  * `-M`, `--move`:
-    move a subtree to some other place
+  `-M`, `--move`
+: move a subtree to some other place
 
-  * `-R`, `--rbind`:
-    mount a subtree and all submounts somewhere else
+  `-R`, `--rbind`
+: mount a subtree and all submounts somewhere else
 
-## SEE ALSO
+# SEE ALSO
 umvu(1), vu_insmod(1), vu_lsmod(1), vu_rmmod(1), vuumount(1), vudebug(1)
 
-## AUTHOR
+# AUTHOR
 
 VirtualSquare. Project leader: Renzo Davoli
