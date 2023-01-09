@@ -319,8 +319,10 @@ provide source level compatibility with FUSE modules.
 
 In order to test umvu several libraries and helper tools are required.
 The tests here above have been run on debian sid.
+<!--
 There is a docker recipe and a script to create a test environment here:
     https://github.com/gufoe/vuos-tutorial
+-->
 
 For the sake of compleness (and hopefully clarity), it is possible to install all the code by hand, step by step
 as briefly explained in the following.
