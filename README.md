@@ -35,10 +35,45 @@ the attack surface of the kernel**.
 ... just to show something VUOS is capable of.
 NB: VUOS is much much more than this, and it is under active developmemnt.
 
-### mount a file system image ###
+### mount a file system image (using fuse virtual device) ###
 
 This example uses **umvu**: a user-mode implementation of the VUOS concepts based on ptrace. In the future VUOS
 could be re-implemented on other tracing/virtualizing supports.
+
+start the hypervisor, and run a bash *inside* the partial virtual machine
+
+    $ umvu bash
+
+This is the prompt of the partial virtualized shell, let us change it to $$ to show the difference
+
+    $ PS1='\$\$ '
+
+let us load vufuse: a user-mode implementation of FUSE (source compatible with FUSE modules)
+
+    $$ vu_insmod fuse
+
+nothing is currently mounted on /mnt
+
+    $$ ls /mnt
+
+run the FUSE handler program (it uses the virtual /dev/fuse)
+		$$ fuse-ext2 -o ro /tmp/linux.img /mnt
+
+now the image has been mounted:
+
+    $$ ls /mnt
+    bin  boot  dev  etc  lib  lost+found  mnt  proc  sbin  tmp  usr
+    $$ vuumount /mnt
+    $$ ls /mnt
+    $$ exit
+
+We have left the partial virtual machine
+
+Comments: user can *mount* any filesystem they like, on any directory. The linux kernel is not involved
+for all the system calls related to files in the mounted filesystem. The effects of this *mount* is just *perceived* by the processes running in the partial virtual machine. `vumount` is just a wrapper to the `mount(1)` system call (the command `mount(8)` does much much more, it is setuid root and requires real uid to be root to
+permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gid virtualization).
+
+### mount a file system image (using vufuse) ###
 
 start the hypervisor, and run a bash *inside* the partial virtual machine
 
@@ -68,10 +103,6 @@ now the image has been mounted:
 
 We have left the partial virtual machine
 
-Comments: user can *mount* any filesystem they like, on any directory. The linux kernel is not involved
-for all the system calls related to files in the mounted filesystem. The effects of this *mount* is just *perceived* by the processes running in the partial virtual machine. `vumount` is just a wrapper to the `mount(1)` system call (the command `mount(8)` does much much more, it is setuid root and requires real uid to be root to
-permit filesystem mounting (`mount(8)` works in `umvu` adding a module of uid/gid virtualization).
-
 ### create a disk image, partition it, create a filesystem and mount it ###
 
 start the hypervisor, and run a bash *inside* the partial virtual machine
@@ -82,9 +113,11 @@ This is the prompt of the partial virtualized shell, let us change it to $$ to s
 
     $ PS1='\$\$ '
 
-let us load vudev and vufuse: vudev to virtualize devices and vufuse as in the previous example
+let us load vudev and fuse: vudev to virtualize devices and fuse as in the previous example
 
-    $$ vu_insmod vudev vufuse
+    $$ vu_insmod vudev fuse
+
+Note: it is possible to use vufuse instead of fuse. the command is `vu_insmod vudev vufuse`.
 
 create a 1 GiB large empty file
 
@@ -173,7 +206,9 @@ Now it is possible to create an ext4 partition on /dev/hda1
 
 now the file system on /dev/hda1 can be mounted on /mnt
 
-    $$ vumount -t vufuseext2 -o rw+ /dev/hda1 /mnt
+    $$ fuse-ext2 -o rw+ /dev/hda1 /mnt
+
+Note: the mount command for vufuse instead of fuse is `vumount -t vufuseext2 -o rw+ /dev/hda1 /mnt`
 
 add a significative file on /mnt
 
@@ -203,8 +238,13 @@ let us load vunet
 
     $$ vu_insmod vunet
 
-the following command #mounts# a vde network on /dev/net/myvde.
-(see https://github.com/rd235/vdeplug4)
+the following command *mounts* a vde network on /dev/net/myvde using libioth.
+(see https://github.com/rd235/vdeplug4) (any ioth supported stack can be used. The mount source argument
+is the stack implementation to use, vdestack in this example).
+
+    $$ vumount -t vunetioth -o vxvde:// vdestack /dev/net/myvde
+
+Alternatively: the following command uses a vunet specific implementation of vdestack:
 
     $$ vumount -t vunetvdestack vxvde:// /dev/net/myvde
 
@@ -306,6 +346,7 @@ Then install libraries and tools from the following list of git repositories:
     https://github.com/alperakcan/fuse-ext2.git
     https://github.com/rd235/vdeplug_agno.git
     https://github.com/rd235/vdens.git
+    https://github.com/virtualsquare/libioth.git
     https://github.com/virtualsquare/vuos.git
 
 A symbolic link is required to make vufuseext2 reachable in the right dir
