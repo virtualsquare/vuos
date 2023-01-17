@@ -334,12 +334,12 @@ First of all install the following packets:
 
 Then install libraries and tools from the following list of git repositories:
 
+    https://github.com/rd235/strcase.git
     https://github.com/virtualsquare/vde-2.git
     https://github.com/rd235/vdeplug4.git
     https://github.com/virtualsquare/purelibc.git
     https://github.com/rd235/libvolatilestream.git
     https://github.com/rd235/libstropt.git
-    https://github.com/rd235/strcase.git
     https://github.com/rd235/libfduserdata.git
     https://github.com/rd235/libvpoll-eventfd.git
     https://github.com/rd235/libvdestack.git
