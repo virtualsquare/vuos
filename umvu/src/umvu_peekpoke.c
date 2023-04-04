@@ -148,7 +148,7 @@ int umvu_peek_str(uintptr_t addr, void *buf, size_t datalen)
 			unsigned long chunk_len = compute_chunk_len(addr, datalen);
 			struct iovec local_iov = {cbuf, chunk_len};
 			struct iovec remote_iov = {(void *) addr, chunk_len};
-			int rv=process_vm_readv(tracee_tid, &local_iov, 1, &remote_iov, 1, 0);
+			int rv=r_process_vm_readv(tracee_tid, &local_iov, 1, &remote_iov, 1, 0);
 			if (rv != (int) chunk_len)
 				return -1;
 			else {
@@ -185,7 +185,7 @@ int umvu_peek_data(uintptr_t addr, void *buf, size_t datalen)
 			unsigned long chunk_len = compute_chunk_len(addr, datalen);
 			struct iovec local_iov = {cbuf, chunk_len};
 			struct iovec remote_iov = {(void *) addr, chunk_len};
-			int rv=process_vm_readv(tracee_tid, &local_iov, 1, &remote_iov, 1, 0);
+			int rv=r_process_vm_readv(tracee_tid, &local_iov, 1, &remote_iov, 1, 0);
 			if (rv != (int) chunk_len)
 				return -1;
 			else {
@@ -203,7 +203,7 @@ int umvu_poke_data(uintptr_t addr, void *buf, size_t datalen)
 	if (addr && buf) {
 		struct iovec local_iov = {buf, datalen};
 		struct iovec remote_iov = {(void *) addr, datalen};
-		return process_vm_writev(tracee_tid, &local_iov, 1, &remote_iov, 1, 0) >= 0;
+		return r_process_vm_writev(tracee_tid, &local_iov, 1, &remote_iov, 1, 0) >= 0;
 	} else
 		return 0;
 }
