@@ -120,8 +120,7 @@ int vu_fuse_mount(const char *source, const char *target,
 	struct vuht_entry_t *fdht;
 	struct fusemount_t *fusemount;
 
-	fd = parse_mount_fd(data);
-	if (fd < 0 ||
+	if (data == NULL || (fd = parse_mount_fd(data)) < 0 ||
 			((fdht = vu_mod_fd_get_ht(fd)) != devfuse_ht) ||
 			(vu_mod_fd_get_sfd(fd, (void **) &fusemount) < 0) ||
 			fusemount == NULL)
