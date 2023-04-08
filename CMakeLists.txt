@@ -32,9 +32,6 @@ set(CMAKE_C_FLAGS
 		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
 add_definitions(-D_GNU_SOURCE)
 
-execute_process(COMMAND echo ${add_definitions} RESULT_VARIABLE rv)
-execute_process(COMMAND pwd RESULT_VARIABLE rv)
-
 set(MODULES_INSTALL_PATH ${CMAKE_INSTALL_FULL_LIBDIR}/vu/modules)
 set(CONFIGURATION_DIR_PATH ${CMAKE_INSTALL_FULL_SYSCONFDIR})
 set(HEADERS_INSTALL_PATH ${CMAKE_INSTALL_FULL_INCLUDEDIR})
