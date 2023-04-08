@@ -1,6 +1,6 @@
 /*
  *   VUOS: view OS project
- *   Copyright (C) 2017  Renzo Davoli <renzo@cs.unibo.it>, Antonio Cardace <anto.cardace@gmail.com>
+ *   Copyright (C) 2017-2023 Renzo Davoli <renzo@cs.unibo.it>, Antonio Cardace <anto.cardace@gmail.com>
  *   VirtualSquare team.
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 #include <utime.h>
 #include <sys/syscall.h>
 #include <sys/vfs.h>
+#include <sys/sysmacros.h>
 
 #include <vu_log.h>
 #include <xcommon.h>
@@ -96,6 +97,64 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* store results */
 		vu_poke_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
+		sd->ret_value = ret_value;
+	}
+}
+
+/* statx */
+void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+  if (ht) {
+		/* standard args */
+		int nested = sd->extra->nested;
+		int syscall_number = sd->syscall_number;
+		int ret_value;
+		(void) syscall_number;
+		/* args */
+		int flags = sd->syscall_args[2] | AT_SYMLINK_NOFOLLOW;
+		int mask =  sd->syscall_args[3];
+		syscall_arg_t bufaddr = sd->syscall_args[4];
+		/* local bufs */
+		struct statx *statxbuf;
+		vu_alloc_local_arg(bufaddr, statxbuf, sizeof(*statxbuf), nested);
+
+		/* call */
+		/* emulation mode. XXX - future module support? */
+    sd->action = SKIPIT;
+		struct vu_stat statbuf;
+    ret_value = service_syscall(ht, __VU_lstat)(sd->extra->mpath, &statbuf, flags, -1, NULL);
+    if (ret_value < 0) {
+      sd->ret_value = -errno;
+      return;
+    }
+		(void) mask; // unused in emulation mode
+
+		statxbuf->stx_mask = STATX_BASIC_STATS;
+		statxbuf->stx_blksize = statbuf.st_blksize;
+		statxbuf->stx_attributes = 0;
+		statxbuf->stx_nlink = statbuf.st_nlink;
+		statxbuf->stx_uid = statbuf.st_uid;
+		statxbuf->stx_gid = statbuf.st_gid;
+		statxbuf->stx_mode = statbuf.st_mode;
+		statxbuf->stx_ino = statbuf.st_ino;
+		statxbuf->stx_size = statbuf.st_size;
+		statxbuf->stx_blocks = statbuf.st_blocks;
+		statxbuf->stx_attributes_mask = 0;
+		statxbuf->stx_atime.tv_sec = statbuf.st_atim.tv_sec;
+		statxbuf->stx_atime.tv_nsec = statbuf.st_atim.tv_nsec;
+		/* mtime -> btime */
+		statxbuf->stx_btime.tv_sec = statbuf.st_mtim.tv_sec;
+		statxbuf->stx_btime.tv_nsec = statbuf.st_mtim.tv_nsec;
+		statxbuf->stx_ctime.tv_sec = statbuf.st_ctim.tv_sec;
+		statxbuf->stx_ctime.tv_nsec = statbuf.st_ctim.tv_nsec;
+		statxbuf->stx_mtime.tv_sec = statbuf.st_mtim.tv_sec;
+		statxbuf->stx_mtime.tv_nsec = statbuf.st_mtim.tv_nsec;
+		statxbuf->stx_rdev_major = major(statbuf.st_rdev);
+		statxbuf->stx_rdev_minor = minor(statbuf.st_rdev);
+		statxbuf->stx_dev_major = major(statbuf.st_dev);
+		statxbuf->stx_dev_minor = minor(statbuf.st_dev);
+
+		/* store results */
+		vu_poke_arg(bufaddr, statxbuf, sizeof(*statxbuf), nested);
 		sd->ret_value = ret_value;
 	}
 }
@@ -697,9 +756,4 @@ void wi_statfs(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
     vu_poke_arg(bufaddr, buf, sizeof(*buf), nested);
     sd->ret_value = ret_value;
   }
-}
-
-void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  sd->action = SKIPIT;
-  sd->ret_value = -ENOSYS;
 }

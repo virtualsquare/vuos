@@ -95,6 +95,8 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 		case __NR_unlinkat:
 		case __NR_readlinkat:
 			return 3;
+		case __NR_statx:
+			return (args[3] & AT_SYMLINK_NOFOLLOW) ? 3 : 2;
 		default:
 			return (args[nargs-1] & AT_SYMLINK_NOFOLLOW) ? 3 : 2;
 	}
@@ -111,6 +113,8 @@ static inline int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
     case __NR_unlinkat:
     case __NR_readlinkat:
       return 0;
+    case __NR_statx:
+      return (args[3] & AT_EMPTY_PATH);
     default:
       return (args[nargs-1] & AT_EMPTY_PATH);
   }
