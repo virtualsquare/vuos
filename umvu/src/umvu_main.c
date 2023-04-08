@@ -36,6 +36,14 @@
 #include <vu_initfini.h>
 #include <umvu_tracer.h>
 
+/* RISCV seccomp tracing porting is incomplete */
+# define SECCOMP_ARG 128
+#if defined(__riscv_xlen) && __riscv_xlen == 64
+# define SECCOMP_DEFAULT 0
+#else
+# define SECCOMP_DEFAULT 1
+#endif
+
 static char *progname;
 static char *short_options = "+hxNSl:s:f:V:o:d:D:";
 static struct option long_options[] = {
@@ -50,6 +58,7 @@ static struct option long_options[] = {
 	{"debugtags",required_argument,0,'d'},
 	{"debugcols",required_argument,0,'D'},
 	{"noseccomp",no_argument,0,'S'},
+	{"seccomp",no_argument,0,SECCOMP_ARG},
 	{0,0,0,0}};
 
 static void usage_n_exit(void) {
@@ -127,7 +136,7 @@ int main(int argc, char *argv[])
 {
 	int c;
 	int norc = 0;
-	int seccomp = 1;
+	int seccomp = SECCOMP_DEFAULT;
 	char *output_file = NULL;
 	char *rcfile = NULL;
 	char *vu_name = NULL;
@@ -164,6 +173,8 @@ int main(int argc, char *argv[])
 			case 'N': norc = 1;
 								break;
 			case 'S': seccomp = 0;
+								break;
+			case SECCOMP_ARG: seccomp = 1;
 								break;
 		}
 	}

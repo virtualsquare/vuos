@@ -15,6 +15,15 @@ typedef unsigned long int syscall_arg_t;
 #define SYSCALL_INSTRUCTION_LEN 2
 typedef struct user_regs_struct arch_regs_struct;
 
+#elif defined(__riscv_xlen) && __riscv_xlen == 64
+
+#include<asm/ptrace.h>
+
+#define SYSCALL_ARG_NR 6
+typedef unsigned long int syscall_arg_t;
+#define SYSCALL_INSTRUCTION_LEN 4
+typedef struct user_regs_struct arch_regs_struct;
+
 #else
 
 #error Unsupported architecture

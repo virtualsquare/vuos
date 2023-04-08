@@ -102,6 +102,70 @@ int umvu_poke_syscall(arch_regs_struct *regs,
 		return 0;
 }
 
+#elif defined(__riscv_xlen) && __riscv_xlen == 64
+
+void umvu_peek_syscall(arch_regs_struct *regs,
+		struct syscall_descriptor_t *syscall_desc,
+		peekpokeop_t op)
+{
+	if (regs && syscall_desc) {
+		if (op == PEEK_ARGS) {
+			syscall_desc->orig_syscall_number =
+				syscall_desc->syscall_number = regs->a7;
+			syscall_desc->syscall_args[0] = regs->a0;
+			syscall_desc->syscall_args[1] = regs->a1;
+			syscall_desc->syscall_args[2] = regs->a2;
+			syscall_desc->syscall_args[3] = regs->a3;
+			syscall_desc->syscall_args[4] = regs->a4;
+			syscall_desc->syscall_args[5] = regs->a5;
+			syscall_desc->prog_counter = regs->pc;
+			syscall_desc->stack_pointer = regs->sp;
+		} else
+			syscall_desc->orig_ret_value = regs->a0;
+	}
+}
+
+int umvu_poke_syscall(arch_regs_struct *regs,
+		struct syscall_descriptor_t *syscall_desc,
+		peekpokeop_t op)
+{
+	if (regs && syscall_desc) {
+		switch (op) {
+			case POKE_ARGS:
+				/* regs->sp is missing as stack pointer should not be modified */
+				if (regs->a7 == (unsigned) syscall_desc->syscall_number &&
+						regs->a0 == syscall_desc->syscall_args[0] &&
+						regs->a1 == syscall_desc->syscall_args[1] &&
+						regs->a2 == syscall_desc->syscall_args[2] &&
+						regs->a3 == syscall_desc->syscall_args[3] &&
+						regs->a4 == syscall_desc->syscall_args[4] &&
+						regs->a5 == syscall_desc->syscall_args[5] &&
+						regs->pc == syscall_desc->prog_counter)
+					return 0;
+				regs->a7 = syscall_desc->syscall_number;
+				regs->a0 = syscall_desc->syscall_args[0];
+				regs->a1 = syscall_desc->syscall_args[1];
+				regs->a2 = syscall_desc->syscall_args[2];
+				regs->a3 = syscall_desc->syscall_args[3];
+				regs->a4 = syscall_desc->syscall_args[4];
+				regs->a5 = syscall_desc->syscall_args[5];
+				regs->pc = syscall_desc->prog_counter;
+				break;
+			case POKE_RETVALUE:
+				if (regs->a0 == syscall_desc->ret_value)
+					return 0;
+				regs->a0 = syscall_desc->ret_value;
+				break;
+			case SKIP_SETRETVALUE:
+				regs->a7 = -1;
+				regs->a0 = syscall_desc->ret_value;
+				break;
+		}
+		return 1;
+	} else
+		return 0;
+}
+
 #else
 
 #error Unsupported architecture
