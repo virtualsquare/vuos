@@ -432,10 +432,8 @@ void wi_pread(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			uintptr_t iovaddr = sd->syscall_args[1];
 			int iovcnt = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
-#ifdef __NR_preadv2
 			if (sd->syscall_number == __NR_preadv2)
 				flags = sd->syscall_args[4];
-#endif
 			struct iovec *iov;
 			void *buf;
 			ssize_t ret_value;
@@ -501,10 +499,8 @@ void wi_pwrite(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			uintptr_t iovaddr = sd->syscall_args[1];
 			int iovcnt = sd->syscall_args[2];
 			off_t offset = sd->syscall_args[3];
-#ifdef __NR_pwritev2
 			if (sd->syscall_number == __NR_pwritev2)
 				flags = sd->syscall_args[4];
-#endif
 			struct iovec *iov;
 			void *buf;
 			ssize_t ret_value;

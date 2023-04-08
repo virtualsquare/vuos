@@ -44,6 +44,7 @@ set(VU_DYN_HEADER_PATH ${CMAKE_BINARY_DIR}/include)
 
 set(VU_SYSCALL_DEFS ${VU_DYN_HEADER_PATH}/syscall_defs.h)
 set(R_TABLE_H ${VU_DYN_HEADER_PATH}/r_table.h)
+set(SYSCALL_NR_COMPAT_H ${VU_DYN_HEADER_PATH}/syscall_nr_compat.h)
 set(VU_SYSNAMES ${VU_DYN_SOURCE_PATH}/syscall_names.c)
 set(VU_ARCHTABLE ${VU_DYN_SOURCE_PATH}/arch_table.c)
 set(VU_SYSTABLE ${VU_DYN_SOURCE_PATH}/syscall_table.c)

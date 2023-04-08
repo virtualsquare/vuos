@@ -4,7 +4,7 @@ set(VU_SYSCALL_CONF ${PROJECT_SOURCE_DIR}/vu_syscalls.conf)
 set(VU_SCRIPT_PATH ${PROJECT_SOURCE_DIR}/scripts)
 
 add_custom_target(Dynamic_Sources ALL
-		DEPENDS ${VU_SYSCALL_DEFS} ${VU_ARCHTABLE} ${VU_SYSNAMES} ${VU_SYSTABLE} ${R_TABLE_H})
+		DEPENDS ${VU_SYSCALL_DEFS} ${VU_ARCHTABLE} ${SYSCALL_NR_COMPAT_H} ${VU_SYSNAMES} ${VU_SYSTABLE} ${R_TABLE_H})
 add_custom_command(OUTPUT ${VU_DYN_HEADER_PATH}
 		COMMAND mkdir ${VU_DYN_HEADER_PATH})
 add_custom_command(OUTPUT ${VU_DYN_SOURCE_PATH}
@@ -24,6 +24,12 @@ add_custom_command(OUTPUT ${R_TABLE_H}
 		COMMAND ${VU_SCRIPT_PATH}/r_table_gen.sh ${CMAKE_C_COMPILER} ${VU_SCRIPT_PATH} > ${R_TABLE_H}
 		COMMENT "Generating r_table"
 		DEPENDS ${VU_DYN_HEADER_PATH} ${SYSCALL_DEPS})
+
+# syscall_nr_compat_gen.h
+add_custom_command(OUTPUT ${SYSCALL_NR_COMPAT_H}
+		COMMAND ${VU_SCRIPT_PATH}/syscall_nr_compat_gen.py ${VU_SYSCALL_CONF} > ${SYSCALL_NR_COMPAT_H}
+		COMMENT "Generating syscall NR compat list"
+		DEPENDS ${VU_SYSCALL_CONF} ${VU_DYN_HEADER_PATH})
 
 # syscall_names.c
 add_custom_command(OUTPUT ${VU_SYSNAMES}

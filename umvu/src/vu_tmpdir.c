@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <r_table.h>
 #include <vu_log.h>
 #include <vu_initfini.h>

@@ -28,6 +28,7 @@
 #include <ctype.h>
 
 #include <linux_32_64.h>
+#include <r_table.h>
 #include <vu_log.h>
 #include <umvu_peekpoke.h>
 #include <hashtable.h>
@@ -61,10 +62,8 @@ void wo_mmap(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			__attribute__((unused)) int prot = sd->syscall_args[2];
 			__attribute__((unused)) int flags = sd->syscall_args[3];
 			off_t offset = sd->syscall_args[5];
-#ifdef __NR_mmap2
 			if (sd->syscall_number == __NR_mmap2)
 				offset = offset * umvu_get_pagesize();
-#endif
 			/* A specific data structure records the mapped areas.*/
 			vu_mmap_mmap(addr, length, fnode, offset);
 			//printk("mmap %x %d %d %p\n", addr, length, offset, fnode);

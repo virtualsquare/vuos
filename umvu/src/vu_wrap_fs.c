@@ -31,6 +31,7 @@
 
 #include <vu_log.h>
 #include <xcommon.h>
+#include <r_table.h>
 #include <umvu_peekpoke.h>
 #include <hashtable.h>
 #include <arch_table.h>
@@ -72,12 +73,8 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sfd = sd->syscall_args[0];
 				sfd = (vu_fd_get_sfd(sfd, &private, nested));
 				break;
-#ifdef __NR_fstatat
 			case __NR_fstatat:
-#endif
-#ifdef __NR_newfstatat
 			case __NR_newfstatat:
-#endif
 				bufaddr = sd->syscall_args[2];
 				flags |= sd->syscall_args[3];
 		}
@@ -218,12 +215,10 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_faccessat:
 				mode = sd->syscall_args[2];
 				break;
-#ifdef __NR_faccessat2
 			case __NR_faccessat2:
 				mode = sd->syscall_args[2];
 				flags = sd->syscall_args[3];
 				break;
-#endif
 		}
 		/* call */
 		sd->action = SKIPIT;

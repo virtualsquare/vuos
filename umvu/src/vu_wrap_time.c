@@ -26,6 +26,7 @@
 #include <time.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
+#include <r_table.h>
 #include <syscall_defs.h>
 #include <xcommon.h>
 #include <hashtable.h>

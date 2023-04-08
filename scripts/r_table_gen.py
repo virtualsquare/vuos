@@ -10,7 +10,8 @@ for line in sys.stdin:
 		if name[:5] == '__NR_':
 			syscall_names.append(name[5:])
 
-print('''#ifndef R_TABLE_H
+print(
+'''#ifndef R_TABLE_H
 #define R_TABLE_H
 
 /* THIS FILE HAS BEEN AUTOMATICALLY GENERATED, DO NOT EDIT */
@@ -22,7 +23,12 @@ extern long (*native_syscall)();
 ''')
 
 for f in sorted(syscall_names):
-	print('#define r_{}(...) native_syscall(__NR_{}, ## __VA_ARGS__)'.format(f, f))
+	print(f'#define r_{f}(...) native_syscall(__NR_{f}, ## __VA_ARGS__)')
 
-print('''#endif''');
+print(
+'''
+#include <r_table_compat.h>
+#include <syscall_nr_compat.h>
+
+#endif''');
 

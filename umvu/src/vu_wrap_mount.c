@@ -26,6 +26,7 @@
 #include <sys/syscall.h>
 
 #include <vu_log.h>
+#include <r_table.h>
 #include <umvu_peekpoke.h>
 #include <hashtable.h>
 #include <xcommon.h>
@@ -74,10 +75,8 @@ void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int flags;
 		/* fetch args */
 		switch (syscall_number) {
-#ifdef __NR_umount
 			case __NR_umount: flags = 0;
 												break;
-#endif
 			case __NR_umount2: flags = sd->syscall_args[1];
 												 break;
 		}
