@@ -4,7 +4,7 @@ import os.path
 
 
 def usage():
-	print("{}: the input should be 'vu_syscalls.conf'".format(sys.argv[0]))
+	print(f"{sys.argv[0]}: the input should be 'vu_syscalls.conf'")
 
 if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
 	usage()
@@ -48,8 +48,8 @@ with open(sys.argv[1]) as f:
 					args = args.split(',')
 					c = "choice_" + args[0].strip()
 					w = "vw_" + args[1].strip()
-					vtable += "\t[-{}] = {{{}, {}}},\n".format(stag, c, w)
-					vntable += "\t[-{}] = \"{}\",\n".format(stag, s)
+					vtable += f"\t[-{stag}] = {{{c}, {w}}},\n"
+					vntable += f"\t[-{stag}] = \"{s}\",\n"
 					cset.add(c)
 					vwset.add(w)
 				else:
@@ -61,9 +61,8 @@ with open(sys.argv[1]) as f:
 					win = "wi_" + args[1].strip()
 					wd = "wd_" + args[2].strip()
 					wout = "wo_" +args[3].strip()
-					table += "\t[{}] = {{{}, {}, {}, {}}},\n".format(
-							stag, c, win, wd, wout)
-					ntable += "\t[{}] = \"{}\",\n".format(stag, s)
+					table += f"\t[{stag}] = {{{c}, {win}, {wd}, {wout}}},\n"
+					ntable += f"\t[{stag}] = \"{s}\",\n"
 					cset.add(c)
 					wiset.add(win)
 					wdset.add(wd)
@@ -74,15 +73,15 @@ ntable += "};\n"
 vntable += "};\n"
 
 for f in sorted(cset):
-	print("choicef_t {};".format(f))
+	print(f"choicef_t {f};")
 for f in sorted(wiset):
-	print("wrapf_t {};".format(f))
+	print(f"wrapf_t {f};")
 for f in sorted(wdset):
-	print("wrapf_t {};".format(f))
+	print(f"wrapf_t {f};")
 for f in sorted(woset):
-	print("wrapf_t {};".format(f))
+	print(f"wrapf_t {f};")
 for f in sorted(vwset):
-	print("wrapf_t {};".format(f))
+	print(f"wrapf_t {f};")
 print()
 print(table)
 print(ntable)

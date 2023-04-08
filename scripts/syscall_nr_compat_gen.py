@@ -14,7 +14,7 @@ is just skipped. No arch #ifdef are required.
 __NR__first = 1000000000
 
 if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
-	print("{}: the input should be 'vu_syscalls.conf'".format(sys.argv[0]))
+	print(f"{sys.argv[0]}: the input should be 'vu_syscalls.conf'")
 	sys.exit(1)
 
 # Parse and output

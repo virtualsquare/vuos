@@ -3,7 +3,7 @@ import sys
 import os.path
 
 if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
-	print("{}: the input should be 'vu_syscalls.conf'".format(sys.argv[0]))
+	print(f"{sys.argv[0]}: the input should be 'vu_syscalls.conf'")
 	sys.exit(1)
 
 # Parse and output
@@ -37,20 +37,20 @@ with open(sys.argv[1]) as f:
 					syscall_len = len(syscall)
 					if syscall_len > vvu_syscall_max_namelen:
 							vvu_syscall_max_namelen = syscall_len
-					code += "#define __VVU_{} {}\n".format(syscall,-vcounter)
+					code += f"#define __VVU_{syscall} {-vcounter}\n"
 					vcounter += 1
 				else:
 					syscall_len = len(syscall)
 					if syscall_len > vu_syscall_max_namelen:
 							vu_syscall_max_namelen = syscall_len
-					code += "#define __VU_{} {}\n".format(syscall,counter)
+					code += f"#define __VU_{syscall} {counter}\n"
 					counter += 1
 if mcounter == 0:
 	mcounter = counter
-code += "\n#define VU_NR_SYSCALLS {}".format(counter)
-code += "\n#define VU_NR_MODULE_SYSCALLS {}".format(mcounter)
-code += "\n#define VVU_NR_SYSCALLS {}".format(vcounter)
-code += "\n#define VU_SYSCALL_MAX_NAMELEN {}".format(vu_syscall_max_namelen)
-code += "\n#define VVU_SYSCALL_MAX_NAMELEN {}".format(vvu_syscall_max_namelen)
+code += f"\n#define VU_NR_SYSCALLS {counter}"
+code += f"\n#define VU_NR_MODULE_SYSCALLS {mcounter}"
+code += f"\n#define VVU_NR_SYSCALLS {vcounter}"
+code += f"\n#define VU_SYSCALL_MAX_NAMELEN {vu_syscall_max_namelen}"
+code += f"\n#define VVU_SYSCALL_MAX_NAMELEN {vvu_syscall_max_namelen}"
 code += "\n\n#endif"
 print(code)

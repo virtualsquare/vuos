@@ -20,9 +20,9 @@ struct syscallname {
 
 static struct syscallname syscallname_table[] = {''')
 for name in syscall_names:
-  print('''#ifdef __NR_{0}
-			{{__NR_{0}, "{0}", NULL}},
-#endif'''.format(name))
+  print(f'''#ifdef __NR_{name}
+			{{__NR_{name}, "{name}", NULL}},
+#endif''')
 print('};')
 print('''
 #define SYSCALLNAME_TABLE_LEN (sizeof(syscallname_table) / sizeof(*syscallname_table))
