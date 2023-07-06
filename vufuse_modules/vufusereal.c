@@ -114,15 +114,9 @@ int op_open(const char *path, struct fuse_file_info *fi){
 int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
 	int fd = (int) fi->fh;
 
-	if( lseek(fd,offset,SEEK_SET)< 0) {
-		errno = EINVAL;
-		return -errno;
+	int rv = pread(fd, buf, size, offset);
 
-	} else {
-		int rv = read(fd,buf,size);
-
-		RETURN(rv);
-	}
+	RETURN(rv);
 }
 
 int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
@@ -267,15 +261,9 @@ int op_utimens(const char *path, const struct timespec tv[2]){
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
 	int fd = (int) fi->fh;
 
-	if( lseek(fd,offset,SEEK_SET)< 0) {
-		errno = EINVAL;
-		return -errno;
+	int rv = pwrite(fd, buf, size, offset);
 
-	} else {
-		int rv =  write(fd,buf,size);
-
-		RETURN(rv);
-	}
+	RETURN(rv);
 }
 
 int op_mknod(const char *path, mode_t mode, dev_t dev){
