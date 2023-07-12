@@ -120,13 +120,16 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 }
 
 int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
-	struct fuse_context *cntx=fuse_get_context();
+	struct fuse_context *cntx = fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
 
 	struct dirent* de;
-	DIR * dr = fdopendir((int)fi->fh);
 
+	int fd = dup((int)fi->fh);
+	if(fd < 0) return -errno;
+
+	DIR *dr = fdopendir(fd);
 	if(dr == NULL) return -errno;
 
 	while ((de = readdir(dr)) != NULL){
@@ -138,17 +141,17 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 #pragma GCC diagnostic pop
 
 		//ignoring offset
-		if (lstat(filename, &stbuf) >=  0){
-			filler(buf,de->d_name,&stbuf,0);
-		} else filler(buf,de->d_name,NULL,0);
+		if (lstat(filename, &stbuf) >=  0)
+			filler(buf, de->d_name, &stbuf, 0);
+		else
+			filler(buf, de->d_name, NULL, 0);
 		//test for return value 1 ?
 	}
+	closedir(dr);
 	return 0;
-
 }
 
 int op_readlink(const char *path, char *buf, size_t size){
-
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
