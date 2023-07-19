@@ -39,6 +39,8 @@
 #include <dirent.h>
 #include <limits.h>
 
+#define PROGNAME "fusereal"
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -326,7 +328,7 @@ int op_rename(const char *source, const char *dest){
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, source);
 	GETPATH(sourcepath, dest);
-	int rv =  rename(source,dest);
+	int rv = rename(source,dest);
 
 	RETURN(rv);
 }
@@ -370,17 +372,87 @@ static const struct fuse_operations real_ops = {
 	.bmap           = NULL,
 };
 
+static void usage(void)
+{
+  fprintf(stderr,
+      "usage: " PROGNAME " sourcepath mountpoint [options]\n"
+      "\n"
+      "general options:\n"
+      "    -h   --help        print help\n"
+      "    -V   --version     print version\n"
+      "\n");
+}
+
+struct options {
+  const char *source;
+  const char *mountpoint;
+};
+
+  static int
+real_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
+{
+  struct options *options = data;
+  switch(key) {
+    case FUSE_OPT_KEY_OPT:
+      return 1;
+    case FUSE_OPT_KEY_NONOPT:
+      if (!options->source) {
+        options->source = arg;
+        return 0;
+      } else if(!options->mountpoint) {
+        options->mountpoint = arg;
+        return 1;
+      } else
+        return -1;
+      break;
+    case 'h':
+      usage();
+      fuse_opt_add_arg(outargs, "-ho");
+      fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
+      return -1;
+
+    case 'V':
+      fprintf(stderr, PROGNAME "\n");
+      fuse_opt_add_arg(outargs, "--version");
+      fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
+      return -1;
+
+    default:
+      return -1;
+  }
+}
+
+static struct fuse_opt real_opts[] =
+{
+  FUSE_OPT_KEY("-V", 'V'),
+  FUSE_OPT_KEY("--version", 'V'),
+  FUSE_OPT_KEY("-h", 'h'),
+  FUSE_OPT_KEY("--help", 'h'),
+  FUSE_OPT_END
+};
+
 int main(int argc, char *argv[])
 {
 	int err;
-	char *sourcepath = argv[argc-2];
-	argv[argc-2] = argv[argc-1];
-	argv[argc-1] = NULL;
-	argc--;
+	struct options options = {0};
+	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-	//printf("version:'%s', fuse_version:'%d / %d / %d'\n", __VERSION__, FUSE_USE_VERSION,  FUSE_VERSION, fuse_version());
+	if (fuse_opt_parse(&args, &options, real_opts, real_opt_proc) == -1) {
+		fuse_opt_free_args(&args);
+		return -1;
+	}
 
-	err = fuse_main(argc, argv, &real_ops, sourcepath);
+	if (options.source == NULL || options.mountpoint == NULL) {
+		usage();
+		goto returnerr;
+  }
+
+	err = fuse_main(args.argc, args.argv, &real_ops, (void *) options.source);
+	fuse_opt_free_args(&args);
 
 	return err;
+returnerr:
+  fuse_opt_free_args(&args);
+  return -1;
+
 }
