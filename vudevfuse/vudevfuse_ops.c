@@ -37,6 +37,9 @@
 #include <devfuse.h>
 #include <fusenode.h>
 
+#define _O_LARGEFILE 0x8000
+#define _O_OPENONLY (O_CREAT | O_EXCL | O_TRUNC)
+
 VU_PROTOTYPES(fuse)
 
 	struct fusefile_t {
@@ -212,6 +215,7 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
 		return vu_devfuse_open(pathname, flags, mode, fdprivate);
+	flags |= _O_LARGEFILE;
 	printkdebug(U,"OPEN path:%s flags:0x%x", pathname, flags);
 
 	struct fusemount_t *fusemount = vuht_get_private_data(ht);
@@ -257,6 +261,7 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 		nodeid = entryout.nodeid;
 		filemode = entryout.attr.mode;
 		fn_add(fusemount->fnbuf, pathname, &entryout);
+		flags &= ~_O_OPENONLY;
 	} else {
 		if (staterr < 0)
 			return free(fusefile), -1;
@@ -264,6 +269,10 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 		filemode = statbuf.st_mode;
 		int fuse_open_opendir =
 			(S_ISDIR(filemode)) ? FUSE_OPENDIR : FUSE_OPEN;
+		/* check flags for opendir? O_RDONLY */
+		int trunc = flags & O_TRUNC;
+
+		flags &= ~_O_OPENONLY;
 
 		struct fuse_open_in openin = {
 			.flags = flags
@@ -274,6 +283,24 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 
 		if (err < 0)
 			return free(fusefile), errno = -err, -1;
+
+		if (trunc) {
+			struct fuse_setattr_in setattrin = {
+				.valid = FATTR_SIZE,
+				.size = 0
+			};
+
+			struct fuse_attr_out attrout;
+
+			int err = vu_devfuse_conversation(fusemount, FUSE_SETATTR, nodeid,
+					IOV1(&setattrin, sizeof(setattrin)),
+					IOV1(&attrout, sizeof(attrout)), NULL);
+
+			if (err < 0)
+				return errno = -err, -1;
+
+			fn_updatenode(fusemount->fnbuf, nodeid, &attrout);
+		}
 	}
 
 	pthread_mutex_init(&(fusefile->mutex), NULL);
@@ -310,7 +337,8 @@ int vu_fuse_close(int fd, void *fdprivate) {
 		(S_ISDIR(fusefile->filemode)) ? FUSE_RELEASEDIR : FUSE_RELEASE;
 
 	struct fuse_release_in releasein = {
-		.fh = fusefile->fh
+		.fh = fusefile->fh,
+		.flags = fusefile->flags
 	};
 
 	int err = vu_devfuse_conversation(fusemount, fuse_rel_reldir, fusefile->nodeid,
