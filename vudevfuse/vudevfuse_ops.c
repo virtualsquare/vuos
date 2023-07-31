@@ -212,7 +212,7 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 	struct vuht_entry_t *ht = vu_mod_getht();
 	if (ht == devfuse_ht)
 		return vu_devfuse_open(pathname, flags, mode, fdprivate);
-	printkdebug(U,"OPEN path:%s flags:%d", pathname, flags);
+	printkdebug(U,"OPEN path:%s flags:0x%x", pathname, flags);
 
 	struct fusemount_t *fusemount = vuht_get_private_data(ht);
 
@@ -353,7 +353,8 @@ ssize_t vu_fuse_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct fuse_read_in readin = {
 		.fh = fusefile->fh,
 		.offset = fusefile->pos,
-		.size = count
+		.size = count,
+		.flags = fusefile->flags
 	};
 
 	int err = vu_devfuse_conversation(fusemount, FUSE_READ, fusefile->nodeid,
@@ -392,7 +393,8 @@ ssize_t vu_fuse_write(int fd, const void *buf, size_t count, void *fdprivate) {
 	struct fuse_write_in writein = {
 		.fh = fusefile->fh,
 		.offset = fusefile->pos,
-		.size = count
+		.size = count,
+		.flags = fusefile->flags
 	};
 	struct fuse_write_out writeout;
 
@@ -648,7 +650,7 @@ ssize_t vu_fuse_pwrite64(int fd, const void *buf, size_t count, off_t offset, in
 		.fh = fusefile->fh,
 		.offset = offset,
 		.size = count,
-		.flags = flags
+		.flags = fusefile->flags
 	};
 	struct fuse_write_out writeout;
 
