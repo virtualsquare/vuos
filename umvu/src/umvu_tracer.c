@@ -310,13 +310,15 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 					disable_vdso(tracee_tid);
 					vu_inheritance_call(INH_EXEC, NULL, NULL);
 					//printf("exec %d\n", tracee_tid);
-				}
-				else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||
-						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8)) ||
+				} else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_FORK << 8))) {
 					/* the tracee is doing a clone */
-					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
+					/* Many system calls to create processes (like fork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
+					cloning++;
+				} else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8))) {
+					/* vfork is an exception! */
+					clone_flags = CLONE_VM | CLONE_VFORK;
 					cloning++;
 				}
 				P_SYSCALL(sig_tid, 0L);
@@ -478,11 +480,15 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 					vu_inheritance_call(INH_EXEC, NULL, NULL);
 					P_CONT(sig_tid, 0L);
 				} else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_CLONE << 8)) ||
-						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8)) ||
 						wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_FORK << 8))) {
 					/* the tracee is doing a clone */
-					/* All the system calls to create processes (like fork, vfork, clone) get converted into clones */
+					/* many system calls to create processes (like fork, vfork, clone) get converted into clones */
 					clone_flags = syscall_desc.syscall_args[0];
+					cloning++;
+					P_CONT(sig_tid, 0L);
+				} else if (wstatus >> 8 == (SIGTRAP | (PTRACE_EVENT_VFORK << 8))) {
+					/* vfork is an exception! */
+					clone_flags = CLONE_VM | CLONE_VFORK;
 					cloning++;
 					P_CONT(sig_tid, 0L);
 				} else
