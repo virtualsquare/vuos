@@ -112,6 +112,7 @@ static void *vu_fd_clone(void *arg) {
 		pthread_rwlock_wrlock(&vu_fd->lock);
 		newfd = vu_fd;
 		newfd->count++;
+		printkdebug(d, "clone %p->%p count=%d CLONE_FILES", vu_fd, newfd, newfd->count);
 		pthread_rwlock_unlock(&vu_fd->lock);
 		return newfd;
 	} else {
@@ -135,12 +136,14 @@ static void *vu_fd_clone(void *arg) {
 		pthread_rwlock_unlock(&vu_fd->lock);
 		pthread_rwlock_init(&newfd->lock, NULL);
 		newfd->count=1;
+		printkdebug(d, "clone %p->%p count=%d", vu_fd, newfd, newfd->count);
 	}
 	return newfd;
 }
 
 static void vu_fd_terminate(void) {
 	pthread_rwlock_wrlock(&vu_fd->lock);
+	printkdebug(d, "terminate %p count=%d", vu_fd, vu_fd->count);
 	vu_fd->count -= 1;
 	if (vu_fd->count == 0) {
 		int i;
@@ -168,6 +171,7 @@ static void vu_fd_close_on_exec(void) {
 			vu_fnode_close(vu_fd->fnode[i]);
 			vu_fd->fnode[i] = NULL;
 			vu_fd->flags[i] = 0;
+			printkdebug(d, "close_on_exec %p fd=%d", vu_fd, i);
 		}
 	}
 	pthread_rwlock_unlock(&vu_fd->lock);
@@ -203,6 +207,7 @@ void vu_fd_set_fnode(int fd, int nested, struct vu_fnode_t *fnode, int fdflags) 
 	vu_fd_table_resize(fd_table, fd);
 	fd_table->fnode[fd] = fnode;
 	fd_table->flags[fd] = fdflags & FDFLAGS_MASK;
+	printkdebug(d, "open %p fd=%d", vu_fd, fd);
 	pthread_rwlock_unlock(&fd_table->lock);
 }
 
@@ -211,6 +216,7 @@ int vu_fd_close(int fd, int nested) {
 	int ret_value;
 	fatal(fd_table);
 	pthread_rwlock_wrlock(&fd_table->lock);
+	printkdebug(d, "close %p fd=%d", vu_fd, fd);
 	if (fd >= 0 && fd < fd_table->table_size) {
 		struct vu_fnode_t *oldfnode = fd_table->fnode[fd];
 		fd_table->fnode[fd] = NULL;
@@ -236,6 +242,7 @@ void vu_fd_dup(int fd, int nested, int oldfd, int fdflags) {
   fatal(fd_table);
 	if (fd >= 0) {
 		pthread_rwlock_wrlock(&fd_table->lock);
+		printkdebug(d, "dup %p fd=%d->%d", vu_fd, oldfd, fd);
 		vu_fd_table_resize(fd_table, fd);
 		if (fd_table->fnode[fd] != NULL)
 			vu_fnode_close(fd_table->fnode[fd]);
@@ -414,6 +421,7 @@ __attribute__((constructor))
 		vu_n_fd = vu_fd_create();
 		vu_fd = vu_fd_create();
 		vu_inheritance_upcall_register(vu_fd_tracer_upcall);
+		debug_set_name(d, "FD_TABLE");
 	}
 
 
