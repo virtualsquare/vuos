@@ -297,21 +297,19 @@ int _printkdebug(int index, const char *fmt, ...) {
 	struct debugcolor color = debugcolor_table[index];
 	va_list ap;
 	int save_errno = errno;
-	va_start(ap,fmt);
+	int fmtlen = strlen(fmt);
+	int prefixlen = strcspn(fmt, " \n");
+	const char *tag_string = debug_tag_name[index] ? debug_tag_name[index] : "";
+	const char *tag_string_sep = *tag_string ? " " : "";
+	int tagstringlen = strlen(tag_string) + strlen(tag_string_sep);
+	int postfixlen = fmtlen - prefixlen;
+	va_start(ap, fmt);
 	if (color.valid && isatty(debugfd)) {
 		/* color printing is supported and requested */
-		int fmtlen = strlen(fmt);
 		int seqlen = color_esc_sequence_len(color);
-		int prefixlen = strcspn(fmt, " \n");
-		int postfixlen;
-		const char *tag_string = debug_tag_name[index] ? debug_tag_name[index] : "";
-		const char *tag_string_sep = *tag_string ? " " : "";
-		int tagstringlen = strlen(tag_string) + strlen(tag_string_sep);
 		int newfmtlen = fmtlen + seqlen + sizeof(esc_reset_color_sequence) + tagstringlen + 2;
 		char newfmt[newfmtlen];
 		char color_esc_sequence[seqlen];
-		if (fmt[fmtlen-1] == '\n')
-			fmtlen--;
 		postfixlen = fmtlen - prefixlen;
 		generate_color_esc_sequence(color, color_esc_sequence);
 		/* newfmt is a copy of fmt with the tag name added at the first space +
@@ -323,19 +321,13 @@ int _printkdebug(int index, const char *fmt, ...) {
 			 "(color_set_seq)%s:%d NAME_OF_A log message with %s %d etc(color_reset_seq)\n"
 			 where (color_set_sequence) and (color_reset_seq) are escapesequence to change the font color.
 			 and then newfmt is the format for _vprintk using the va_list ap (containing all the parameters)/ */
-		snprintf(newfmt, newfmtlen, "%s%*.*s%s%s%*.*s%s\n",color_esc_sequence,
-				prefixlen, prefixlen, fmt,
+		snprintf(newfmt, newfmtlen, "%s%.*s%s%s%.*s%s", color_esc_sequence,
+				prefixlen, fmt,
 				tag_string_sep, tag_string,
-				postfixlen, postfixlen, fmt+prefixlen, esc_reset_color_sequence);
+				postfixlen, fmt+prefixlen, esc_reset_color_sequence);
 		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	} else {
 		/* monochrome printing */
-		int fmtlen = strlen(fmt);
-		int prefixlen = strcspn(fmt, " \n");
-		int postfixlen = fmtlen - prefixlen;
-		const char *tag_string = debug_tag_name[index] ? debug_tag_name[index] : "";
-		const char *tag_string_sep = *tag_string ? " " : "";
-		int tagstringlen = strlen(tag_string) + strlen(tag_string_sep);
 		int newfmtlen = fmtlen + tagstringlen + 2;
 		char newfmt[newfmtlen];
 		/* newfmt is a copy of fmt with the tag name added at the first space */
@@ -345,10 +337,10 @@ int _printkdebug(int index, const char *fmt, ...) {
 			 newfmt is:
 			 "%s:%d NAME_OF_A log message with %s %d etc\n"
 			 and then newfmt is the format for _vprintk using the va_list ap (containing all the parameters)/ */
-		snprintf(newfmt, newfmtlen, "%*.*s%s%s%*.*s",
-				prefixlen, prefixlen, fmt, // %*.*s copy prefix (minlen=maxlen=prefixlen)
-				tag_string_sep, tag_string, // tag (with a space if
-				postfixlen, postfixlen, fmt+prefixlen);
+		snprintf(newfmt, newfmtlen, "%.*s%s%s%.*s",
+				prefixlen, fmt, // %.*s copy prefix (minlen=prefixlen)
+				tag_string_sep, tag_string, // tag (with a space if tag_string is not NULL)
+				postfixlen, fmt+prefixlen);
 		rv = _vprintk(newfmt, NO_SYSLOG, ap);
 	}
 	va_end(ap);
