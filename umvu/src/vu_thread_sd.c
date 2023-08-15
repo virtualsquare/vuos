@@ -23,7 +23,6 @@
 #include <vu_thread_sd.h>
 #include <vu_inheritance.h>
 
-#include <umvu_peekpoke.h>
 #include <vu_execute.h>
 
 /* safe default value */
@@ -37,35 +36,36 @@ __thread struct syscall_descriptor_t *thread_sd = &default_sd;
 	 so that it can be used later to restore the old value */
 struct syscall_descriptor_t *set_thread_sd(struct syscall_descriptor_t *sd) {
 	struct syscall_descriptor_t *tmp = thread_sd;
-	//printk("set_thread_sd (%d) %p->%p\n", umvu_gettid(), tmp, sd);
+	printkdebug(t, "set_thread_sd %p->%p\n", tmp, sd);
 	thread_sd = sd;
 	return tmp;
 }
 
 struct syscall_descriptor_t *get_thread_sd(void) {
-	//printk("get_thread_sd (%d) %p\n", umvu_gettid(), thread_sd);
+	printkdebug(t, "get_thread_sd %p\n", thread_sd);
 	return thread_sd;
 }
 
 static void *thread_sd_upcall(inheritance_state_t state, void *arg) {
-  void *ret_value = NULL;
-  switch (state) {
-    case INH_PTHREAD_CLONE:
-      ret_value = thread_sd;
-			//printk("thread_sd_upcall CLONE %p\n", thread_sd);
-      break;
-    case INH_PTHREAD_START:
-      thread_sd = arg;
-			//printk("thread_sd_upcall START %p\n", thread_sd);
-      break;
+	void *ret_value = NULL;
+	switch (state) {
+		case INH_PTHREAD_CLONE:
+			ret_value = thread_sd;
+			printkdebug(t, "thread_sd_upcall CLONE %p", thread_sd);
+			break;
+		case INH_PTHREAD_START:
+			thread_sd = arg;
+			printkdebug(t, "thread_sd_upcall START %p\n", thread_sd);
+			break;
 		default:
 			break;
-  }
-  return ret_value;
+	}
+	return ret_value;
 }
 
 __attribute__((constructor))
-  static void init(void) {
-    vu_inheritance_upcall_register(thread_sd_upcall);
-  }
+	static void init(void) {
+		vu_inheritance_upcall_register(thread_sd_upcall);
+		debug_set_name(t, "THREADS");
+	}
 

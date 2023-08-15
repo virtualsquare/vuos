@@ -1,6 +1,7 @@
 #ifndef VUMODULE_H
 #define VUMODULE_H
 #include <stdio.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <dirent.h>
@@ -294,12 +295,13 @@ int printk(const char *fmt, ...);
 
 extern uint64_t debugmask;
 extern __thread uint64_t tdebugmask;
+extern __thread pid_t debugtid;
 
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
 	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
-		basename(__FILE__), __LINE__, ##__VA_ARGS__)
+_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
+		debugtid, gettid(), basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_TAG2INDEX_A 1
 #define DEBUG_TAG2INDEX_B 2

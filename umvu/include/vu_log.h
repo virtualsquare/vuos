@@ -5,6 +5,7 @@
  *
  */
 #include <syslog.h>
+#include <unistd.h>
 #include <stdarg.h>
 #include <pthread.h>
 #include <libgen.h>
@@ -95,6 +96,7 @@ void debug_get_name(char tag, char *buf, size_t bufsize);
 	 the overall cost of the choice is reading two vars + one or operation + a conditinal branch */
 extern uint64_t debugmask;
 extern __thread uint64_t tdebugmask;
+extern __thread pid_t debugtid;
 
 /* printk uses preprocessor magic to pprocess the first argument:
 	 printkdebug(x, "message %d", intarg);
@@ -106,8 +108,8 @@ extern __thread uint64_t tdebugmask;
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
 	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-		_printkdebug(DEBUG_TAG2INDEX_##tag, "%s:%d " fmt "\n", \
-		basename(__FILE__), __LINE__, ##__VA_ARGS__)
+		_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
+		debugtid, gettid(), basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_ALLTAGS " ABCDEFGHIJKLMNOPQRSTUVWXYZ_01234abcdefghijklmnopqrstuvwxyz56789"
 #define DEBUG_NTAGS sizeof(DEBUG_ALLTAGS)

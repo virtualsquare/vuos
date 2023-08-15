@@ -19,7 +19,6 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -29,10 +28,12 @@
 #include <vu_log.h>
 #include <r_table.h>
 #include <vu_inheritance.h>
+#include <umvu_peekpoke.h>
 
 static int debugfd = 2;
 uint64_t debugmask;
 __thread uint64_t tdebugmask;
+__thread pid_t debugtid;
 
 #define BLACK 0
 #define RED 1
@@ -349,33 +350,33 @@ int _printkdebug(int index, const char *fmt, ...) {
 }
 
 void printkdump(void *buf, int count) {
-  unsigned char *v = buf;
-  int i;
-  for (i=0; i<count; i++) {
-    if (i%16 == 0) printk("\n");
-    printk("%02x:",v[i]);
-  }
-  printk("\n");
+	unsigned char *v = buf;
+	int i;
+	for (i=0; i<count; i++) {
+		if (i%16 == 0) printk("\n");
+		printk("%02x:",v[i]);
+	}
+	printk("\n");
 }
 
 static void *vu_log_upcall(inheritance_state_t state, void *arg) {
 	void *ret_value;
-  switch (state) {
-    case INH_CLONE:
-      ret_value = &tdebugmask;
-      break;
-    case INH_START:
-      tdebugmask = *(uint64_t *)arg;
-      break;
+	switch (state) {
+		case INH_CLONE:
+			ret_value = &tdebugmask;
+			break;
+		case INH_START:
+			tdebugmask = *(uint64_t *)arg;
+			debugtid = umvu_gettid();
+			break;
 		default:
 			break;
-  }
-  return ret_value;
+	}
+	return ret_value;
 }
 
-
 __attribute__((constructor))
-  static void init(void) {
-    vu_inheritance_upcall_register(vu_log_upcall);
-  }
+	static void init(void) {
+		vu_inheritance_upcall_register(vu_log_upcall);
+	}
 

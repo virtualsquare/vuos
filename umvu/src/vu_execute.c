@@ -98,7 +98,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 		switch (state) {
 			case IN_SYSCALL:
 				set_extra(&extra, sd, get_syspath);
-				printkdebug(s, "IN %d (%d) %s %s %ld", umvu_gettid(), native_syscall(__NR_gettid),
+				printkdebug(s, "IN  >>>>>> %s %s %ld",
 						syscallname(sd->syscall_number), sd->extra->path, get_vepoch());
 				ht = sd->extra->ht = tab_entry->choicef(sd);
 				if (sd->action == SKIPIT)
@@ -115,7 +115,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				break;
 			case DURING_SYSCALL:
 				ht = sd->extra->ht;
-				printkdebug(s, "DURING %d %s %s", umvu_gettid(),
+				printkdebug(s, "DURING === %s %s",
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapduringf(ht, sd);
 				printkdebug(a,"DURING %s", action_strings[sd->action % 0xf]);
@@ -124,7 +124,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 				break;
 			case OUT_SYSCALL:
 				ht = sd->extra->ht;
-				printkdebug(s, "OUT %d %s %s", umvu_gettid(),
+				printkdebug(s, "OUT <<<<<< %s %s",
 						syscallname(sd->syscall_number), sd->extra->path);
 				tab_entry->wrapoutf(ht, sd);
 				execute_cleanup(ht,sd);
@@ -142,7 +142,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 			/* retrieve the entry from vvu_syscall_table (see syscall_table.h) */
 			const struct vsyscall_tab_entry *tab_entry = &vvu_syscall_table[vsysno];
 			set_extra(&extra, sd, get_vsyspath);
-			printkdebug(s, "VIRSYSCALL %d (%d) %d %s %ld", umvu_gettid(), native_syscall(__NR_gettid),
+			printkdebug(s, "VIRSYSCALL ++++++  %d %s %ld",
 					vsysno, sd->extra->path, get_vepoch());
 			ht = sd->extra->ht = tab_entry->choicef(sd);
 			tab_entry->wrapf(ht, sd);

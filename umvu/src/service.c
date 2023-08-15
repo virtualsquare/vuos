@@ -20,7 +20,6 @@
 
 #include <vu_log.h>
 #include <service.h>
-#include <umvu_peekpoke.h>
 #include <vu_execute.h>
 #include <vu_fs.h>
 #include <vu_fd_table.h>
