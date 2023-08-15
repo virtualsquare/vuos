@@ -131,7 +131,7 @@ typedef long (*sfun)();
 void vu_nesting_disable(void) {
 	sfun (*_pure_start_p)();
 	char *ld_preload = getenv("LD_PRELOAD");
-	//printk("NESTINGDISABLE %d\n", native_syscall(__NR_gettid));
+	//printk("NESTINGDISABLE %d\n", gettid());
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -146,7 +146,7 @@ void vu_nesting_disable(void) {
 void vu_nesting_enable(void) {
 	sfun (*_pure_start_p)();
 	char *ld_preload = getenv("LD_PRELOAD");
-	//printk("NESTINGENABLE %d\n", native_syscall(__NR_gettid));
+	//printk("NESTINGENABLE %d\n", gettid());
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
