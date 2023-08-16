@@ -204,7 +204,7 @@ static void *spawn_tracer(void *arg)
 	pid_t tracee_tid = t_arg->tracee_tid;
 	umvu_settid(tracee_tid);
 	nproc_update(1);
-	vu_inheritance_call(INH_START, t_arg->inherited_args, NULL);
+	vu_inheritance_call(INH_START, t_arg->inherited_args, &tracee_tid);
 
 	P_SEIZE_NODIE(tracee_tid, PTRACE_STD_OPTS);
 	unblock_tracee(tracee_tid, &(t_arg->regs));

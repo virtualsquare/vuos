@@ -28,7 +28,6 @@
 #include <vu_log.h>
 #include <r_table.h>
 #include <vu_inheritance.h>
-#include <umvu_peekpoke.h>
 
 static int debugfd = 2;
 uint64_t debugmask;
@@ -367,7 +366,7 @@ static void *vu_log_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 			break;
 		case INH_START:
 			tdebugmask = *(uint64_t *)ioarg;
-			debugtid = umvu_gettid();
+			debugtid = *(pid_t *) arg;
 			break;
 		default:
 			break;
