@@ -6,12 +6,12 @@
 #include <xcommon.h>
 
 /* Thread safe implementation of the functions defined in vu_inheritance.h.
-   These functions ahve been designed for modules aiming to define and maintain
-   per thread data stuctures */
+	 These functions ahve been designed for modules aiming to define and maintain
+	 per thread data stuctures */
 
 struct mod_inheritance_elem_t {
-  mod_inheritance_upcall_t upcall;
-  struct mod_inheritance_elem_t *next;
+	mod_inheritance_upcall_t upcall;
+	struct mod_inheritance_elem_t *next;
 };
 
 static pthread_rwlock_t mod_inheritance_upcall_rwlock = PTHREAD_RWLOCK_INITIALIZER;
@@ -23,11 +23,11 @@ static __thread struct mod_inheritance_exec_arg mod_exec_arg = {-1, -1};
 /* setuid/setgid are passed to modules:
 	 mod_exec_arg is an arg of MOD_INH_EXEC */
 void vu_exec_setuid(uid_t uid) {
-  mod_exec_arg.exec_uid = uid;
+	mod_exec_arg.exec_uid = uid;
 }
 
 void vu_exec_setgid(gid_t gid) {
-  mod_exec_arg.exec_gid = gid;
+	mod_exec_arg.exec_gid = gid;
 }
 
 void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall) {
@@ -61,19 +61,19 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall) {
 }
 
 static void mod_inheritance_call(mod_inheritance_state_t state, void **inout, void *arg) {
-  struct mod_inheritance_elem_t *scan;
-  for (scan = mod_inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
+	struct mod_inheritance_elem_t *scan;
+	for (scan = mod_inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
 		if (inout == NULL)
 			(void) scan->upcall(state, NULL, arg);
 		else {
 			*inout = scan->upcall(state, *inout, arg);
 			inout++;
 		}
-  }
+	}
 }
 
 static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
-  void *ret_value = NULL;
+	void *ret_value = NULL;
 	void **args;
 	/* CLONE/START protection against mod_inheritance_upcall_list_count modifications:
 		 INH_CLONE uses "passing le baton" and keeps the RDLOCK pending until INH_START */

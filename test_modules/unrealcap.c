@@ -47,8 +47,8 @@ VU_PROTOTYPES(unrealcap)
 struct vu_cap_t {
 	pid_t pid;
 	struct __user_cap_data_struct data[2];
-  struct vu_cap_t *next;
-  struct vu_cap_t **pprev;
+	struct vu_cap_t *next;
+	struct vu_cap_t **pprev;
 };
 
 static pthread_rwlock_t vucap_lock = PTHREAD_RWLOCK_INITIALIZER;
@@ -131,7 +131,7 @@ static void vu_cap_start(void *arg) {
 }
 
 static void vu_cap_exec(void *arg) {
-	 //struct mod_inheritance_exec_arg *mod_exec = arg; //Future management of security capability xattr
+	//struct mod_inheritance_exec_arg *mod_exec = arg; //Future management of security capability xattr
 }
 
 static void vu_cap_terminate(void) {
@@ -147,48 +147,48 @@ static void vu_cap_terminate(void) {
 }
 
 static void *vu_cap_tracer_upcall(mod_inheritance_state_t state, void *ioarg, void *arg) {
-  void *ret_value = NULL;
-  switch (state) {
-    case MOD_INH_CLONE:
-      ret_value = vu_cap_clone(arg);
-      break;
-    case MOD_INH_START:
+	void *ret_value = NULL;
+	switch (state) {
+		case MOD_INH_CLONE:
+			ret_value = vu_cap_clone(arg);
+			break;
+		case MOD_INH_START:
 			vu_cap_start(ioarg);
-      break;
-    case MOD_INH_EXEC:
-      vu_cap_exec(arg);
-      break;
-    case MOD_INH_TERMINATE:
-      vu_cap_terminate();
-      break;
-  }
-  return ret_value;
+			break;
+		case MOD_INH_EXEC:
+			vu_cap_exec(arg);
+			break;
+		case MOD_INH_TERMINATE:
+			vu_cap_terminate();
+			break;
+	}
+	return ret_value;
 }
 
 static short vusc[]={
-  __NR_capget, __NR_capset,
+	__NR_capget, __NR_capset,
 };
 
 #define VUSCLEN (sizeof(vusc) / sizeof(*vusc))
 static struct vuht_entry_t *ht[VUSCLEN];
 
 void *vu_unrealcap_init(void) {
-  struct vu_service_t *s = vu_mod_getservice();
-  unsigned int i;
-  for (i = 0; i < VUSCLEN; i++) {
-    int vu_syscall = vu_arch_table[vusc[i]];
-    ht[i] = vuht_add(CHECKSC, &vu_syscall, sizeof(int), s, NULL, NULL, 0);
-  }
+	struct vu_service_t *s = vu_mod_getservice();
+	unsigned int i;
+	for (i = 0; i < VUSCLEN; i++) {
+		int vu_syscall = vu_arch_table[vusc[i]];
+		ht[i] = vuht_add(CHECKSC, &vu_syscall, sizeof(int), s, NULL, NULL, 0);
+	}
 	mod_inheritance_upcall_register(vu_cap_tracer_upcall);
-  return NULL;
+	return NULL;
 }
 
 int vu_unrealcap_fini(void *private) {
-  unsigned int i;
-  for (i = 0; i < VUSCLEN; i++) {
-    if (ht[i] && vuht_del(ht[i], MNT_FORCE) == 0)
-      ht[i] = NULL;
-  }
+	unsigned int i;
+	for (i = 0; i < VUSCLEN; i++) {
+		if (ht[i] && vuht_del(ht[i], MNT_FORCE) == 0)
+			ht[i] = NULL;
+	}
 	mod_inheritance_upcall_deregister(vu_cap_tracer_upcall);
 	return 0;
 }
