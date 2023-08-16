@@ -31,7 +31,7 @@ typedef enum inheritance_state_t {
 	INH_PTHREAD_TERMINATE = 13
 } inheritance_state_t;
 
-typedef void *(*inheritance_upcall_t)(inheritance_state_t state, void *arg);
+typedef void *(*inheritance_upcall_t)(inheritance_state_t state, void *ioarg, void *arg);
 /* register an upcall handler */
 void vu_inheritance_upcall_register(inheritance_upcall_t upcall);
 
@@ -43,13 +43,10 @@ void vu_inheritance_upcall_register(inheritance_upcall_t upcall);
 	 >>> the return values of the handlers are discarded
 	 vu_inheritance_call(INH_SOMETHING, inoutarg, commonarg):
 	 >>> all the handlers get commonarg as their arg
-	 >>> the return value of each handler is stored in a specific element in inoutarg.
-	 >>> inoutargs must point to a memory area vu_inheritance_inout_size() bytes wide
-	 >>> (CLONE events use this)
-	 vu_inheritance_call(INH_SOMETHING, inoutarg, NULL):
-	 >>> each handler gets its element in inoutarg as its arg.
+	 >>> each handler gets its element in inoutarg as its ioarg.
 	 >>> the return value of each handler updates its element in inoutarg.
-	 >>> (START events use this)
+	 >>> inoutargs must point to a memory area vu_inheritance_inout_size() bytes wide
+	 >>> (START / CLONE events use this)
 */
 
 void vu_inheritance_call(inheritance_state_t state, void **inout, void *arg);

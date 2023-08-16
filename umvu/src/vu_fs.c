@@ -161,7 +161,7 @@ static void vu_fs_terminate(void) {
 		pthread_rwlock_unlock(&vu_fs->lock);
 }
 
-static void *vu_fs_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *vu_fs_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_CLONE:
@@ -172,7 +172,7 @@ static void *vu_fs_tracer_upcall(inheritance_state_t state, void *arg) {
 			break;
 		case INH_START:
 		case INH_PTHREAD_START:
-			vu_fs = arg;
+			vu_fs = ioarg;
 			break;
 		case INH_TERMINATE:
 		case INH_PTHREAD_TERMINATE:

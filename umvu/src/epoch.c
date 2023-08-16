@@ -70,14 +70,14 @@ epoch_t matching_epoch(epoch_t service_epoch)
 		return 0;
 }
 
-static void *epoch_upcall(inheritance_state_t state, void *arg) {
+static void *epoch_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_PTHREAD_CLONE:
 			ret_value = &virtual_epoch;
 			break;
 		case INH_PTHREAD_START:
-			virtual_epoch = *(epoch_t *) arg;
+			virtual_epoch = *(epoch_t *) ioarg;
 			break;
 		default:
 			break;

@@ -222,14 +222,14 @@ static void vu_uid_gid_terminate(void) {
 	}
 }
 
-static void *vu_uid_gid_tracer_upcall(mod_inheritance_state_t state, void *arg) {
+static void *vu_uid_gid_tracer_upcall(mod_inheritance_state_t state, void *ioarg, void *arg) {
   void *ret_value = NULL;
   switch (state) {
     case MOD_INH_CLONE:
       ret_value = vu_uid_gid_clone(arg);
       break;
     case MOD_INH_START:
-      vu_uid_gid = arg;
+      vu_uid_gid = ioarg;
       break;
     case MOD_INH_EXEC:
       vu_uid_gid_exec(arg);

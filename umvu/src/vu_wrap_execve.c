@@ -403,7 +403,7 @@ void wo_execve(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->ret_value = sd->orig_ret_value;
 }
 
-static void *execve_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *execve_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	if (state == INH_EXEC)
 		clean_tmp_fnode();
 	return NULL;

@@ -530,14 +530,14 @@ static void vunet_default_terminate(void) {
   }
 }
 
-static void *vunet_tracer_upcall(mod_inheritance_state_t state, void *arg) {
+static void *vunet_tracer_upcall(mod_inheritance_state_t state, void *ioarg, void *arg) {
   void *ret_value = NULL;
   switch (state) {
     case MOD_INH_CLONE:
       ret_value = vunet_default_clone(arg);
       break;
     case MOD_INH_START:
-      vunet_default = arg;
+      vunet_default = ioarg;
       break;
     case MOD_INH_EXEC:
       break;

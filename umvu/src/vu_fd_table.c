@@ -395,14 +395,14 @@ void vu_fd_set_possize_unlock(int fd, int nested, off_t pos, off_t size) {
   pthread_rwlock_unlock(&fd_table->lock);
 }
 
-static void *vu_fd_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *vu_fd_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_CLONE:
 			ret_value = vu_fd_clone(arg);
 			break;
 		case INH_START:
-			vu_fd = arg;
+			vu_fd = ioarg;
 			break;
 		case INH_EXEC:
 			vu_fd_close_on_exec();

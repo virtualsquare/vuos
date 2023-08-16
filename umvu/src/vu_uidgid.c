@@ -144,7 +144,7 @@ static void vu_uidgid_terminate(void) {
 	xfree(vu_uidgid);
 }
 
-static void *vu_uidgid_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *vu_uidgid_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_CLONE:
@@ -155,7 +155,7 @@ static void *vu_uidgid_tracer_upcall(inheritance_state_t state, void *arg) {
 			break;
 		case INH_START:
 		case INH_PTHREAD_START:
-			vu_uidgid = arg;
+			vu_uidgid = ioarg;
 			break;
 		case INH_TERMINATE:
 		case INH_PTHREAD_TERMINATE:

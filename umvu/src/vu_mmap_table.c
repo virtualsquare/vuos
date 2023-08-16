@@ -234,14 +234,14 @@ static void vu_mmap_exec(void) {
 	vu_mmap_create();
 }
 
-static void *vu_mmap_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *vu_mmap_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_CLONE:
 			ret_value = vu_mmap_clone(arg);
 			break;
 		case INH_START:
-			vu_mmap = arg;
+			vu_mmap = ioarg;
 			break;
 		case INH_EXEC:
 			vu_mmap_exec();

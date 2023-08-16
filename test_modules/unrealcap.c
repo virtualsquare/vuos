@@ -146,14 +146,14 @@ static void vu_cap_terminate(void) {
 	}
 }
 
-static void *vu_cap_tracer_upcall(mod_inheritance_state_t state, void *arg) {
+static void *vu_cap_tracer_upcall(mod_inheritance_state_t state, void *ioarg, void *arg) {
   void *ret_value = NULL;
   switch (state) {
     case MOD_INH_CLONE:
       ret_value = vu_cap_clone(arg);
       break;
     case MOD_INH_START:
-			vu_cap_start(arg);
+			vu_cap_start(ioarg);
       break;
     case MOD_INH_EXEC:
       vu_cap_exec(arg);

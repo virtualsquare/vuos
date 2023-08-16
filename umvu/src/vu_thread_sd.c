@@ -46,7 +46,7 @@ struct syscall_descriptor_t *get_thread_sd(void) {
 	return thread_sd;
 }
 
-static void *thread_sd_upcall(inheritance_state_t state, void *arg) {
+static void *thread_sd_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value = NULL;
 	switch (state) {
 		case INH_PTHREAD_CLONE:
@@ -54,7 +54,7 @@ static void *thread_sd_upcall(inheritance_state_t state, void *arg) {
 			printkdebug(t, "thread_sd_upcall CLONE %p", thread_sd);
 			break;
 		case INH_PTHREAD_START:
-			thread_sd = arg;
+			thread_sd = ioarg;
 			printkdebug(t, "thread_sd_upcall START %p\n", thread_sd);
 			break;
 		default:

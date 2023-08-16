@@ -60,18 +60,19 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall) {
 	pthread_rwlock_unlock(&mod_inheritance_upcall_rwlock);
 }
 
-static void mod_inheritance_call(mod_inheritance_state_t state, void **destination, void *source) {
+static void mod_inheritance_call(mod_inheritance_state_t state, void **inout, void *arg) {
   struct mod_inheritance_elem_t *scan;
   for (scan = mod_inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
-    char *upcallarg = (source != NULL) ? source :
-      ((destination != NULL) ? *destination : NULL);
-    void *result = scan->upcall(state, upcallarg);
-    if (destination != NULL)
-      *(destination++) = result;
+		if (inout == NULL)
+			(void) scan->upcall(state, NULL, arg);
+		else {
+			*inout = scan->upcall(state, *inout, arg);
+			inout++;
+		}
   }
 }
 
-static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
+static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *ioarg, void *arg) {
   void *ret_value = NULL;
 	void **args;
 	/* CLONE/START protection against mod_inheritance_upcall_list_count modifications:
@@ -88,7 +89,7 @@ static void *vu_mod_inh_tracer_upcall(inheritance_state_t state, void *arg) {
 			break;
 		case INH_START:
 			if (mod_inheritance_upcall_list_count > 0) {
-				args = (void **) arg;
+				args = (void **) ioarg;
 				mod_inheritance_call(MOD_INH_START, args, NULL);
 				xfree(args);
 			}

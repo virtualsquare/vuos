@@ -48,11 +48,12 @@ void vu_inheritance_upcall_register(inheritance_upcall_t upcall) {
 void vu_inheritance_call(inheritance_state_t state, void **inout, void *arg) {
 	struct inheritance_elem_t *scan;
 	for (scan = inheritance_upcall_list_h; scan != NULL; scan = scan->next) {
-		char *upcallarg = (arg != NULL) ? arg :
-			((inout != NULL) ? *inout : NULL);
-		void *result = scan->upcall(state, upcallarg);
-		if (inout != NULL)
-			*(inout++) = result;
+		if (inout == NULL)
+			(void) scan->upcall(state, NULL, arg);
+		else {
+			*inout = scan->upcall(state, *inout, arg);
+			inout++;
+		}
 	}
 }
 

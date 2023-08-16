@@ -257,7 +257,8 @@ struct mod_inheritance_exec_arg {
 	gid_t exec_gid;
 };
 
-typedef void *(*mod_inheritance_upcall_t)(mod_inheritance_state_t, void *);
+typedef void *(*mod_inheritance_upcall_t)
+	(mod_inheritance_state_t state, void *ioarg, void *arg);
 void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
 void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 

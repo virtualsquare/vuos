@@ -359,14 +359,14 @@ void printkdump(void *buf, int count) {
 	printk("\n");
 }
 
-static void *vu_log_upcall(inheritance_state_t state, void *arg) {
+static void *vu_log_upcall(inheritance_state_t state, void *ioarg, void *arg) {
 	void *ret_value;
 	switch (state) {
 		case INH_CLONE:
 			ret_value = &tdebugmask;
 			break;
 		case INH_START:
-			tdebugmask = *(uint64_t *)arg;
+			tdebugmask = *(uint64_t *)ioarg;
 			debugtid = umvu_gettid();
 			break;
 		default:
