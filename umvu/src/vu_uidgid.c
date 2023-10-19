@@ -125,7 +125,8 @@ static void vu_uidgid_create(void) {
 	newuidgid->fsuid = setfsuid(-1);
 	newuidgid->fsgid = setfsgid(-1);
 	newuidgid->supgid_size = supgid_size;
-	getgroups(supgid_size, newuidgid->supgid);
+	if (getgroups(supgid_size, newuidgid->supgid) < 0)
+		warning(NULL);
 	vu_uidgid = newuidgid;
 }
 

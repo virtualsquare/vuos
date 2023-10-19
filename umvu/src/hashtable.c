@@ -422,11 +422,14 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		size_t optslen = mountflags2opts(mountflags & VUHT_MTABLINE, NULL, 0);
 		char opts[optslen];
 		mountflags2opts(mountflags & VUHT_MTABLINE, opts, optslen);
-		asprintf(&mtabline, "%s%s %s %s %s 0 %" PRIu64,
+		if (asprintf(&mtabline, "%s%s %s %s %s 0 %" PRIu64,
 				(confirmfun == NEGATIVE_MOUNT) ? "-" : "", source, path,
 				fstype,
 				*opts == 0 ? "rw" : opts,
-				get_epoch());
+				get_epoch()) <= 0) {
+			errno = ENOMEM;
+			fatal(NULL);
+		}
 	} else
 		mtabline = NULL;
 	if (path[1] == '\0' && path[0] == '/')

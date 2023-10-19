@@ -99,7 +99,8 @@ static int childFunc(void *arg)
 			if ((n = read(stack->cmdpipe[DAEMONSIDE], &cmd, sizeof(cmd))) > 0) {
 				reply.rval = socket(cmd.domain, cmd.type, cmd.protocol);
 				reply.err = errno;
-				write(stack->cmdpipe[DAEMONSIDE], &reply, sizeof(reply));
+				if (write(stack->cmdpipe[DAEMONSIDE], &reply, sizeof(reply)) < 0)
+					break;
 			} else
 				break;
 		}
@@ -111,7 +112,8 @@ static int childFunc(void *arg)
 		if (pfd[2].revents & POLLIN) {
 			n = vde_recv(conn, buf, VDE_ETHBUFSIZE, 0);
 			if (n == 0) break;
-			write(tapfd, buf, n);
+			if (write(tapfd, buf, n) < 0)
+				break;
 		}
 		//printk("poll out\n");
 	}
@@ -165,8 +167,9 @@ int vde_msocket(struct vdestack *stack, int domain, int type, int protocol) {
 	struct vdecmd cmd = {domain, type, protocol};
 	struct vdereply reply;
 
-	write(stack->cmdpipe[APPSIDE],  &cmd, sizeof(cmd));
-	read(stack->cmdpipe[APPSIDE], &reply, sizeof(reply));
+	if (write(stack->cmdpipe[APPSIDE],  &cmd, sizeof(cmd)) < 0 ||
+			read(stack->cmdpipe[APPSIDE], &reply, sizeof(reply)) < 0)
+		return errno = EFAULT, -1;
 
 	if (reply.rval < 0)
 		errno = reply.err;

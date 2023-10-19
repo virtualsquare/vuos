@@ -79,7 +79,11 @@ struct vuvdi_pdmmediageom_t {
 
 static int vboxdd_detect_type(int fd, char **disktype) {
 	char buf[8];
-	read(fd, buf, sizeof(buf));
+	if (read(fd, buf, sizeof(buf)) <= 0) {
+		printk(KERN_ERR "cannot read disk type\n");
+		errno = ENODEV;
+		return -1;
+	}
 	if (strncmp (buf, "conectix", 8) == 0)	*disktype = "VHD";
 	else if (strncmp (buf, "VMDK", 4) == 0)	*disktype = "VMDK";
 	else if (strncmp (buf, "KDMV", 4) == 0) *disktype = "VMDK";

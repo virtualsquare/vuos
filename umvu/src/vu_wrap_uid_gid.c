@@ -77,6 +77,7 @@ void wi_getresfuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->ret_value = 0;
 			}
 			break;
+		default: default_nosys(sd);
 	}
 	sd->action = SKIPIT;
 }
@@ -123,6 +124,7 @@ void wi_getresfgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sd->ret_value = 0;
 			}
 			break;
+		default: default_nosys(sd);
 	}
 	sd->action = SKIPIT;
 }
@@ -183,6 +185,7 @@ static void wi_setresuid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 				new_euid = sd->syscall_args[1];
 				new_suid = sd->syscall_args[2];
 				break;
+			default: default_nosys(sd);
 		}
 		if (new_ruid != (uid_t) -1)
 			ruid = new_ruid;
@@ -239,6 +242,7 @@ static void wi_setresgid(struct vuht_entry_t *ht, struct syscall_descriptor_t *s
 				new_egid = sd->syscall_args[1];
 				new_sgid = sd->syscall_args[2];
 				break;
+			default: default_nosys(sd);
 		}
 		if (new_rgid != (gid_t) -1)
 			rgid = new_rgid;

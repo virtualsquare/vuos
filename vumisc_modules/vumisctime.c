@@ -114,15 +114,23 @@ int infocontents(int tag, FILE *f, int openflags, void *pseudoprivate) {
 			case 'f':
 				{
 					double newfreq;
-					fscanf(f, "%lf\n", &newfreq);
-					set_newfreq(vumisctime_data, newfreq);
+					if (fscanf(f, "%lf\n", &newfreq) > 0)
+						set_newfreq(vumisctime_data, newfreq);
 				}
 				break;
 			case 'o':
-				fscanf(f, "%Lf\n", &vumisctime_data->offset);
+				{
+					long double offset;
+					if (fscanf(f, "%Lf\n", &offset) > 0)
+						vumisctime_data->offset = offset;
+				}
 				break;
 			case 'b':
-				fscanf(f, "%Lf\n", &vumisctime_data->base);
+				{
+					long double base;
+					if (fscanf(f, "%Lf\n", &base) > 0)
+						vumisctime_data->base = base;
+				}
 				break;
 		}
 	}

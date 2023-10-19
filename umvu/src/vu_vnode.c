@@ -94,9 +94,12 @@ struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode
 		new_vnode->dev = dev;
 		new_vnode->inode = inode;
 		new_vnode->size = size;
-		asprintf(&new_vnode->vpath, "%s/%p_%lx_%lx",
+		if (asprintf(&new_vnode->vpath, "%s/%p_%lx_%lx",
 				vu_tmpdirpath(), (void *) ht,
-				(unsigned long) dev, (unsigned long) inode);
+				(unsigned long) dev, (unsigned long) inode) <= 0) {
+			errno = ENOMEM;
+			fatal(NULL);
+		}
 		new_vnode->usage_count = 1;
 		new_vnode->flags = 0;
 		new_vnode->next = NULL;

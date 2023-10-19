@@ -124,10 +124,11 @@ int main(int argc, char *argv[])
 									break;
 			}
 			char *colorstring;
-			asprintf(&colorstring, "%s:%s", *tags ? tags : ALLTAGS,
-					(color) ? color : "");
-			vu_set_debugcolor(colorstring);
-			free(colorstring);
+			if (asprintf(&colorstring, "%s:%s", *tags ? tags : ALLTAGS,
+					(color) ? color : "") >= 0) {
+				vu_set_debugcolor(colorstring);
+				free(colorstring);
+			}
 			free(arg);
 		}
 		if (cmdargv != NULL)

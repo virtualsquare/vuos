@@ -211,9 +211,7 @@ int main(int argc, char *argv[])
 		setenv("HOME",pwd->pw_dir,1);
 		setenv("SHELL",shell,1);
 	}
-	if (login)
-		asprintf(&arg0,"-%s",shell);
-	else
+	if (login == 0 || asprintf(&arg0,"-%s",shell) < 0)
 		arg0=shell;
 	getgrouplist(user,gid,NULL,&ngroups);
 	groups=malloc(ngroups * sizeof (gid_t));
@@ -222,10 +220,10 @@ int main(int argc, char *argv[])
 	else
 		getgrouplist(user,gid,groups,&ngroups);
 
-	if (setresuid(uid,uid,uid) < 0)
+	if (setresuid(uid,uid,uid) < 0 ||
+			setresgid(gid,gid,gid) < 0)
 		perror(argv[0]);
 	else {
-		setresgid(gid,gid,gid);
 		setgroups(ngroups,groups);
 		setpath();
 		if (login) {
@@ -237,9 +235,7 @@ int main(int argc, char *argv[])
 				free(defhomeopt);
 			}
 			if (chdir(pwd->pw_dir) < 0) {
-				if (defhome)
-					chdir("/");
-				else {
+				if (defhome == 0 || chdir("/") < 0) {
 					perror(argv[0]);
 					exit(1);
 				}

@@ -115,7 +115,10 @@ static const uint8_t unused_entry[GPT_GUID_SIZE] = {0};
 
 static int _read_gpt(int fd, off_t size, struct  vupartition_t *part_table, int maxpart) {
 	struct gpt_header_t gpt_header;
-	pread64(fd, &gpt_header, sizeof(gpt_header), IDE_BLOCKSIZE);
+	if (pread64(fd, &gpt_header, sizeof(gpt_header), IDE_BLOCKSIZE) <= 0) {
+		printk(KERN_ERR "Cannot read disk header");
+		return 0;
+	}
 	if (le64toh(gpt_header.signature) != GPT_HEADER_SIGNATURE) {
 		if (part_table) /* avoid double warning */
 			printk(KERN_ERR "Bad GPT signature 0x%llx\n", le64toh(gpt_header.signature));
@@ -129,18 +132,21 @@ static int _read_gpt(int fd, off_t size, struct  vupartition_t *part_table, int 
 		struct gpt_entry_t gpt_entry_buf[BLOCKPART];
 		for (blk = 0; blk < nblks ; blk++) {
 			uint32_t i;
-			pread64(fd, gpt_entry_buf, sizeof(gpt_entry_buf), (starting_lba + blk) * IDE_BLOCKSIZE);
-			for (i = 0; i < BLOCKPART && blk * BLOCKPART + i < numberof_partiton_entries; i++) {
-				int index = blk * BLOCKPART + i + 1;
-				if (memcmp(&gpt_entry_buf[i].type, unused_entry, GPT_GUID_SIZE) != 0) {
-					part_table_last_elem = index;
-					if (part_table && index <= maxpart) {
-						struct vupartition_t *new = &part_table[index];
-						new->bootflag = 0;
-						new->type = MBR_GPT_PARTITION_TYPE;
-						new->readonly = (le64toh(gpt_entry_buf[i].attrs) & GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY) != 0;
-						new->LBAbegin = le64toh(gpt_entry_buf[i].lba_start) ;
-						new->LBAnoblocks  = le64toh(gpt_entry_buf[i].lba_end) - new->LBAbegin + 1;
+			if (pread64(fd, gpt_entry_buf, sizeof(gpt_entry_buf), (starting_lba + blk) * IDE_BLOCKSIZE) <= 0) {
+				printk(KERN_ERR "Cannot read block @ %lld\n", (starting_lba + blk) * IDE_BLOCKSIZE);
+			} else {
+				for (i = 0; i < BLOCKPART && blk * BLOCKPART + i < numberof_partiton_entries; i++) {
+					int index = blk * BLOCKPART + i + 1;
+					if (memcmp(&gpt_entry_buf[i].type, unused_entry, GPT_GUID_SIZE) != 0) {
+						part_table_last_elem = index;
+						if (part_table && index <= maxpart) {
+							struct vupartition_t *new = &part_table[index];
+							new->bootflag = 0;
+							new->type = MBR_GPT_PARTITION_TYPE;
+							new->readonly = (le64toh(gpt_entry_buf[i].attrs) & GPT_BASIC_DATA_ATTRIBUTE_READ_ONLY) != 0;
+							new->LBAbegin = le64toh(gpt_entry_buf[i].lba_start) ;
+							new->LBAnoblocks  = le64toh(gpt_entry_buf[i].lba_end) - new->LBAbegin + 1;
+						}
 					}
 				}
 			}
@@ -154,7 +160,10 @@ static int _read_mbr(int fd, off_t size, struct  vupartition_t *part_table, int 
 	uint32_t ext_part_base = 0;
 	struct mbr_header_t vumbr_header;
 
-	pread64(fd, &vumbr_header, sizeof(vumbr_header), (off_t) 0);
+	if (pread64(fd, &vumbr_header, sizeof(vumbr_header), (off_t) 0) <= 0) {
+		printk(KERN_ERR "Cannot read disk header");
+		return 0;
+	}
 	if (part_table) {
 		part_table[0].LBAnoblocks = (size >> IDE_BLOCKSIZE_LOG);
 		part_table[0].type = 0xff;
@@ -190,8 +199,10 @@ static int _read_mbr(int fd, off_t size, struct  vupartition_t *part_table, int 
 		/* Read the chain of logical partitions inside the extended partition */
 		while (ext_part_base > 0) {
 			off_t base = ((off_t)(ext_part_base + offset)) << IDE_BLOCKSIZE_LOG;
-			pread64(fd, &vumbr_header, sizeof(vumbr_header), base);
-			if(memcmp(vumbr_header.signature, vumbr_signature, 2) != 0) {
+			if (pread64(fd, &vumbr_header, sizeof(vumbr_header), base)  <= 0) {
+				printk(KERN_ERR "Cannot read block %lld\n", base);
+				ext_part_base = 0;
+			} else if(memcmp(vumbr_header.signature, vumbr_signature, 2) != 0) {
 				printk(KERN_ERR "Bad signature in block %lld=%x %x\n", base, vumbr_header.signature[0],vumbr_header.signature[1]);
 				ext_part_base = 0;
 			} else {

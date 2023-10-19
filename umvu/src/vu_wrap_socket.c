@@ -73,6 +73,7 @@ void wi_socket(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				type = sd->syscall_args[2];
 				protocol = sd->syscall_args[3];
 				break;
+			default: default_nosys(sd);
 		}
 		if (type & SOCK_CLOEXEC)
 			flags |= O_CLOEXEC;

@@ -77,6 +77,8 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_newfstatat:
 				bufaddr = sd->syscall_args[2];
 				flags |= sd->syscall_args[3];
+				break;
+			default: default_nosys(sd);
 		}
 		vu_alloc_local_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
 		/* call */
@@ -179,6 +181,7 @@ void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				bufaddr = sd->syscall_args[2];
 				bufsize = sd->syscall_args[3];
 				break;
+			default: default_nosys(sd);
 		}
 		vu_alloc_local_arg(bufaddr, buf, PATH_MAX + 1, nested);
 		/* call */
@@ -219,6 +222,7 @@ void wi_access(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				mode = sd->syscall_args[2];
 				flags = sd->syscall_args[3];
 				break;
+			default: default_nosys(sd);
 		}
 		/* call */
 		sd->action = SKIPIT;
@@ -259,6 +263,7 @@ void wi_unlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_unlinkat:
 				flags = sd->syscall_args[2];
 				break;
+			default: default_nosys(sd);
 		}
 		/* call */
 		sd->action = SKIPIT;
@@ -329,6 +334,7 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_mkdirat:
 				mode = sd->syscall_args[2];
 				break;
+			default: default_nosys(sd);
 		}
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
@@ -363,6 +369,7 @@ void wi_mknod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
         mode = sd->syscall_args[2];
         dev = sd->syscall_args[3];
         break;
+			default: default_nosys(sd);
     }
 		mode = mode & ~vu_fs_get_umask();
     /* call */
@@ -426,6 +433,7 @@ void wi_lchown(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				group = sd->syscall_args[3];
 				/* flags = sd->syscall_args[4]; */
 				break;
+			default: default_nosys(sd);
 		}
 		/* call */
 		sd->action = SKIPIT;
@@ -466,6 +474,7 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				mode = sd->syscall_args[2];
 				/* flags = sd->syscall_args[3]; */
 				break;
+			default: default_nosys(sd);
 		}
 		sd->action = SKIPIT;
 		ret_value = service_syscall(ht, __VU_chmod)(sd->extra->mpath, mode, sfd, private);
@@ -599,6 +608,7 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			case __NR_linkat: dirfd = sd->syscall_args[0];
 												oldaddr = sd->syscall_args[1];
 												break;
+			default: default_nosys(sd);
 		}
 		sd->action = SKIPIT;
 		if (sd->extra->statbuf.st_mode != 0) {
@@ -681,6 +691,7 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 													 oldaddr = sd->syscall_args[1];
 													 flags = sd->syscall_args[4];
 													 break;
+			default: default_nosys(sd);
 		}
 		sd->action = SKIPIT;
 		e = set_vepoch(sd->extra->epoch);

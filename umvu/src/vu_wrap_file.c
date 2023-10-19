@@ -82,6 +82,8 @@ void wi_open(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				flags = sd->syscall_args[2];
 				mode = (flags & O_CREAT) || (flags & O_TMPFILE) ?
 					sd->syscall_args[3] : 0;
+				break;
+			default: default_nosys(sd);
 		}
 		mode = mode & ~vu_fs_get_umask();
 		/* call */
@@ -557,13 +559,17 @@ void wi_dup3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int flags;
 		switch (sd->syscall_number) {
 			case __NR_dup: newfd = r_dup(fd);
+										 flags = 0;
 										 break;
 			case __NR_dup2: newfd = sd->syscall_args[1];
 											newfd = r_dup2(fd, newfd);
+											flags = 0;
 											break;
 			case __NR_dup3: newfd = sd->syscall_args[1];
 											flags = sd->syscall_args[2];
 											newfd = r_dup3(fd, newfd, flags);
+											break;
+			default: default_nosys(sd);
 		}
 		sd->action = SKIPIT;
 		if (newfd < 0)

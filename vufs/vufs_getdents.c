@@ -138,7 +138,7 @@ int vu_vufs_getdents64(unsigned int fd, struct dirent64 *dirp, unsigned int coun
 	if (vufs_type == VUFS_BIND)
 		return syscall(__NR_getdents64, fd, dirp, count);
 	else if (fdprivate != NULL) {
-		int retval;
+		int retval = 0;
 		pthread_mutex_lock(&(vufs->mutex));
 		struct vufs_fdprivate *vufs_fdprivate = fdprivate;
 		if (vufs_fdprivate->getdentsf == NULL)

@@ -38,7 +38,7 @@
 
 /* helper macros */
 #define warning(cond) do { \
-	if (!cond) { \
+	if (!(cond)) { \
 		char buf[STRERROR_BUF_SIZE]; \
 		printk(KERN_WARNING "warning %s:%d %s\n", basename(__FILE__), __LINE__,\
 				strerror_r(errno, buf, STRERROR_BUF_SIZE)); \
@@ -46,7 +46,7 @@
 } while(0)
 
 #define fatal(cond) do { \
-	if (!cond) { \
+	if (!(cond)) { \
 		char buf[STRERROR_BUF_SIZE]; \
 		printk(KERN_WARNING "fatal %s:%d %s\n", basename(__FILE__), __LINE__,\
 				strerror_r(errno, buf, STRERROR_BUF_SIZE)); \

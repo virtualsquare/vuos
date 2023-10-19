@@ -49,8 +49,9 @@ static char *vufuse_node_hiddenpath_rename(struct fuse *fuse, char *oldpath)
   static unsigned long hiddencount;
 	char *last_slash = strrchr(oldpath, '/');
 	int last_slash_pos = (last_slash == NULL) ? 0 : (last_slash - oldpath);
-  asprintf(&name,"%*.*s/.fuse%0*lx%010lu", last_slash_pos, last_slash_pos, oldpath,
-			ADDRESS_LEN, (uintptr_t)fuse, hiddencount++);
+  if (asprintf(&name,"%*.*s/.fuse%0*lx%010lu", last_slash_pos, last_slash_pos, oldpath,
+			ADDRESS_LEN, (uintptr_t)fuse, hiddencount++) < 0)
+		return oldpath;
 	free(oldpath);
   return name;
 }

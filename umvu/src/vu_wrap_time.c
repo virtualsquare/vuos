@@ -96,6 +96,7 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 						ret_value = -errno;
 				}
 				break;
+			default: default_nosys(sd);
 		}
 		if (ret_value != -EINTR) {
 			sd->action = SKIPIT;
@@ -141,6 +142,8 @@ void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 							ret_value = -errno;
 					}
 				}
+				break;
+			default: default_nosys(sd);
 		}
 		if (ret_value != -EINTR) {
 			sd->action = SKIPIT;

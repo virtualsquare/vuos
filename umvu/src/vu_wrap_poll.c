@@ -211,6 +211,7 @@ void wo_epoll_create1(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
     struct epoll_info *info = epoll_info_create(nested);
 		/* fetch args */
     switch (syscall_number) {
+			default:
       case __NR_epoll_create:
         flags = 0;
         break;

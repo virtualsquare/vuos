@@ -75,6 +75,7 @@ void wi_umount2(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		int flags;
 		/* fetch args */
 		switch (syscall_number) {
+			default:
 			case __NR_umount: flags = 0;
 												break;
 			case __NR_umount2: flags = sd->syscall_args[1];

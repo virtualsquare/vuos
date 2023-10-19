@@ -45,9 +45,9 @@ void vufs_create_path(int dirfd, const char *path, create_path_cb_t callback, vo
 
 void vufs_destroy_path(int dirfd, const char *path) {
 	int pathlen = strlen(path);
-	char tpath[pathlen];
+	char tpath[pathlen + 1];
 	int i;
-	strncpy(tpath, path, pathlen);
+	strcpy(tpath, path);
 	for (i = pathlen - 1; i >= 0; i--) {
 		if (tpath[i] == '/') {
 			tpath[i] = 0;

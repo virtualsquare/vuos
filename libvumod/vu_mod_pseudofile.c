@@ -64,8 +64,10 @@ ssize_t pseudofile_readlink_fill(char *path, char *buf, size_t bufsiz) {
     return -1;
 	} else {
 		size_t len = strlen(path);
-		if (bufsiz < len) len = bufsiz;
-		strncpy(buf, path, len);
+		if (len > bufsiz) len = bufsiz;
+		mempcpy(buf, path, len);
+		if (len < bufsiz)
+			buf[len] = 0;
 		return len;
 	}
 }

@@ -39,6 +39,12 @@
 #define MAXSIZE ((1ULL<<((sizeof(size_t)*8)-1))-1)
 #define CHUNKSIZE 4096
 
+#define log_if_err(S, X) \
+	do { \
+		if ((X) < 0)  \
+			printkdebug(V, "ERR: " #S "errno:%d", errno); \
+	} while (0)
+
 static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,
 		struct vu_stat *rstat, struct vu_stat *vstat) {
 	uid_t newuid = -1;
@@ -46,7 +52,7 @@ static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,
 	if (((rstat->st_mode ^ vstat->st_mode) & ~S_IFMT) != 0) {
 		if (fchmodat(vufs->vdirfd, path, rstat->st_mode & ~S_IFMT, AT_SYMLINK_NOFOLLOW) < 0) {
 			if (((rstat->st_mode ^ vstat->st_mode) & 0777) != 0)
-				fchmodat(vufs->vdirfd, path, rstat->st_mode & 0777, AT_SYMLINK_NOFOLLOW);
+				log_if_err(fchmodat, fchmodat(vufs->vdirfd, path, rstat->st_mode & 0777, AT_SYMLINK_NOFOLLOW));
 		}
 	}
 	if (rstat->st_uid != vstat->st_uid)
@@ -54,7 +60,7 @@ static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,
 	if (rstat->st_gid != vstat->st_gid)
 		newgid = rstat->st_gid;
 	if (newuid != (uid_t) -1 || newgid != (gid_t) -1)
-		fchownat(vufs->vdirfd, path, newuid, newgid, AT_SYMLINK_NOFOLLOW);
+		log_if_err(fchownat, fchownat(vufs->vdirfd, path, newuid, newgid, AT_SYMLINK_NOFOLLOW));
 }
 
 static void vufs_copyfile_vufstat(struct vufs_t *vufs, const char *path,
@@ -133,7 +139,7 @@ static void vufs_newopenfilestat(struct vufs_t *vufs, const char *path, int fd, 
 	newvstat.st_uid = setfsuid(-1);
 	newvstat.st_gid = setfsgid(-1); // XXX TBD setgid bit on dir
 	newvstat.st_mode = mode & ~vu_mod_getumask();
-	fchown(fd, newvstat.st_uid, newvstat.st_gid);
+	log_if_err(fchown, fchown(fd, newvstat.st_uid, newvstat.st_gid));
 	if (fchmod(fd, newvstat.st_mode & ~S_IFMT) < 0)
 		fchmod(fd, newvstat.st_mode & 0777);
 	fstat(fd, &vstat);
@@ -149,9 +155,9 @@ static void vufs_newfilestat(struct vufs_t *vufs, const char *path, struct vu_st
 		newvstat->st_gid = setfsgid(-1); // XXX TBD setgid bit on dir
 	if ((mask & VUFSTAT_MODE) == 0)
 		newvstat->st_mode = mode & ~vu_mod_getumask();
-	fchownat(vufs->vdirfd, path, newvstat->st_uid, newvstat->st_gid, AT_EMPTY_PATH);
+	log_if_err(fchownat, fchownat(vufs->vdirfd, path, newvstat->st_uid, newvstat->st_gid, AT_EMPTY_PATH));
 	if (fchmodat(vufs->vdirfd, path, newvstat->st_mode & ~S_IFMT, AT_EMPTY_PATH) < 0)
-		fchmodat(vufs->vdirfd, path, newvstat->st_mode & 0777, AT_EMPTY_PATH);
+		log_if_err(fchmodat, fchmodat(vufs->vdirfd, path, newvstat->st_mode & 0777, AT_EMPTY_PATH));
 	fstatat(vufs->vdirfd, path, &vstat, AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH);
 	mask |= vufstat_cmpstat(&vstat, newvstat) & VUFSTAT_COPYMASK;
 	vufstat_write(vufs->ddirfd, path, newvstat, mask);
@@ -735,7 +741,7 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 					struct vufs_fdprivate *vufs_fdprivate =
 						malloc(sizeof(struct vufs_fdprivate) + pathlen);
 					vufs_fdprivate->getdentsf = NULL;
-					strncpy(vufs_fdprivate->path, pathname, pathlen);
+					strcpy(vufs_fdprivate->path, pathname);
 					*private = vufs_fdprivate;
 				} else
 					*private = NULL;

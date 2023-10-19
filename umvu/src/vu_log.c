@@ -89,8 +89,7 @@ static int _vprintk(const char *fmt, int syslog_switch, va_list ap) {
 	if (syslog_switch == SYSLOG_TOO && level <= syslog_current_level) {
 		size_t fmtlen = strlen(fmt);
 		char fmt_no_nl[fmtlen + 1];
-		fmt_no_nl[0]='\0';
-		strncat(fmt_no_nl, fmt, fmtlen + 1);
+		strcpy(fmt_no_nl, fmt);
 		if (fmt_no_nl[fmtlen - 1] == '\n')
 			fmt_no_nl[fmtlen - 1] = 0;
 		if (level > LOG_DEBUG)
@@ -225,11 +224,9 @@ void debug_set_color(char *tags, const char *s) {
 }
 
 void debug_set_color_string(const char *s) {
-	int slen = strlen(s);
-	char sc[slen];
+	char sc[strlen(s) + 1];
 	char *sx, *tags, *tmp;
-	sc[0] = 0;
-	strncat(sc, s, slen);
+	strcpy(sc, s);
 	for (sx = sc; (tags = strtok_r(sx, " ", &tmp)) != NULL; sx = NULL) {
 		char *colstring = strchr(tags, ':');
 		if (colstring) {

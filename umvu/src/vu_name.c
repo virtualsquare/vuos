@@ -29,8 +29,8 @@ static char vu_name[_UTSNAME_LENGTH];
 
 void set_vu_name(char *name) {
 	pthread_mutex_lock(&vu_name_mutex);
-	memset(vu_name, 0, _UTSNAME_LENGTH);
-	strncpy(vu_name, name, _UTSNAME_LENGTH);
+	vu_name[_UTSNAME_LENGTH - 1 ] = 0;
+	strncpy(vu_name, name, _UTSNAME_LENGTH - 1);
 	pthread_mutex_unlock(&vu_name_mutex);
 }
 

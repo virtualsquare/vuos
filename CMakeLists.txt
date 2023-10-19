@@ -29,7 +29,7 @@ endforeach(HEADER)
 unset(CMAKE_REQUIRED_DEFINITIONS)
 
 set(CMAKE_C_FLAGS
-		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter")
+		"-ggdb -Wall -Wextra -pedantic -std=gnu11 -Wno-unused-parameter -O2 -D_FORTIFY_SOURCE=2")
 add_definitions(-D_GNU_SOURCE)
 
 set(MODULES_INSTALL_PATH ${CMAKE_INSTALL_FULL_LIBDIR}/vu/modules)

@@ -59,7 +59,8 @@ static void vu_uid_gid_create(void) {
   new->count = 1;
 	new->ngroups = getgroups(0, NULL);
 	new->groups = malloc(new->ngroups * sizeof(gid_t));
-	getgroups(new->ngroups, new->groups);
+	if (getgroups(new->ngroups, new->groups) < 0)
+		new->ngroups = 0;
   pthread_rwlock_init(&new->lock, NULL);
   vu_uid_gid = new;
 }

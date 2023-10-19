@@ -265,7 +265,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 	syscall_state_t syscall_state = IN_SYSCALL;
 	arch_regs_struct regs;
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
-	syscall_arg_t clone_flags;
+	syscall_arg_t clone_flags = 0;
 	//printk("new thread for %d\n", tracee_tid);
 	int cloning = 0;
 
@@ -403,7 +403,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 	int wstatus, sig_tid;
 	arch_regs_struct regs;
 	struct syscall_descriptor_t syscall_desc = {.action = DOIT, .inout = NULL};
-	syscall_arg_t clone_flags;
+	syscall_arg_t clone_flags = 0;
 	int cloning = 0;
 	//printk("new seccomp thread for %d\n", tracee_tid);
 	while (1) {

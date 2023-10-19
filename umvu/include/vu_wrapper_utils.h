@@ -151,5 +151,10 @@ __attribute__((always_inline))
     xfree(buf); \
   } while(0)
 
+#define default_nosys(sd) \
+	do {\
+		(sd)->action = SKIPIT; \
+		(sd)->ret_value = -ENOSYS; \
+		return; \
+	} while(0)
 #endif
-
