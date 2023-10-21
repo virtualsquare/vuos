@@ -35,56 +35,58 @@
 static char *progname;
 
 /* This is the command that creates the list of proocol family names
-echo "#include<sys/socket.h>" | gcc -E -dD - | egrep '^#define  *PF_.*[0-9]$' | \
-awk 'BEGIN {printf "static char *pf_names[] = { \\\n"}   {printf "  [%s] = \"%s\", \\\n", $3, substr(tolower($2),4)} END {printf "};\n"}'
+	 echo "#include<sys/socket.h>" | gcc -E -dD - | egrep '^#define  *PF_.*[0-9]$' | \
+	 awk 'BEGIN {printf "static char *pf_names[] = {\n"}   {printf "  [%s] = \"%s\",\n", $3, substr(tolower($2),4)} END {printf "};\n"}'
 */
 
-static char *pf_names[] = { \
-  [0] = "unspec", \
-  [1] = "local", \
-  [2] = "inet", \
-  [3] = "ax25", \
-  [4] = "ipx", \
-  [5] = "appletalk", \
-  [6] = "netrom", \
-  [7] = "bridge", \
-  [8] = "atmpvc", \
-  [9] = "x25", \
-  [10] = "inet6", \
-  [11] = "rose", \
-  [12] = "decnet", \
-  [13] = "netbeui", \
-  [14] = "security", \
-  [15] = "key", \
-  [16] = "netlink", \
-  [17] = "packet", \
-  [18] = "ash", \
-  [19] = "econet", \
-  [20] = "atmsvc", \
-  [21] = "rds", \
-  [22] = "sna", \
-  [23] = "irda", \
-  [24] = "pppox", \
-  [25] = "wanpipe", \
-  [26] = "llc", \
-  [27] = "ib", \
-  [28] = "mpls", \
-  [29] = "can", \
-  [30] = "tipc", \
-  [31] = "bluetooth", \
-  [32] = "iucv", \
-  [33] = "rxrpc", \
-  [34] = "isdn", \
-  [35] = "phonet", \
-  [36] = "ieee802154", \
-  [37] = "caif", \
-  [38] = "alg", \
-  [39] = "nfc", \
-  [40] = "vsock", \
-  [41] = "kcm", \
-  [42] = "qipcrtr", \
-  [43] = "smc", \
-  [44] = "max", \
+static char *pf_names[] = {
+  [0] = "unspec",
+  [1] = "local",
+  [2] = "inet",
+  [3] = "ax25",
+  [4] = "ipx",
+  [5] = "appletalk",
+  [6] = "netrom",
+  [7] = "bridge",
+  [8] = "atmpvc",
+  [9] = "x25",
+  [10] = "inet6",
+  [11] = "rose",
+  [12] = "decnet",
+  [13] = "netbeui",
+  [14] = "security",
+  [15] = "key",
+  [16] = "netlink",
+  [17] = "packet",
+  [18] = "ash",
+  [19] = "econet",
+  [20] = "atmsvc",
+  [21] = "rds",
+  [22] = "sna",
+  [23] = "irda",
+  [24] = "pppox",
+  [25] = "wanpipe",
+  [26] = "llc",
+  [27] = "ib",
+  [28] = "mpls",
+  [29] = "can",
+  [30] = "tipc",
+  [31] = "bluetooth",
+  [32] = "iucv",
+  [33] = "rxrpc",
+  [34] = "isdn",
+  [35] = "phonet",
+  [36] = "ieee802154",
+  [37] = "caif",
+  [38] = "alg",
+  [39] = "nfc",
+  [40] = "vsock",
+  [41] = "kcm",
+  [42] = "qipcrtr",
+  [43] = "smc",
+  [44] = "xdp",
+  [45] = "mctp",
+  [46] = "max",
 };
 
 #define PF_NAMES_SIZE ((int)(sizeof(pf_names) / sizeof(*pf_names)))
