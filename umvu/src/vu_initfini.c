@@ -26,8 +26,8 @@
 #include <r_table.h>
 
 struct voidfun_elem_t {
-  voidfun_t upcall;
-  struct voidfun_elem_t *next;
+	voidfun_t upcall;
+	struct voidfun_elem_t *next;
 };
 
 /* constructor and destructor list head/tail pointers */
@@ -59,30 +59,30 @@ void vu_destructor_register(voidfun_t upcall) {
 		destructor_list_h = new;
 	else
 		destructor_list_t->next = new;
-  destructor_list_t = new;
+	destructor_list_t = new;
 }
 
 static void umvu_voidfun_list_run(struct voidfun_elem_t *list) {
-  struct voidfun_elem_t *scan;
-  for (scan = list; scan != NULL; scan = scan->next)
-    scan->upcall();
+	struct voidfun_elem_t *scan;
+	for (scan = list; scan != NULL; scan = scan->next)
+		scan->upcall();
 }
 
 static void sig_handler(int sig) {
 	signal(sig, SIG_DFL);
 	vu_fini();
 	if (sig == SIGTERM)
-    r_exit(0);
-  else
-    r_kill(-getpgrp(), sig);
+		r_exit(0);
+	else
+		r_kill(-getpgrp(), sig);
 }
 
 static void setsighandlers(void) {
 	struct sigaction sa = {
-    .sa_handler = sig_handler,
-    .sa_flags = 0,
-    .sa_restorer = NULL};
-  sigfillset(&sa.sa_mask);
+		.sa_handler = sig_handler,
+		.sa_flags = 0,
+		.sa_restorer = NULL};
+	sigfillset(&sa.sa_mask);
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);

@@ -64,8 +64,8 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 					/* timezone is obsolete. ignored here */
 					uintptr_t tvaddr = sd->syscall_args[0];
 					if (tvaddr == 0)
-            ret_value = -EFAULT;
-          else {
+						ret_value = -EFAULT;
+					else {
 						struct timespec tp;
 						struct timeval *tv;
 						vu_alloc_local_arg(tvaddr, tv, sizeof(*tv), nested);
@@ -73,7 +73,7 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 						tv->tv_sec = tp.tv_sec;
 						tv->tv_usec = tp.tv_nsec / 1000;
 						if (ret_value == 0)
-              vu_poke_arg(tvaddr, tv, sizeof(*tv), nested);
+							vu_poke_arg(tvaddr, tv, sizeof(*tv), nested);
 						else
 							ret_value = -errno;
 					}
@@ -90,7 +90,7 @@ void wi_clock_gettime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 							time_t *now;
 							vu_alloc_local_arg(timeaddr, now, sizeof(*now), nested);
 							*now = tp.tv_sec;
-              vu_poke_arg(timeaddr, now, sizeof(*now), nested);
+							vu_poke_arg(timeaddr, now, sizeof(*now), nested);
 						}
 					} else
 						ret_value = -errno;
@@ -128,13 +128,13 @@ void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 			case __NR_settimeofday:
 				{
 					/* timezone is obsolete. ignored here */
-          uintptr_t tvaddr = sd->syscall_args[0];
-          if (tvaddr == 0)
-            ret_value = -EFAULT;
-          else {
-            struct timespec tp;
-            struct timeval *tv;
-            vu_alloc_peek_local_arg(tvaddr, tv, sizeof(*tv), nested);
+					uintptr_t tvaddr = sd->syscall_args[0];
+					if (tvaddr == 0)
+						ret_value = -EFAULT;
+					else {
+						struct timespec tp;
+						struct timeval *tv;
+						vu_alloc_peek_local_arg(tvaddr, tv, sizeof(*tv), nested);
 						tp.tv_sec = tv->tv_sec;
 						tp.tv_nsec = tv->tv_usec * 1000;
 						ret_value = service_syscall(ht, __VU_clock_settime)(CLOCK_REALTIME, &tp);
@@ -153,8 +153,8 @@ void wi_clock_settime(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 }
 
 void wi_clock_getres(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-	  int nested = sd->extra->nested;
-  if (ht) {
+	int nested = sd->extra->nested;
+	if (ht) {
 		long ret_value;
 		uintptr_t tpaddr = sd->syscall_args[1];
 		if (tpaddr == 0)

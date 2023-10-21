@@ -209,8 +209,8 @@ ssize_t vu_devfuse_read(int fd, void *buf, size_t count, void *fdprivate) {
 	struct fusereq *req = fusereq_dequeue(&fusemount->reqq);
 	// printk("read req %p\n", req);
 	if (req == NULL) { // umount-> EOF on dev
-		// the fuse library uses several threads (workers)
-		// ENODEV must be returned to *all* the pending read reqs
+										 // the fuse library uses several threads (workers)
+										 // ENODEV must be returned to *all* the pending read reqs
 		sem_V(fusemount->sem);
 		pthread_mutex_unlock(&(fusemount->mutex));
 		return errno = ENODEV, -1;

@@ -30,7 +30,7 @@ struct vu_service_t {
 struct vuht_entry_t *vu_mod_getht(void);
 
 /* A static thread variable records the module hash table element chosen by the hypervisor,
- so that the module can access it */
+	 so that the module can access it */
 void vu_mod_setht(struct vuht_entry_t *ht);
 
 /* hash table and epoch wrapper:
@@ -64,10 +64,10 @@ __attribute__((always_inline))
 	}
 
 /* inline function: it is here for performance.
-        it returns the flags of the module */
+	 it returns the flags of the module */
 __attribute__((always_inline))
-       static inline uint64_t service_getflags(struct vuht_entry_t *ht) {
-               return ht ? vuht_get_service(ht)->mod->flags : 0;
-       }
+	static inline uint64_t service_getflags(struct vuht_entry_t *ht) {
+		return ht ? vuht_get_service(ht)->mod->flags : 0;
+	}
 #endif
 

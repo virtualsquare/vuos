@@ -1,10 +1,10 @@
 /*
-  FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+FUSE: Filesystem in Userspace
+Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
-  This program can be distributed under the terms of the GNU LGPLv2.
-  See the file COPYING.LIB
-*/
+This program can be distributed under the terms of the GNU LGPLv2.
+See the file COPYING.LIB
+ */
 
 #include <fuse/fuse_opt.h>
 
@@ -66,7 +66,7 @@ int fuse_opt_add_arg(struct fuse_args *args, const char *arg)
 }
 
 static int fuse_opt_insert_arg_common(struct fuse_args *args, int pos,
-				      const char *arg)
+		const char *arg)
 {
 	assert(pos <= args->argc);
 	if (fuse_opt_add_arg(args, arg) == -1)
@@ -75,7 +75,7 @@ static int fuse_opt_insert_arg_common(struct fuse_args *args, int pos,
 	if (pos != args->argc - 1) {
 		char *newarg = args->argv[args->argc - 1];
 		memmove(&args->argv[pos + 1], &args->argv[pos],
-			sizeof(char *) * (args->argc - pos - 1));
+				sizeof(char *) * (args->argc - pos - 1));
 		args->argv[pos] = newarg;
 	}
 	return 0;
@@ -87,7 +87,7 @@ int fuse_opt_insert_arg(struct fuse_args *args, int pos, const char *arg)
 }
 
 int fuse_opt_insert_arg_compat(struct fuse_args *args, int pos,
-			       const char *arg);
+		const char *arg);
 int fuse_opt_insert_arg_compat(struct fuse_args *args, int pos, const char *arg)
 {
 	return fuse_opt_insert_arg_common(args, pos, arg);
@@ -134,7 +134,7 @@ static int add_opt(struct fuse_opt_context *ctx, const char *opt)
 }
 
 static int call_proc(struct fuse_opt_context *ctx, const char *arg, int key,
-		     int iso)
+		int iso)
 {
 	if (key == FUSE_OPT_KEY_DISCARD)
 		return 0;
@@ -172,7 +172,7 @@ static int match_template(const char *t, const char *arg, unsigned *sepp)
 }
 
 static const struct fuse_opt *find_opt(const struct fuse_opt *opt,
-				       const char *arg, unsigned *sepp)
+		const char *arg, unsigned *sepp)
 {
 	for (; opt && opt->templ; opt++)
 		if (match_template(opt->templ, arg, sepp))
@@ -187,7 +187,7 @@ int fuse_opt_match(const struct fuse_opt *opts, const char *opt)
 }
 
 static int process_opt_param(void *var, const char *format, const char *param,
-			     const char *arg)
+		const char *arg)
 {
 	assert(format[0] == '%');
 	if (format[1] == 's') {
@@ -206,8 +206,8 @@ static int process_opt_param(void *var, const char *format, const char *param,
 }
 
 static int process_opt(struct fuse_opt_context *ctx,
-		       const struct fuse_opt *opt, unsigned sep,
-		       const char *arg, int iso)
+		const struct fuse_opt *opt, unsigned sep,
+		const char *arg, int iso)
 {
 	if (opt->offset == -1U) {
 		if (call_proc(ctx, arg, opt->value, iso) == -1)
@@ -219,7 +219,7 @@ static int process_opt(struct fuse_opt_context *ctx,
 			if (opt->templ[sep] == '=')
 				param ++;
 			if (process_opt_param(var, opt->templ + sep + 1,
-					      param, arg) == -1)
+						param, arg) == -1)
 				return -1;
 		} else
 			*(int *)var = opt->value;
@@ -228,8 +228,8 @@ static int process_opt(struct fuse_opt_context *ctx,
 }
 
 static int process_opt_sep_arg(struct fuse_opt_context *ctx,
-			       const struct fuse_opt *opt, unsigned sep,
-			       const char *arg, int iso)
+		const struct fuse_opt *opt, unsigned sep,
+		const char *arg, int iso)
 {
 	int res;
 	char *newarg;
@@ -260,7 +260,7 @@ static int process_gopt(struct fuse_opt_context *ctx, const char *arg, int iso)
 			int res;
 			if (sep && opt->templ[sep] == ' ' && !arg[sep])
 				res = process_opt_sep_arg(ctx, opt, sep, arg,
-							  iso);
+						iso);
 			else
 				res = process_opt(ctx, opt, sep, arg, iso);
 			if (res == -1)
@@ -319,7 +319,7 @@ static int process_one(struct fuse_opt_context *ctx, const char *arg)
 				return -1;
 
 			return process_option_group(ctx,
-						    ctx->argv[ctx->argctr]);
+					ctx->argv[ctx->argctr]);
 		}
 	} else if (arg[1] == '-' && !arg[2]) {
 		if (add_arg(ctx, arg) == -1)
@@ -343,7 +343,7 @@ static int opt_parse(struct fuse_opt_context *ctx)
 
 	if (ctx->opts) {
 		if (fuse_opt_insert_arg(&ctx->outargs, 1, "-o") == -1 ||
-		    fuse_opt_insert_arg(&ctx->outargs, 2, ctx->opts) == -1)
+				fuse_opt_insert_arg(&ctx->outargs, 2, ctx->opts) == -1)
 			return -1;
 	}
 	if (ctx->nonopt && ctx->nonopt == ctx->outargs.argc) {
@@ -355,7 +355,7 @@ static int opt_parse(struct fuse_opt_context *ctx)
 }
 
 int fuse_opt_parse(struct fuse_args *args, void *data,
-		   const struct fuse_opt opts[], fuse_opt_proc_t proc)
+		const struct fuse_opt opts[], fuse_opt_proc_t proc)
 {
 	int res;
 	struct fuse_opt_context ctx = {

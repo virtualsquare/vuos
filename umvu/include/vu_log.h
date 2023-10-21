@@ -108,7 +108,7 @@ extern __thread pid_t debugtid;
 int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
 	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-		_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
+_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
 		debugtid, gettid(), basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_ALLTAGS " ABCDEFGHIJKLMNOPQRSTUVWXYZ_01234abcdefghijklmnopqrstuvwxyz56789"

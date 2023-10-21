@@ -36,57 +36,57 @@ static char *progname;
 
 /* This is the command that creates the list of proocol family names
 	 echo "#include<sys/socket.h>" | gcc -E -dD - | egrep '^#define  *PF_.*[0-9]$' | \
-	 awk 'BEGIN {printf "static char *pf_names[] = {\n"}   {printf "  [%s] = \"%s\",\n", $3, substr(tolower($2),4)} END {printf "};\n"}'
-*/
+	 awk 'BEGIN {printf "static char *pf_names[] = {\n"}   {printf "\t[%s] = \"%s\",\n", $3, substr(tolower($2),4)} END {printf "};\n"}'
+ */
 
 static char *pf_names[] = {
-  [0] = "unspec",
-  [1] = "local",
-  [2] = "inet",
-  [3] = "ax25",
-  [4] = "ipx",
-  [5] = "appletalk",
-  [6] = "netrom",
-  [7] = "bridge",
-  [8] = "atmpvc",
-  [9] = "x25",
-  [10] = "inet6",
-  [11] = "rose",
-  [12] = "decnet",
-  [13] = "netbeui",
-  [14] = "security",
-  [15] = "key",
-  [16] = "netlink",
-  [17] = "packet",
-  [18] = "ash",
-  [19] = "econet",
-  [20] = "atmsvc",
-  [21] = "rds",
-  [22] = "sna",
-  [23] = "irda",
-  [24] = "pppox",
-  [25] = "wanpipe",
-  [26] = "llc",
-  [27] = "ib",
-  [28] = "mpls",
-  [29] = "can",
-  [30] = "tipc",
-  [31] = "bluetooth",
-  [32] = "iucv",
-  [33] = "rxrpc",
-  [34] = "isdn",
-  [35] = "phonet",
-  [36] = "ieee802154",
-  [37] = "caif",
-  [38] = "alg",
-  [39] = "nfc",
-  [40] = "vsock",
-  [41] = "kcm",
-  [42] = "qipcrtr",
-  [43] = "smc",
-  [44] = "xdp",
-  [45] = "mctp",
-  [46] = "max",
+	[0] = "unspec",
+	[1] = "local",
+	[2] = "inet",
+	[3] = "ax25",
+	[4] = "ipx",
+	[5] = "appletalk",
+	[6] = "netrom",
+	[7] = "bridge",
+	[8] = "atmpvc",
+	[9] = "x25",
+	[10] = "inet6",
+	[11] = "rose",
+	[12] = "decnet",
+	[13] = "netbeui",
+	[14] = "security",
+	[15] = "key",
+	[16] = "netlink",
+	[17] = "packet",
+	[18] = "ash",
+	[19] = "econet",
+	[20] = "atmsvc",
+	[21] = "rds",
+	[22] = "sna",
+	[23] = "irda",
+	[24] = "pppox",
+	[25] = "wanpipe",
+	[26] = "llc",
+	[27] = "ib",
+	[28] = "mpls",
+	[29] = "can",
+	[30] = "tipc",
+	[31] = "bluetooth",
+	[32] = "iucv",
+	[33] = "rxrpc",
+	[34] = "isdn",
+	[35] = "phonet",
+	[36] = "ieee802154",
+	[37] = "caif",
+	[38] = "alg",
+	[39] = "nfc",
+	[40] = "vsock",
+	[41] = "kcm",
+	[42] = "qipcrtr",
+	[43] = "smc",
+	[44] = "xdp",
+	[45] = "mctp",
+	[46] = "max",
 };
 
 #define PF_NAMES_SIZE ((int)(sizeof(pf_names) / sizeof(*pf_names)))
@@ -126,7 +126,7 @@ static void add_supported_families(char *stack) {
 	for (family = 1; family < PF_EXTRA_SIZE; family++) {
 		int fd = msocket(stack, family, -1, 0);
 		if (fd >= 0 || errno == EINVAL)
-				vustack_proto[family] = 1;
+			vustack_proto[family] = 1;
 		if (fd >= 0)
 			close(fd);
 	}
@@ -134,12 +134,12 @@ static void add_supported_families(char *stack) {
 
 static void process_families(const char *input) {
 	int tagc = stropt(input, NULL, NULL, 0);
-  if(tagc > 0) {
-    char buf[strlen(input)+1];
-    char *tags[tagc];
-    stropt(input, tags, NULL, buf);
+	if(tagc > 0) {
+		char buf[strlen(input)+1];
+		char *tags[tagc];
+		stropt(input, tags, NULL, buf);
 		vustack_proto[PF_UNSPEC] = 0;
-    for (int i=0; i < tagc - 1; i++) {
+		for (int i=0; i < tagc - 1; i++) {
 			switch(strcase_tolower(tags[i])) {
 				case STRCASE(i,p):
 					vustack_proto[PF_INET] = 1;
@@ -181,7 +181,7 @@ static void process_families(const char *input) {
 					}
 			}
 		}
-  }
+	}
 }
 
 static char *short_options = "hvsf:";
@@ -196,9 +196,9 @@ static struct option long_options[] = {
 
 void usage(char *progname, int verbose)
 {
-  fprintf(stderr,
+	fprintf(stderr,
 			"%s: set the default networking stack\n\n"
-      "Usage: %s [options] stack cmd [args]\n\n"
+			"Usage: %s [options] stack cmd [args]\n\n"
 			"    -h --help            print this short usage message\n"
 			"    -f list\n"
 			"      -family list\n"
@@ -227,12 +227,12 @@ int main(int argc, char *argv[])
 	int verbose = 0;
 	int supported = 0;
 	progname = basename(argv[0]);
-	
+
 	if (vu_getinfo(NULL) < 0) {
 		fprintf(stderr, "%s is a vuos command\n", progname);
 		return 1;
 	}
-	
+
 	while (1) {
 		int option_index = 0;
 		c = getopt_long(argc, argv, short_options,
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
 		char *stack = argv[optind];
 		char *cmd = argv[optind + 1];
 		char **newargv = argv + (optind + 1);
-		
+
 		if (is_a_stack(stack) < 0) {
 			perror(stack);
 			exit(1);

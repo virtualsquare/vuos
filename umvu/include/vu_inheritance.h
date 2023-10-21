@@ -10,7 +10,7 @@
 /* Warning: vu_inheritance_upcall_register is *NOT* thread safe. It has been designed
 	 for __attribute__((constructor)) functions (so the call happens before
 	 going multi-threading. A thread safe implementation for modules as
-   an upper layer is provided by vu_mod_inheritance.c */
+	 an upper layer is provided by vu_mod_inheritance.c */
 
 /* CLONE/START is the pair of events to manage a new process/thread:
 	 CLONE is an event of the parent process/creating thread
@@ -47,7 +47,7 @@ void vu_inheritance_upcall_register(inheritance_upcall_t upcall);
 	 >>> the return value of each handler updates its element in inoutarg.
 	 >>> inoutargs must point to a memory area vu_inheritance_inout_size() bytes wide
 	 >>> (START / CLONE events use this)
-*/
+ */
 
 void vu_inheritance_call(inheritance_state_t state, void **inout, void *arg);
 size_t vu_inheritance_inout_size(void);

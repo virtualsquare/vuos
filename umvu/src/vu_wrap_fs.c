@@ -90,9 +90,9 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		/* update st_size of currently open files */
 		if (S_ISREG(statbuf->st_mode) && (service_getflags(ht) & VU_USE_PRW)) {
-				off_t opensize = vu_fnode_getset_size(ht, statbuf, -1);
-				if (opensize >= 0)
-					statbuf->st_size = opensize;
+			off_t opensize = vu_fnode_getset_size(ht, statbuf, -1);
+			if (opensize >= 0)
+				statbuf->st_size = opensize;
 		}
 		/* store results */
 		vu_poke_arg(bufaddr, statbuf, sizeof(*statbuf), nested);
@@ -102,7 +102,7 @@ void wi_lstat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 /* statx */
 void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  if (ht) {
+	if (ht) {
 		/* standard args */
 		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
@@ -118,13 +118,13 @@ void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 		/* call */
 		/* emulation mode. XXX - future module support? */
-    sd->action = SKIPIT;
+		sd->action = SKIPIT;
 		struct vu_stat statbuf;
-    ret_value = service_syscall(ht, __VU_lstat)(sd->extra->mpath, &statbuf, flags, -1, NULL);
-    if (ret_value < 0) {
-      sd->ret_value = -errno;
-      return;
-    }
+		ret_value = service_syscall(ht, __VU_lstat)(sd->extra->mpath, &statbuf, flags, -1, NULL);
+		if (ret_value < 0) {
+			sd->ret_value = -errno;
+			return;
+		}
 		(void) mask; // unused in emulation mode
 
 		statxbuf->stx_mask = STATX_BASIC_STATS;
@@ -162,7 +162,7 @@ void wi_statx(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void wi_readlink(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
-    int nested = sd->extra->nested;
+		int nested = sd->extra->nested;
 		int syscall_number = sd->syscall_number;
 		ssize_t ret_value;
 		/* args */
@@ -351,37 +351,37 @@ void wi_mkdir(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 
 /* mknod */
 void wi_mknod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  if (ht) {
-    /* standard args */
-    int syscall_number = sd->syscall_number;
-    int ret_value;
-    /* args */
-    int mode;
-    dev_t dev;
-    /* local bufs */
-    /* fetch args */
-    switch (syscall_number) {
-      case __NR_mknod:
-        mode = sd->syscall_args[1];
-        dev = sd->syscall_args[2];
-        break;
-      case __NR_mknodat:
-        mode = sd->syscall_args[2];
-        dev = sd->syscall_args[3];
-        break;
+	if (ht) {
+		/* standard args */
+		int syscall_number = sd->syscall_number;
+		int ret_value;
+		/* args */
+		int mode;
+		dev_t dev;
+		/* local bufs */
+		/* fetch args */
+		switch (syscall_number) {
+			case __NR_mknod:
+				mode = sd->syscall_args[1];
+				dev = sd->syscall_args[2];
+				break;
+			case __NR_mknodat:
+				mode = sd->syscall_args[2];
+				dev = sd->syscall_args[3];
+				break;
 			default: default_nosys(sd);
-    }
+		}
 		mode = mode & ~vu_fs_get_umask();
-    /* call */
-    sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_mknod)(sd->extra->mpath, mode, dev);
-    if (ret_value < 0) {
-      sd->ret_value = -errno;
-      return;
-    }
-    /* store results */
-    sd->ret_value = ret_value;
-  }
+		/* call */
+		sd->action = SKIPIT;
+		ret_value = service_syscall(ht, __VU_mknod)(sd->extra->mpath, mode, dev);
+		if (ret_value < 0) {
+			sd->ret_value = -errno;
+			return;
+		}
+		/* store results */
+		sd->ret_value = ret_value;
+	}
 }
 
 /* rmdir */
@@ -488,33 +488,33 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
 static void utime2utimen(struct utimbuf *in_times, struct timespec *out_times) {
-  out_times[0].tv_sec = in_times->actime;
-  out_times[1].tv_sec = in_times->modtime;
-  out_times[0].tv_nsec = out_times[1].tv_nsec = 0;
+	out_times[0].tv_sec = in_times->actime;
+	out_times[1].tv_sec = in_times->modtime;
+	out_times[0].tv_nsec = out_times[1].tv_nsec = 0;
 }
 
 static void utimes2utimen(struct timeval *in_times, struct timespec *out_times) {
-  out_times[0].tv_sec = in_times[0].tv_sec;
-  out_times[1].tv_sec = in_times[1].tv_sec;
-  out_times[0].tv_nsec = in_times[0].tv_usec * 1000;
-  out_times[1].tv_nsec = in_times[1].tv_usec * 1000;
+	out_times[0].tv_sec = in_times[0].tv_sec;
+	out_times[1].tv_sec = in_times[1].tv_sec;
+	out_times[0].tv_nsec = in_times[0].tv_usec * 1000;
+	out_times[1].tv_nsec = in_times[1].tv_usec * 1000;
 }
 
 /*  utimensat, utime, utimes, futimesat */
 void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
-  if (ht) {
-    /* standard args */
-    int nested = sd->extra->nested;
-    int syscall_number = sd->syscall_number;
-    int ret_value;
-    /* args */
+	if (ht) {
+		/* standard args */
+		int nested = sd->extra->nested;
+		int syscall_number = sd->syscall_number;
+		int ret_value;
+		/* args */
 		int inarg = 1;
 		struct timespec times[2];
 		int flags = 0;
 		int sfd = -1;
-    void *private = NULL;
-    /* fetch args */
-    switch (syscall_number) {
+		void *private = NULL;
+		/* fetch args */
+		switch (syscall_number) {
 			case __NR_utime:
 			case __NR_utimes:
 				break;
@@ -535,7 +535,7 @@ void wi_utimensat(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (sd->syscall_args[inarg] == (uintptr_t) NULL) {
 			clock_gettime(CLOCK_REALTIME, &times[0]);
 			times[1] = times[0];
-    } else {
+		} else {
 			if (nested) {
 				switch (syscall_number) {
 					case __NR_utime: {
@@ -613,8 +613,8 @@ void wi_link(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		sd->action = SKIPIT;
 		if (sd->extra->statbuf.st_mode != 0) {
 			sd->ret_value = -EEXIST;
-      return;
-    }
+			return;
+		}
 		e = set_vepoch(sd->extra->epoch);
 		/* old/src path must be canonicalized */
 		oldpath = get_path(dirfd, oldaddr, NULL, 0, NULL, nested);
@@ -682,11 +682,11 @@ void wi_rename(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		epoch_t e;
 		switch (syscall_number) {
 			case __NR_rename: dirfd = AT_FDCWD;
-											oldaddr = sd->syscall_args[0];
-											break;
-			case __NR_renameat: dirfd = sd->syscall_args[0];
-												oldaddr = sd->syscall_args[1];
+												oldaddr = sd->syscall_args[0];
 												break;
+			case __NR_renameat: dirfd = sd->syscall_args[0];
+													oldaddr = sd->syscall_args[1];
+													break;
 			case __NR_renameat2: dirfd = sd->syscall_args[0];
 													 oldaddr = sd->syscall_args[1];
 													 flags = sd->syscall_args[4];
@@ -733,33 +733,33 @@ void wi_statfs(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	if (ht) {
 		/* standard args */
 		int nested = sd->extra->nested;
-    int syscall_number = sd->syscall_number;
-    int ret_value;
+		int syscall_number = sd->syscall_number;
+		int ret_value;
 		/* args */
-    syscall_arg_t bufaddr = sd->syscall_args[1];
+		syscall_arg_t bufaddr = sd->syscall_args[1];
 		/* local bufs */
 		struct statfs *buf;
 		int sfd = -1;
-    void *private = NULL;
+		void *private = NULL;
 		/* fetch args */
-    switch (syscall_number) {
+		switch (syscall_number) {
 			case __NR_statfs:
 				break;
 			case __NR_fstatfs:
 				sfd = sd->syscall_args[0];
 				sfd = (vu_fd_get_sfd(sfd, &private, nested));
-        break;
+				break;
 		}
 		vu_alloc_local_arg(bufaddr, buf, sizeof(*buf), nested);
-		    /* call */
-    sd->action = SKIPIT;
-    ret_value = service_syscall(ht, __VU_statfs)(sd->extra->mpath, buf, sfd, private);
-    if (ret_value < 0) {
+		/* call */
+		sd->action = SKIPIT;
+		ret_value = service_syscall(ht, __VU_statfs)(sd->extra->mpath, buf, sfd, private);
+		if (ret_value < 0) {
 			sd->ret_value = -errno;
-      return;
-    }
-    /* store results */
-    vu_poke_arg(bufaddr, buf, sizeof(*buf), nested);
-    sd->ret_value = ret_value;
-  }
+			return;
+		}
+		/* store results */
+		vu_poke_arg(bufaddr, buf, sizeof(*buf), nested);
+		sd->ret_value = ret_value;
+	}
 }

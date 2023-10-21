@@ -242,14 +242,14 @@ static int vustd_lock (const char *path, struct fuse_file_info *fileinfo, int cm
 
 static int vustd_utimens(const char *path, const struct timespec tv[2])
 {
-  printkdebug(F,"DEFAULT utimens %s\n", path);
-  return -ENOSYS;
+	printkdebug(F,"DEFAULT utimens %s\n", path);
+	return -ENOSYS;
 }
 
 static int vustd_bmap (const char *path, size_t blocksize, uint64_t *idx)
 {
-  printkdebug(F,"DEFAULT bmap %s\n", path);
-  return -ENOSYS;
+	printkdebug(F,"DEFAULT bmap %s\n", path);
+	return -ENOSYS;
 }
 
 struct fuse_operations vufuse_default_ops = {
@@ -281,7 +281,7 @@ struct fuse_operations vufuse_default_ops = {
 	.opendir = vustd_opendir,
 	.releasedir = vustd_releasedir,
 	.fsyncdir = vustd_fsyncdir,
-	
+
 	.init = NULL,
 	.destroy = NULL,
 

@@ -138,7 +138,7 @@ int vu_mountreal_truncate(const char *path, off_t length, int fd, void *fdprivat
 
 int vu_mountreal_statfs(const char *path, struct statfs *buf, int fd, void *fdprivate) {
 	char pathbuf[PATH_MAX];
-  return statfs(unwrap(path, pathbuf, PATH_MAX), buf);
+	return statfs(unwrap(path, pathbuf, PATH_MAX), buf);
 }
 
 ssize_t vu_mountreal_lgetxattr(const char *path, const char *name,
@@ -188,7 +188,7 @@ int vu_mountreal_umount2(const char *target, int flags) {
 }
 
 void vu_mountreal_cleanup(uint8_t type, void *arg, int arglen,
-    struct vuht_entry_t *ht) {
+		struct vuht_entry_t *ht) {
 	if (type == CHECKPATH) {
 		struct mountreal_entry *entry = vuht_get_private_data(ht);
 		if (entry->source)

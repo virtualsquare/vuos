@@ -130,11 +130,11 @@ void vu_fnode_dup(struct vu_fnode_t *fnode) {
 }
 
 struct vuht_entry_t *vu_fnode_get_ht(struct vu_fnode_t *v) {
-	 struct vuht_entry_t *ret_value;
-	 pthread_rwlock_rdlock(&v->lock);
-	 ret_value = v->ht;
-	 pthread_rwlock_unlock(&v->lock);
-	 return ret_value;
+	struct vuht_entry_t *ret_value;
+	pthread_rwlock_rdlock(&v->lock);
+	ret_value = v->ht;
+	pthread_rwlock_unlock(&v->lock);
+	return ret_value;
 }
 
 void vu_fnode_get_path(struct vu_fnode_t *v, char *dest,  size_t n) {
@@ -187,7 +187,7 @@ int vu_fnode_get_sfd(struct vu_fnode_t *v, void **pprivate) {
 }
 
 int vu_fnode_copyinout (struct vu_fnode_t *v, copyfun cp) {
-  int ret_value;
+	int ret_value;
 	pthread_rwlock_rdlock(&v->lock);
 	ret_value = vu_vnode_copyinout(v->vnode, v->path, cp);
 	pthread_rwlock_unlock(&v->lock);
@@ -215,6 +215,6 @@ off_t vu_fnode_getset_size(struct vuht_entry_t *ht, struct vu_stat *stat, off_t 
 
 __attribute__((constructor))
 	static void init(void) {
-    debug_set_name(f, "FILETABLE");
-  }
+		debug_set_name(f, "FILETABLE");
+	}
 

@@ -120,9 +120,9 @@ __attribute__((always_inline))
 
 __attribute__((always_inline))
 	static inline void vu_poke_iov_arg(uintptr_t iovaddr,
-      struct iovec *iov, int iovcnt, void *buf, size_t len, int nested) {
+			struct iovec *iov, int iovcnt, void *buf, size_t len, int nested) {
 		int i;
-    char *cbuf = (char *) buf;
+		char *cbuf = (char *) buf;
 		for (i = 0; i < iovcnt && len > 0; i++) {
 			size_t iov_len = iov[i].iov_len;
 			if (len < iov_len) iov_len = len;
@@ -148,8 +148,8 @@ __attribute__((always_inline))
 #define vu_free_iov_arg(iov, buf, nested) \
 	do {\
 		vu_free_arg(iov, nested); \
-    xfree(buf); \
-  } while(0)
+		xfree(buf); \
+	} while(0)
 
 #define default_nosys(sd) \
 	do {\

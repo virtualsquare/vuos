@@ -63,34 +63,34 @@ static void default_syscall_handler(syscall_state_t state, struct syscall_descri
 static syscall_handler_t syscall_handler = default_syscall_handler;
 
 /* This BPF filter:
-   returns SECCOMP_RET_ALLOW if the syscall is restart_syscall or poll(1, _, _).
-   it returns SECCOMP_RET_TRACE otherwise. */
+	 returns SECCOMP_RET_ALLOW if the syscall is restart_syscall or poll(1, _, _).
+	 it returns SECCOMP_RET_TRACE otherwise. */
 /* All syscalls are forwarded via ptrace to the hypervisor (but
-   restart_syscall or the special case of poll to manage the
-   hand-off between guardian angels) */
+	 restart_syscall or the special case of poll to manage the
+	 hand-off between guardian angels) */
 /* The hypervisor:
-   * changes the syscall number to -1 to skip the syscall
-   * returns PTRACE_CONT if the syscall is real (the kernel must process it)
-   * returns PTRACE_SYSCALL if the kernel must process it but post processing is needed
+ * changes the syscall number to -1 to skip the syscall
+ * returns PTRACE_CONT if the syscall is real (the kernel must process it)
+ * returns PTRACE_SYSCALL if the kernel must process it but post processing is needed
  */
 
 static struct sock_filter seccomp_filter[] = {
-  BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, nr)),
+	BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, nr)),
 
-  BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_restart_syscall, 0, 1),
-  BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_restart_syscall, 0, 1),
+	BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
 
-  BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ppoll, 0, 3),
-  BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, args[0])),
-  BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 1, 0, 1),
-  BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ppoll, 0, 3),
+	BPF_STMT(BPF_LD+BPF_W+BPF_ABS, offsetof(struct seccomp_data, args[0])),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 1, 0, 1),
+	BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
 
-  BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_TRACE),
+	BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_TRACE),
 };
 
 static struct sock_fprog seccomp_prog = {
-  .filter = seccomp_filter,
-  .len = (unsigned short) (sizeof(seccomp_filter)/sizeof(seccomp_filter[0])),
+	.filter = seccomp_filter,
+	.len = (unsigned short) (sizeof(seccomp_filter)/sizeof(seccomp_filter[0])),
 };
 
 #ifdef DISABLE_VDSO
@@ -369,9 +369,9 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 						if (syscall_desc.action & UMVU_CB_AFTER)
 							syscall_handler(syscall_state, &syscall_desc);
 						if (syscall_desc.action & UMVU_DO_IT_AGAIN) {
-							  syscall_desc.prog_counter -= SYSCALL_INSTRUCTION_LEN;
-								umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS);
-								P_SETREGS(sig_tid, &regs);
+							syscall_desc.prog_counter -= SYSCALL_INSTRUCTION_LEN;
+							umvu_poke_syscall(&regs, &syscall_desc, POKE_ARGS);
+							P_SETREGS(sig_tid, &regs);
 						}
 						else {
 							syscall_desc.inout = NULL;
@@ -582,35 +582,35 @@ int umvu_tracer_fork(int seccomp) {
 
 /* check if seccomp/BPF is supported */
 int umvu_tracer_test_seccomp(void) {
-  pid_t childpid;
-  int status;
-  struct sock_filter filter[] = {
-    BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
-  };
-  struct sock_fprog prog = {
-    .filter = filter,
-    .len = (unsigned short) (sizeof(filter)/sizeof(filter[0])),
-  };
+	pid_t childpid;
+	int status;
+	struct sock_filter filter[] = {
+		BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW),
+	};
+	struct sock_fprog prog = {
+		.filter = filter,
+		.len = (unsigned short) (sizeof(filter)/sizeof(filter[0])),
+	};
 
-  childpid = r_fork();
-  switch (childpid) {
-  case 0:
-    /*child*/
-    if (r_prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
-      exit(errno);
-    if (r_seccomp(SECCOMP_SET_MODE_FILTER, 0, &prog) == -1)
-      exit(errno);
-    exit(0);
-  default:
-    r_wait4(childpid, &status, 0, NULL);
-    if (WEXITSTATUS(status) != 0) {
-      errno = WEXITSTATUS(status);
-      return -1;
-    } else
-      return 0;
-  case -1:
-    return -1;
-  }
+	childpid = r_fork();
+	switch (childpid) {
+		case 0:
+			/*child*/
+			if (r_prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1)
+				exit(errno);
+			if (r_seccomp(SECCOMP_SET_MODE_FILTER, 0, &prog) == -1)
+				exit(errno);
+			exit(0);
+		default:
+			r_wait4(childpid, &status, 0, NULL);
+			if (WEXITSTATUS(status) != 0) {
+				errno = WEXITSTATUS(status);
+				return -1;
+			} else
+				return 0;
+		case -1:
+			return -1;
+	}
 }
 
 __attribute__((constructor))

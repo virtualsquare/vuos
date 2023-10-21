@@ -40,7 +40,7 @@
 	 /unreal/unreal/X -> VUOS forwards the requests to VUOS and then to the kernel
 	 (this latter case uses process self-virtualization)
 
-	 */
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +75,7 @@ int vu_unrealprw_access(char *path, int mode, int flags) {
 static struct vuht_entry_t *ht1,*ht2;
 
 void vu_unrealprw_cleanup(uint8_t type, void *arg, int arglen,
-    struct vuht_entry_t *ht) {
+		struct vuht_entry_t *ht) {
 	if (type == CHECKPATH) {
 		//printk("%*.*s\n", arglen, arglen, arg);
 	}

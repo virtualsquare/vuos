@@ -11,10 +11,10 @@
 
 /* A vunet submodule must define a global non-static variable:
 
-   struct vunet_operations_t vunet_ops = {
-   ....
-   }
-*/
+	 struct vunet_operations_t vunet_ops = {
+	 ....
+	 }
+ */
 
 #ifndef S_IFSTACK
 #define S_IFSTACK 0160000

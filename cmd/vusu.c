@@ -83,26 +83,26 @@ void usage(char *argv0)
 }
 
 char *getlogindefs(char *tag) {
-  char *line = NULL;
-  size_t linelen = 0;
-  FILE *f=fopen("/etc/login.defs","r");
-  char *retvalue = NULL;
-  if (f) {
-    while (retvalue == NULL && getline(&line, &linelen, f) > 0) {
-      char *s = line;
-      while (*s==' ' || *s=='\t') s++;
-      if (*s=='#') continue;
-      if (strncmp(tag,s,strlen(tag))!=0) continue;
-      s+=strlen(tag);
-      if (*s != ' ' && *s != '\t') continue;
-      while (*s==' ' || *s=='\t') s++;
-      s[strlen(s)-1]=0;
-      retvalue = strdup(s);
-    }
-    fclose(f);
-    if (line) free(line);
-  }
-  return retvalue;
+	char *line = NULL;
+	size_t linelen = 0;
+	FILE *f=fopen("/etc/login.defs","r");
+	char *retvalue = NULL;
+	if (f) {
+		while (retvalue == NULL && getline(&line, &linelen, f) > 0) {
+			char *s = line;
+			while (*s==' ' || *s=='\t') s++;
+			if (*s=='#') continue;
+			if (strncmp(tag,s,strlen(tag))!=0) continue;
+			s+=strlen(tag);
+			if (*s != ' ' && *s != '\t') continue;
+			while (*s==' ' || *s=='\t') s++;
+			s[strlen(s)-1]=0;
+			retvalue = strdup(s);
+		}
+		fclose(f);
+		if (line) free(line);
+	}
+	return retvalue;
 }
 
 void setpath(void)
@@ -139,15 +139,15 @@ void loginenv(void) {
 		}
 	}
 }
-	
+
 int main(int argc, char *argv[])
 {
 	int c;
 	struct passwd *pwd;
-	
+
 	if (vu_getinfo(NULL) < 0)
 		execvp("su",argv);
-	
+
 	while (1) {
 		int option_index = 0;
 		c = getopt_long(argc, argv, short_options,
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 								break;
 			default:
 								usage(argv[0]);
-                break;
+								break;
 		}
 	}
 

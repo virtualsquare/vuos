@@ -93,7 +93,7 @@ static int read_exec_header(struct vuht_entry_t *ht, struct binfmt_req_t *req) {
 }
 
 /* the confirm function re-assigns the filehead field of the struct binfmt_req to
- "!%" + path of the interpreter */
+	 "!%" + path of the interpreter */
 static void check_binfmt_misc(struct binfmt_req_t *req) {
 	struct vuht_entry_t *binfmt_ht;
 	if ((binfmt_ht = vuht_pick(CHECKBINFMT, req, NULL, 0)) != NULL)
@@ -115,23 +115,23 @@ int interpreter_fill_args(struct binfmt_req_t *req, char *argv[2]) {
 	char *interpreter = req->filehead + 2;
 	char *extra_arg;
 	char *scan;
-  char *term;
+	char *term;
 	if ((scan = memchr(req->filehead, '\n', req->fileheadlen)) != NULL)
-    *scan = 0;
+		*scan = 0;
 	if ((scan = memchr(req->filehead, '\0', req->fileheadlen)) == NULL ||
 			req->filehead[0] != '#' || req->filehead[1] != '!') {
 		errno = EINVAL;
-    return -1;
+		return -1;
 	}
-  interpreter += strspn(interpreter, " \t");
-  scan = interpreter;
-  scan += strcspn(scan, " \t\n");
-  term = scan;
-  scan += strspn(scan, " \t");
-  extra_arg = scan;
-  scan += strcspn(scan, "\n");
-  *scan = 0;
-  *term = 0;
+	interpreter += strspn(interpreter, " \t");
+	scan = interpreter;
+	scan += strcspn(scan, " \t\n");
+	term = scan;
+	scan += strspn(scan, " \t");
+	extra_arg = scan;
+	scan += strcspn(scan, "\n");
+	*scan = 0;
+	*term = 0;
 	argv[0] = interpreter;
 	argv[1] = extra_arg;
 	return *extra_arg == '\0' ? 1 : 2;
@@ -209,7 +209,7 @@ static void copy_argv(uintptr_t *newargv, struct argv_list *argv) {
 
 static void push_argv(struct syscall_descriptor_t *sd, struct argv_list *argv) {
 	struct argv_item *scan;
-  for (scan = argv->argv_head; scan != NULL; scan = scan->next) {
+	for (scan = argv->argv_head; scan != NULL; scan = scan->next) {
 		if (scan->arg == 0)
 			scan->arg =  vu_push(sd, scan->larg, strlen(scan->larg) + 1);
 	}
@@ -269,9 +269,9 @@ static void recursive_interpreter(struct binfmt_req_t *req, struct syscall_descr
 
 	if (depth > EXECVE_MAX_DEPTH) {
 		sd->ret_value = -ELOOP;
-    sd->action = SKIPIT;
-    return;
-  }
+		sd->action = SKIPIT;
+		return;
+	}
 
 	epoch_t e = set_vepoch(sd->extra->epoch);
 	if ((extra_argc = interpreter_fill_args(req, extra_argv)) < 0) {

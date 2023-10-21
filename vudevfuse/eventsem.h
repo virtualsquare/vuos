@@ -4,7 +4,7 @@
 #include <sys/eventfd.h>
 
 static inline int sem_open(int init) {
-	  return eventfd(init, EFD_SEMAPHORE | EFD_CLOEXEC);
+	return eventfd(init, EFD_SEMAPHORE | EFD_CLOEXEC);
 }
 
 static inline size_t sem_P(int fd) {

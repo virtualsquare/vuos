@@ -25,15 +25,15 @@
 #include <vu_access_emu.h>
 
 static int _is_group_member(gid_t gid) {
-  int len = getgroups(0, NULL);
-  gid_t list[len];
-  int i;
-  len = getgroups(len, list);
-  for (i = 0; i < len; i++) {
-    if (gid == list[i])
-      return 1;
-  }
-  return 0;
+	int len = getgroups(0, NULL);
+	gid_t list[len];
+	int i;
+	len = getgroups(len, list);
+	for (i = 0; i < len; i++) {
+		if (gid == list[i])
+			return 1;
+	}
+	return 0;
 }
 
 int vu_access_emu(struct vu_stat *statbuf, int mode, int flags) {
@@ -48,31 +48,31 @@ int vu_access_emu(struct vu_stat *statbuf, int mode, int flags) {
 
 	uid_t uid = (flags & AT_EACCESS) ? geteuid() : getuid();
 
-  if (uid == 0) { // it is root
-    if ((mode & X_OK) == 0) // RW are always allowed
-      return 0;
-    // X OK is X is okay for someone
-    if (statbuf->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-      return 0;
-  }
+	if (uid == 0) { // it is root
+		if ((mode & X_OK) == 0) // RW are always allowed
+			return 0;
+		// X OK is X is okay for someone
+		if (statbuf->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
+			return 0;
+	}
 
-  int granted;
+	int granted;
 
-  if (uid == statbuf->st_uid)
-    // user permissions
-    granted = (int) ((statbuf->st_mode >> 6) & mode);
-  else {
-    gid_t gid = (flags & AT_EACCESS) ? getegid() : getgid();
-    if (statbuf->st_gid == gid || _is_group_member(statbuf->st_gid))
-      // group permissions
-      granted = (int) ((statbuf->st_mode >> 3) & mode);
-    else
-      // other permissions
-      granted = statbuf->st_mode & mode;
-  }
+	if (uid == statbuf->st_uid)
+		// user permissions
+		granted = (int) ((statbuf->st_mode >> 6) & mode);
+	else {
+		gid_t gid = (flags & AT_EACCESS) ? getegid() : getgid();
+		if (statbuf->st_gid == gid || _is_group_member(statbuf->st_gid))
+			// group permissions
+			granted = (int) ((statbuf->st_mode >> 3) & mode);
+		else
+			// other permissions
+			granted = statbuf->st_mode & mode;
+	}
 
-  if (granted == mode)
-    return 0;
+	if (granted == mode)
+		return 0;
 
-  return -EACCES;
+	return -EACCES;
 }

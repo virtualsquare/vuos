@@ -35,8 +35,8 @@ VU_PROTOTYPES(vunet)
 	};
 
 struct vunet_default_t {
-  pthread_rwlock_t lock;
-  size_t count;
+	pthread_rwlock_t lock;
+	size_t count;
 	struct vunet *defstack[AF_MAX + 1];
 };
 
@@ -131,7 +131,7 @@ static int checksocket(uint8_t type, void *arg, int arglen,
 
 /* confirmation function for ioctl */
 static int checkioctl(uint8_t type, void *arg, int arglen,
-    struct vuht_entry_t *ht) {
+		struct vuht_entry_t *ht) {
 	unsigned long *request = arg;
 	struct vunet *vunet = vuht_get_private_data(ht);
 	struct vunet *defvunet = get_defstack(PF_NETLINK);
@@ -186,8 +186,8 @@ int vu_vunet_lchown(const char *pathname, uid_t owner, gid_t group, int fd, void
 int vu_vunet_epoll_ctl(int epfd, int op, int fd, struct epoll_event *event, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	if (current_vnetfd->vunet->netops->epoll_ctl == NULL)
-    return errno = ENOSYS, -1;
-  else
+		return errno = ENOSYS, -1;
+	else
 		return current_vnetfd->vunet->netops->epoll_ctl(epfd, op, fd, event);
 }
 
@@ -291,27 +291,27 @@ ssize_t vu_vunet_sendto(int sockfd, const void *buf, size_t len, int flags,
 	current_vnetfd = fdprivate;
 	printkdebug(N, "sendto %p %d %p %d", current_vnetfd, sockfd, buf, len);
 	if (current_vnetfd->vunet->netops->sendmsg == NULL)
-    return errno = ENOSYS, -1;
-  else {
+		return errno = ENOSYS, -1;
+	else {
 		struct iovec iov[] = {{(void *) buf, len}};
 		struct msghdr msgh = {(void *) dest_addr, addrlen, iov, 1, msg_control, msg_controllen, 0};
-    return current_vnetfd->vunet->netops->sendmsg(sockfd, &msgh, flags);
+		return current_vnetfd->vunet->netops->sendmsg(sockfd, &msgh, flags);
 	}
 }
 
 ssize_t vu_vunet_recvfrom(int sockfd, void *buf, size_t len, int flags,
 		struct sockaddr *src_addr, socklen_t *addrlen,
 		void *msg_control, size_t *msg_controllen, void *fdprivate) {
-	  current_vnetfd = fdprivate;
+	current_vnetfd = fdprivate;
 	printkdebug(N, "recvfrom %p %d %p %d", current_vnetfd, sockfd, buf, len);
-  if (current_vnetfd->vunet->netops->recvmsg == NULL)
-    return errno = ENOSYS, -1;
-  else {
+	if (current_vnetfd->vunet->netops->recvmsg == NULL)
+		return errno = ENOSYS, -1;
+	else {
 		struct iovec iov[] = {{buf, len}};
 		struct msghdr msgh = {(void *) src_addr, *addrlen, iov, 1, msg_control, 0, 0};
 		if (msg_controllen != NULL)
 			msgh.msg_controllen = *msg_controllen;
-    int retval = current_vnetfd->vunet->netops->recvmsg(sockfd, &msgh, flags);
+		int retval = current_vnetfd->vunet->netops->recvmsg(sockfd, &msgh, flags);
 		if (retval >= 0) {
 			if (addrlen != NULL)
 				*addrlen = msgh.msg_namelen;
@@ -376,19 +376,19 @@ int vu_vunet_ioctl(int sockfd, unsigned long request, void *buf, uintptr_t addr,
 int vu_vunet_close(int sockfd, void *fdprivate) {
 	current_vnetfd = fdprivate;
 	printkdebug(N, "close %p %d", current_vnetfd, sockfd);
-  if (current_vnetfd->vunet->netops->close == NULL)
-    return errno = ENOSYS, -1;
-  else
-    return current_vnetfd->vunet->netops->close(sockfd);
+	if (current_vnetfd->vunet->netops->close == NULL)
+		return errno = ENOSYS, -1;
+	else
+		return current_vnetfd->vunet->netops->close(sockfd);
 }
 
 int vu_vunet_fcntl(int sockfd, int cmd, long arg, void *fdprivate) {
-  current_vnetfd = fdprivate;
-  printkdebug(N, "fcntl %p %d", current_vnetfd, sockfd);
-  if (current_vnetfd->vunet->netops->fcntl == NULL)
-    return errno = ENOSYS, -1;
-  else
-    return current_vnetfd->vunet->netops->fcntl(sockfd, cmd, arg);
+	current_vnetfd = fdprivate;
+	printkdebug(N, "fcntl %p %d", current_vnetfd, sockfd);
+	if (current_vnetfd->vunet->netops->fcntl == NULL)
+		return errno = ENOSYS, -1;
+	else
+		return current_vnetfd->vunet->netops->fcntl(sockfd, cmd, arg);
 }
 
 int vu_vunet_mount(const char *source, const char *target,
@@ -440,34 +440,34 @@ int vu_vunet_mount(const char *source, const char *target,
 /* XXX umount usage count (default defs) */
 int vu_vunet_umount2(const char *target, int flags) {
 	struct vuht_entry_t *ht = vu_mod_getht();
-  struct vunet *vunet = vu_get_ht_private_data();
-  int ret_value;
+	struct vunet *vunet = vu_get_ht_private_data();
+	int ret_value;
 	printkdebug(N, "umount2 \'%s\' %p", target, vunet);
 	vuht_del(vunet->socket_ht, flags);
 	if (vunet->ioctl_ht)
 		vuht_del(vunet->ioctl_ht, flags);
-  if ((ret_value = vuht_del(ht, flags)) < 0)
-    return errno = -ret_value, -1;
-  return 0;
+	if ((ret_value = vuht_del(ht, flags)) < 0)
+		return errno = -ret_value, -1;
+	return 0;
 }
 
 void vu_vunet_cleanup(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht) {
 	struct vunet *vunet = vuht_get_private_data(ht);
 	printkdebug(N, "cleanup %p %d", vunet, type);
-  if (type == CHECKSOCKET)
+	if (type == CHECKSOCKET)
 		vunet->socket_ht = NULL;
-  if (type == CHECKIOCTL)
+	if (type == CHECKIOCTL)
 		vunet->ioctl_ht = NULL;
-  if (type == CHECKPATH)
+	if (type == CHECKPATH)
 		vunet->path_ht = NULL;
 	if (vunet->socket_ht == NULL &&
 			vunet->ioctl_ht == NULL &&
 			vunet->path_ht == NULL) {
 		if (vunet->netops->fini != NULL)
 			vunet->netops->fini(vunet->private_data);
-    free(vunet);
-  }
+		free(vunet);
+	}
 }
 
 static void vu_default_modify_lock(void) {
@@ -484,17 +484,17 @@ static void vu_default_modify_lock(void) {
 	pthread_rwlock_wrlock(&vunet_default->lock);
 	if (vunet_default->count > 1) {
 		struct vunet_default_t *new;
-    int i;
-    new = malloc(sizeof(struct vunet_default_t));
-    pthread_rwlock_init(&new->lock, NULL);
-    new->count = 1;
-    vunet_default->count -= 1;
-    for (i = 0; i < AF_MAX + 1; i++)
-      new->defstack[i] = vunet_default->defstack[i];
+		int i;
+		new = malloc(sizeof(struct vunet_default_t));
+		pthread_rwlock_init(&new->lock, NULL);
+		new->count = 1;
+		vunet_default->count -= 1;
+		for (i = 0; i < AF_MAX + 1; i++)
+			new->defstack[i] = vunet_default->defstack[i];
 		pthread_rwlock_unlock(&vunet_default->lock);
-    vunet_default = new;
+		vunet_default = new;
 		pthread_rwlock_wrlock(&vunet_default->lock);
-  }
+	}
 }
 
 static void vu_default_read_lock(void) {
@@ -506,46 +506,46 @@ static void vu_default_unlock(void) {
 }
 
 static void *vunet_default_clone(void *arg) {
-  if (vunet_default != NULL) {
-    pthread_rwlock_wrlock(&vunet_default->lock);
-    vunet_default->count++;
-    pthread_rwlock_unlock(&vunet_default->lock);
-    return vunet_default;
-  } else
-    return NULL;
+	if (vunet_default != NULL) {
+		pthread_rwlock_wrlock(&vunet_default->lock);
+		vunet_default->count++;
+		pthread_rwlock_unlock(&vunet_default->lock);
+		return vunet_default;
+	} else
+		return NULL;
 }
 
 static void vunet_default_terminate(void) {
-  if (vunet_default != NULL) {
-    pthread_rwlock_wrlock(&vunet_default->lock);
-    vunet_default->count -= 1;
-    if (vunet_default->count == 0) {
-      struct vunet_default_t *old_vunet_default = vunet_default;
-      vunet_default = NULL;
-      pthread_rwlock_unlock(&old_vunet_default->lock);
-      pthread_rwlock_destroy(&old_vunet_default->lock);
-      free(old_vunet_default);
-    } else
-      pthread_rwlock_unlock(&vunet_default->lock);
-  }
+	if (vunet_default != NULL) {
+		pthread_rwlock_wrlock(&vunet_default->lock);
+		vunet_default->count -= 1;
+		if (vunet_default->count == 0) {
+			struct vunet_default_t *old_vunet_default = vunet_default;
+			vunet_default = NULL;
+			pthread_rwlock_unlock(&old_vunet_default->lock);
+			pthread_rwlock_destroy(&old_vunet_default->lock);
+			free(old_vunet_default);
+		} else
+			pthread_rwlock_unlock(&vunet_default->lock);
+	}
 }
 
 static void *vunet_tracer_upcall(mod_inheritance_state_t state, void *ioarg, void *arg) {
-  void *ret_value = NULL;
-  switch (state) {
-    case MOD_INH_CLONE:
-      ret_value = vunet_default_clone(arg);
-      break;
-    case MOD_INH_START:
-      vunet_default = ioarg;
-      break;
-    case MOD_INH_EXEC:
-      break;
-    case MOD_INH_TERMINATE:
-      vunet_default_terminate();
-      break;
-  }
-  return ret_value;
+	void *ret_value = NULL;
+	switch (state) {
+		case MOD_INH_CLONE:
+			ret_value = vunet_default_clone(arg);
+			break;
+		case MOD_INH_START:
+			vunet_default = ioarg;
+			break;
+		case MOD_INH_EXEC:
+			break;
+		case MOD_INH_TERMINATE:
+			vunet_default_terminate();
+			break;
+	}
+	return ret_value;
 }
 
 void *vu_vunet_init (void) {
@@ -559,12 +559,12 @@ int vu_vunet_fini(void *private) {
 }
 
 __attribute__((constructor))
-  static void init(void) {
+	static void init(void) {
 		debug_set_name(N, "VUNET");
 	}
 
 __attribute__((destructor))
-  static void fini(void) {
+	static void fini(void) {
 		debug_set_name(N, "");
 	}
 

@@ -63,8 +63,8 @@ static pthread_mutex_t vnode_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static struct vu_vnode_t *vnode_hash[VU_VNODE_HASH_SIZE];
 
-__attribute__((always_inline))
-	static inline int vnode_hashfun(struct vuht_entry_t *ht, dev_t dev, ino_t inode)
+	__attribute__((always_inline))
+static inline int vnode_hashfun(struct vuht_entry_t *ht, dev_t dev, ino_t inode)
 {
 	uintptr_t htint = (uintptr_t) ht;
 	return (major(dev) + minor(dev) + inode + ((13 * htint) ^ (htint >> 13))) & VU_VNODE_HASH_MASK;
@@ -95,8 +95,8 @@ struct vu_vnode_t *vu_vnode_open(struct vuht_entry_t *ht, ino_t dev, ino_t inode
 		new_vnode->inode = inode;
 		new_vnode->size = size;
 		if (asprintf(&new_vnode->vpath, "%s/%p_%lx_%lx",
-				vu_tmpdirpath(), (void *) ht,
-				(unsigned long) dev, (unsigned long) inode) <= 0) {
+					vu_tmpdirpath(), (void *) ht,
+					(unsigned long) dev, (unsigned long) inode) <= 0) {
 			errno = ENOMEM;
 			fatal(NULL);
 		}
@@ -143,7 +143,7 @@ int vu_vnode_copyinout (struct vu_vnode_t *vnode, char *path, copyfun cp) {
 	int ret_value;
 	pthread_mutex_lock(&vnode->mutex);
 	ret_value = cp(vnode->ht, path, vnode->vpath);
-  pthread_mutex_unlock(&vnode->mutex);
+	pthread_mutex_unlock(&vnode->mutex);
 	return ret_value;
 }
 

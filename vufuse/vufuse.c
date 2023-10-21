@@ -393,25 +393,25 @@ int fuse_loop_mt(struct fuse *f)
 
 /* other dummy functions. useless for vufuse */
 struct fuse_session *fuse_get_session(struct fuse *f) {
-  return NULL;
+	return NULL;
 }
 
 int fuse_set_signal_handlers(struct fuse_session *se) {
-  return 0;
+	return 0;
 }
 
 void fuse_remove_signal_handlers(struct fuse_session *se) {
 }
 
 int fuse_daemonize(int foreground) {
-  return 0;
+	return 0;
 }
 
 int fuse_parse_cmdline(struct fuse_args *args, char **mountpoint,
 		int *multithreaded, int *foreground) {
-  *mountpoint = strdup("");
-  *multithreaded = 0;
-  *foreground = 1;
+	*mountpoint = strdup("");
+	*multithreaded = 0;
+	*foreground = 1;
 	return 0;
 }
 

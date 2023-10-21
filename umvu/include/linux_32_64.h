@@ -55,7 +55,7 @@ struct linux_dirent {
 	/*
 		 char           pad;       // Zero padding byte
 		 char           d_type;    // File type (only since Linux
-	// 2.6.4); offset is (d_reclen - 1)
+															 // 2.6.4); offset is (d_reclen - 1)
 	 */
 };
 

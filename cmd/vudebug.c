@@ -30,7 +30,7 @@
 static char *progname;
 void usage()
 {
-  fprintf(stderr,
+	fprintf(stderr,
 			"Usage: %s [ARG] [ARG] ... [ -- cmd args ]\n"
 			"  ARG = --help | DEBUGSPEC\n"
 			"  DEBUGSPEC = [+|-]TAG[TAG]...[:COLORSPEC]\n"
@@ -42,7 +42,7 @@ void usage()
 			"  +:,bright, -: dim, _: underlined, *: blinking,  #: reverse\n\n",
 			progname);
 
-  exit(2);
+	exit(2);
 }
 
 static inline void unique(int c) {
@@ -64,7 +64,7 @@ static void vu_ls_debugtags(char *lstags) {
 		char tagname[32];
 		vu_get_debugtagname(c, tagname, 32);
 		if (((lstags != NULL && strchr(lstags, c)) ||
-				 (lstags == NULL && (tagselected || *tagname != '\0'))))	
+					(lstags == NULL && (tagselected || *tagname != '\0'))))	
 			printf("%c %c%s%s\n", c,
 					tagselected ? '+' : '-',
 					ltagselected ? "(+)" : "   ",
@@ -76,16 +76,16 @@ static char functions[] = "+-?";
 int main(int argc, char *argv[])
 {
 	progname = basename(argv[0]);
-  if (vu_check() < 0) {
-    fprintf(stderr,"This is a VUOS command."
+	if (vu_check() < 0) {
+		fprintf(stderr,"This is a VUOS command."
 				"It works only inside a vuos virtual namespace\n");
-    usage();
-  }
+		usage();
+	}
 	if (argc == 1) {
 		char tags[DEBUG_NTAGS+1];
 		char ltags[DEBUG_NTAGS+1];
-    vu_get_debugtags(tags, DEBUG_NTAGS+1, 0);
-    vu_get_debugtags(ltags, DEBUG_NTAGS+1, 1);
+		vu_get_debugtags(tags, DEBUG_NTAGS+1, 0);
+		vu_get_debugtags(ltags, DEBUG_NTAGS+1, 1);
 		if (*tags)
 			printf("%s\n",tags);
 		if (*ltags)
@@ -120,12 +120,12 @@ int main(int argc, char *argv[])
 				case '?': vu_ls_debugtags(*tags ? tags : NULL);
 									break;
 				default:  if (color == NULL)
-									 usage();
+										usage();
 									break;
 			}
 			char *colorstring;
 			if (asprintf(&colorstring, "%s:%s", *tags ? tags : ALLTAGS,
-					(color) ? color : "") >= 0) {
+						(color) ? color : "") >= 0) {
 				vu_set_debugcolor(colorstring);
 				free(colorstring);
 			}

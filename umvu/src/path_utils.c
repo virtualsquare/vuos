@@ -106,18 +106,18 @@ int path_check_exceptions(int syscall_number, syscall_arg_t *args) {
 	 If the path is empty these system calls operate on the dirfd file */
 static inline int is_at_empty_path(int syscall_number, syscall_arg_t *args) {
 	int nargs = vu_arch_table_nargs(syscall_number);
-  switch (syscall_number) {
-    case __NR_openat:
-    case __NR_open:
-    case __NR_umount2:
-    case __NR_unlinkat:
-    case __NR_readlinkat:
-      return 0;
-    case __NR_statx:
-      return (args[3] & AT_EMPTY_PATH);
-    default:
-      return (args[nargs-1] & AT_EMPTY_PATH);
-  }
+	switch (syscall_number) {
+		case __NR_openat:
+		case __NR_open:
+		case __NR_umount2:
+		case __NR_unlinkat:
+		case __NR_readlinkat:
+			return 0;
+		case __NR_statx:
+			return (args[3] & AT_EMPTY_PATH);
+		default:
+			return (args[nargs-1] & AT_EMPTY_PATH);
+	}
 }
 
 /* get the pathname argument of a system call, canonicalize it. The return value is
@@ -193,17 +193,17 @@ char *get_vsyspath(struct syscall_descriptor_t *sd, struct vu_stat *buf, uint8_t
 /* rewrite the pathname argument of a system call.
 	 newpath must be an absolute pathname */
 void rewrite_syspath(struct syscall_descriptor_t *sd, char *newpath) {
-  int syscall_number = sd->syscall_number;
-  int patharg = vu_arch_table_patharg(syscall_number);
+	int syscall_number = sd->syscall_number;
+	int patharg = vu_arch_table_patharg(syscall_number);
 
-  if (patharg >= 0) {
-    int type = vu_arch_table_type(syscall_number);
+	if (patharg >= 0) {
+		int type = vu_arch_table_type(syscall_number);
 		if (type == 3)
 			type = path_check_exceptions(syscall_number, sd->syscall_args);
-    if (type & ARCH_TYPE_IS_AT)
-      patharg++;
-    sd->syscall_args[patharg] = vu_push(sd, newpath, strlen(newpath) + 1);
-  }
+		if (type & ARCH_TYPE_IS_AT)
+			patharg++;
+		sd->syscall_args[patharg] = vu_push(sd, newpath, strlen(newpath) + 1);
+	}
 }
 
 /* canonicalize's helper functions */

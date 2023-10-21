@@ -34,27 +34,27 @@
 		MS_LAZYTIME)
 
 static int countflagoptions(unsigned long mountflags) {
-  int retval = 0;
-  int i;
-  for (i = 0; i < 32; i++) {
-    if ((mountflags & (1UL << i)) && (mountflag_strings[i]))
-      retval++;
-  }
-  return retval;
+	int retval = 0;
+	int i;
+	for (i = 0; i < 32; i++) {
+		if ((mountflags & (1UL << i)) && (mountflag_strings[i]))
+			retval++;
+	}
+	return retval;
 }
 
 static void addflagoptions(char **tags, char **args, unsigned long mountflags) {
-  int i;
-  int flagoptc;
-  for (i = 0, flagoptc = 0; i < 32; i++) {
-    if ((mountflags & (1UL << i)) && (mountflag_strings[i])) {
-      tags[flagoptc] = mountflag_strings[i];
-      args[flagoptc] = NULL;
-      flagoptc++;
-    }
-  }
-  tags[flagoptc] = NULL;
-  args[flagoptc] = NULL;
+	int i;
+	int flagoptc;
+	for (i = 0, flagoptc = 0; i < 32; i++) {
+		if ((mountflags & (1UL << i)) && (mountflag_strings[i])) {
+			tags[flagoptc] = mountflag_strings[i];
+			args[flagoptc] = NULL;
+			flagoptc++;
+		}
+	}
+	tags[flagoptc] = NULL;
+	args[flagoptc] = NULL;
 }
 
 int fusestartmain(struct main_params *mntp) {

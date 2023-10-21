@@ -67,7 +67,7 @@ void wi_ioctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		}
 		sfd = vu_fd_get_sfd(fd, &private, nested);
 		/* module's ioctl returns the encoding of size and direction of the parameter i
-		 if fd ==  -1 */
+			 if fd ==  -1 */
 		/* modern ioctls have already size and direction encoded in their request argument,
 			 so if the modules' call fails, reqargs gets the value of request */
 		reqargs = service_syscall(ht, __VU_ioctl)(-1, request, NULL, addr, private);

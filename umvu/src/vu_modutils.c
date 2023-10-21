@@ -70,12 +70,12 @@ static inline char *gethomedir(void) {
 static void *module_dlopen(const char *modname, int flags)
 {
 #define TRY_DLOPEN(...) \
-{ \
-	snprintf(testpath, tplen, __VA_ARGS__); \
-	if ((handle = dlopen(testpath, flags))) { \
-		return handle; \
-	} \
-}
+	{ \
+		snprintf(testpath, tplen, __VA_ARGS__); \
+		if ((handle = dlopen(testpath, flags))) { \
+			return handle; \
+		} \
+	}
 	void *handle;
 	char *homedir = gethomedir();
 	int tplen = strlen(modname) + strlen(MODULES_EXT) +
@@ -160,7 +160,7 @@ syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name) 
 		if (strcmp(name, vu_syscall_names[i]) == 0)
 			return &service->module_syscall[i];
 	}
-  useless	= NULL;
+	useless	= NULL;
 	return &useless;
 }
 
@@ -195,12 +195,12 @@ void module_run_init(struct vu_service_t *service) {
 }
 
 int module_run_fini(struct vu_service_t *service) {
-  int (*fini)(void *);
+	int (*fini)(void *);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-  fini = module_getsym(service, "fini");
+	fini = module_getsym(service, "fini");
 #pragma GCC diagnostic pop
-  if (fini) {
+	if (fini) {
 		printkdebug(m, "%s running vu_%s_fini", service->mod->name, service->mod->name);
 		return fini(service->private);
 	} else
@@ -208,8 +208,8 @@ int module_run_fini(struct vu_service_t *service) {
 }
 
 __attribute__((constructor))
-  static void init(void) {
-    debug_set_name(m, "MODULE");
-  }
+	static void init(void) {
+		debug_set_name(m, "MODULE");
+	}
 
 

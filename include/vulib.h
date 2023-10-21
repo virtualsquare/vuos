@@ -53,9 +53,9 @@
 
 /* struct for vuctl VUCTL_GETINFO */
 struct vu_info {
-  struct utsname uname;
-  char vu_serverid[_UTSNAME_LENGTH];
-  char vu_name[_UTSNAME_LENGTH];
+	struct utsname uname;
+	char vu_serverid[_UTSNAME_LENGTH];
+	char vu_name[_UTSNAME_LENGTH];
 };
 
 #ifndef _VU_HYPERVISOR

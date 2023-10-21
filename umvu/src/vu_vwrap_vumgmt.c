@@ -177,9 +177,9 @@ void vuctl_setname(struct syscall_descriptor_t *sd) {
 	char vu_name[_UTSNAME_LENGTH+1];
 	syscall_arg_t name_addr = sd->syscall_args[1];
 	if (umvu_peek_str(name_addr, vu_name, _UTSNAME_LENGTH+1) < 0) {
-    sd->ret_value = -EINVAL;
-    return;
-  }
+		sd->ret_value = -EINVAL;
+		return;
+	}
 	set_vu_name(vu_name);
 	sd->ret_value = 0;
 }
@@ -203,9 +203,9 @@ void vuctl_add_debugtags(struct syscall_descriptor_t *sd) {
 	syscall_arg_t tags_addr = sd->syscall_args[1];
 	int local = sd->syscall_args[2];
 	if (umvu_peek_str(tags_addr, tags, DEBUG_NTAGS+1) < 0) {
-    sd->ret_value = -EINVAL;
-    return;
-  }
+		sd->ret_value = -EINVAL;
+		return;
+	}
 	debug_add_tags(tags, local);
 	sd->ret_value = 0;
 }

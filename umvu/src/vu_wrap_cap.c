@@ -55,8 +55,8 @@ void wi_capget(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 	if (datap == 0) {
 		sd->ret_value = 0;
-    return;
-  }
+		return;
+	}
 	vu_alloc_local_arg(datap, data,
 			sizeof(*data) * _LINUX_CAPABILITY_U32S_3, nested);
 	if (ht) {

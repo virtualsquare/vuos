@@ -83,23 +83,23 @@ struct vuht_entry_t *choice_fd(struct syscall_descriptor_t *sd) {
  * can use a file descriptor
  * can use the request number as a parameter */
 struct vuht_entry_t *choice_ioctl(struct syscall_descriptor_t *sd) {
-  struct syscall_extra_t *extra = sd->extra;
-  int fd = sd->syscall_args[0];
+	struct syscall_extra_t *extra = sd->extra;
+	int fd = sd->syscall_args[0];
 	unsigned long request = sd->syscall_args[1];
-  int nested = extra->nested;
-  struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
-  char path[PATH_MAX];
-  vu_fd_get_path(fd, nested, path, PATH_MAX);
-  extra->path = strdup(path);
-  extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
-  if (ht) {
-    set_vepoch(vuht_get_vepoch(ht));
-    vuht_pick_again(ht);
-  } else
+	int nested = extra->nested;
+	struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+	char path[PATH_MAX];
+	vu_fd_get_path(fd, nested, path, PATH_MAX);
+	extra->path = strdup(path);
+	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+	if (ht) {
+		set_vepoch(vuht_get_vepoch(ht));
+		vuht_pick_again(ht);
+	} else
 		ht = vuht_pick(CHECKIOCTL, &request, NULL, SET_EPOCH);
-  printkdebug(c, "ioctl %d %s: %c ht %p", fd, extra->path,
-      nested ? 'N' : '-', ht);
-  return ht;
+	printkdebug(c, "ioctl %d %s: %c ht %p", fd, extra->path,
+			nested ? 'N' : '-', ht);
+	return ht;
 }
 
 /* standard choice function: if there is a path it uses the path
@@ -141,7 +141,7 @@ struct vuht_entry_t *choice_utimensat(struct syscall_descriptor_t *sd) {
 
 /* mount uses filesystem type */
 struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
-  int nested = sd->extra->nested;
+	int nested = sd->extra->nested;
 	if (nested)
 		/* nested calls cannot be further virtualized */
 		return NULL;
@@ -153,13 +153,13 @@ struct vuht_entry_t *choice_mount(struct syscall_descriptor_t *sd) {
 		umvu_peek_str(filesystemtype_addr, filesystemtype, PATH_MAX);
 		ht = vuht_pick(CHECKFSTYPE, filesystemtype, NULL, 0);
 		printkdebug(c, "mount %s on %s: - ht %p", filesystemtype, extra->path, ht);
-    return ht;
+		return ht;
 	}
 }
 
 /* mount pathname must match exactly the mountpoint */
 struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
-  int nested = sd->extra->nested;
+	int nested = sd->extra->nested;
 	if (nested)
 		/* nested calls cannot be further virtualized */
 		return NULL;
@@ -177,8 +177,8 @@ struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
 			ht = vuht_pick(CHECKPATHEXACT, no_root_path, &extra->statbuf, SET_EPOCH);
 		}
 		printkdebug(c, "umount2 %s: - ht %p err = %d %s", extra->path, ht,
-      (sd->action == SKIPIT) ? -sd->ret_value : 0,
-      (sd->action == SKIPIT) ? "SKIPIT" : "");
+				(sd->action == SKIPIT) ? -sd->ret_value : 0,
+				(sd->action == SKIPIT) ? "SKIPIT" : "");
 		return ht;
 	}
 }
@@ -186,49 +186,49 @@ struct vuht_entry_t *choice_umount2(struct syscall_descriptor_t *sd) {
 /* mmap uses fd (fifth argument) */
 struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
-  int fd = sd->syscall_args[4];
-  int nested = extra->nested;
-  struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
-  char path[PATH_MAX];
-  vu_fd_get_path(fd, nested, path, PATH_MAX);
-  extra->path = strdup(path);
-  extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
-  printkdebug(c, "mmap2 %d %s: %c ht %p", fd, extra->path,
-      nested ? 'N' : '-', ht);
-  if (ht) {
+	int fd = sd->syscall_args[4];
+	int nested = extra->nested;
+	struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+	char path[PATH_MAX];
+	vu_fd_get_path(fd, nested, path, PATH_MAX);
+	extra->path = strdup(path);
+	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+	printkdebug(c, "mmap2 %d %s: %c ht %p", fd, extra->path,
+			nested ? 'N' : '-', ht);
+	if (ht) {
 		extra->mpath = vuht_path2mpath(ht, extra->path);
-    set_vepoch(vuht_get_vepoch(ht));
-    vuht_pick_again(ht);
-  }
-  return ht;
+		set_vepoch(vuht_get_vepoch(ht));
+		vuht_pick_again(ht);
+	}
+	return ht;
 }
 
 /* some system calls need to use the file descriptor passed
 	 as second argument (e.g. epoll_ctl) */
 struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
-  struct syscall_extra_t *extra = sd->extra;
-  int fd = sd->syscall_args[2];
-  int nested = extra->nested;
-  struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
-  char path[PATH_MAX];
-  vu_fd_get_path(fd, nested, path, PATH_MAX);
-  extra->path = strdup(path);
-  extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
-  printkdebug(c, "fd2 %d %s: %c ht %p", fd, extra->path,
-      nested ? 'N' : '-', ht);
-  if (ht) {
+	struct syscall_extra_t *extra = sd->extra;
+	int fd = sd->syscall_args[2];
+	int nested = extra->nested;
+	struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+	char path[PATH_MAX];
+	vu_fd_get_path(fd, nested, path, PATH_MAX);
+	extra->path = strdup(path);
+	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+	printkdebug(c, "fd2 %d %s: %c ht %p", fd, extra->path,
+			nested ? 'N' : '-', ht);
+	if (ht) {
 		extra->mpath = vuht_path2mpath(ht, extra->path);
-    set_vepoch(vuht_get_vepoch(ht));
-    vuht_pick_again(ht);
-  }
-  return ht;
+		set_vepoch(vuht_get_vepoch(ht));
+		vuht_pick_again(ht);
+	}
+	return ht;
 }
 
 /* socket uses the protocol family */
 struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int domain = sd->syscall_args[0];
-  int nested = extra->nested;
+	int nested = extra->nested;
 	struct vuht_entry_t *ht = vuht_pick(CHECKSOCKET, &domain, NULL, SET_EPOCH);
 	printkdebug(c, "socket: fam:%d %c ht %p", domain, nested ? 'N' : '-', ht);
 	return ht;
@@ -239,7 +239,7 @@ struct vuht_entry_t *choice_msocket(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	uintptr_t path = sd->syscall_args[0];
 	int domain = sd->syscall_args[1];
-  int nested = extra->nested;
+	int nested = extra->nested;
 
 	if (path == 0) { /* msocket path == NULL ===> socket) */
 		struct vuht_entry_t *ht = vuht_pick(CHECKSOCKET, &domain, NULL, SET_EPOCH);

@@ -67,7 +67,7 @@ struct vuht_entry_t {
 	int objlen;
 	long hashsum;
 	_Atomic int count;
-	
+
 	/* confirmfun_t */
 	confirmfun_t confirmfun;
 	struct vuht_entry_t *prev, *next, **pprevhash, *nexthash;
@@ -140,8 +140,8 @@ static inline long hashsum(uint8_t type, const char *c, int len)
 static inline int trailnum(char *s)
 {
 	/* "at least one" the first element needs a special case.
-     performance:  >'9' is the most frequent case, <'0' are quite rare
-     in pathnames, the end of string is more common */
+performance:  >'9' is the most frequent case, <'0' are quite rare
+in pathnames, the end of string is more common */
 	int nonzero = 0;
 
 	if (*s > '9' || *s == 0 || *s < '0')
@@ -194,7 +194,7 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 				return 1; /* CHECKFSTYPE char by char */
 		default:
 			return 0;
-																																			    }
+	}
 }
 
 /* terminate the scan */
@@ -332,7 +332,7 @@ static inline int stringobj(uint8_t type) {
 		type == CHECKFSALIAS;
 }
 
-static struct vuht_entry_t *
+	static struct vuht_entry_t *
 internal_vuht_add(uint8_t type, const void *obj, int objlen,
 		unsigned long mountflags, char *mtabline,
 		struct vu_service_t *service, uint8_t trailingnumbers,
@@ -423,10 +423,10 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		char opts[optslen];
 		mountflags2opts(mountflags & VUHT_MTABLINE, opts, optslen);
 		if (asprintf(&mtabline, "%s%s %s %s %s 0 %" PRIu64,
-				(confirmfun == NEGATIVE_MOUNT) ? "-" : "", source, path,
-				fstype,
-				*opts == 0 ? "rw" : opts,
-				get_epoch()) <= 0) {
+					(confirmfun == NEGATIVE_MOUNT) ? "-" : "", source, path,
+					fstype,
+					*opts == 0 ? "rw" : opts,
+					get_epoch()) <= 0) {
 			errno = ENOMEM;
 			fatal(NULL);
 		}
@@ -540,7 +540,7 @@ struct vuht_entry_t *vuht_pick(uint8_t type, void *arg, struct vu_stat *st, int 
 			break;
 		case CHECKIOCTL:
 			hte = vuht_search(type, arg, sizeof(unsigned long), 0);
-      break;
+			break;
 		case CHECKFSALIAS:
 		case CHECKMODULE:
 			hte = vuht_search(type, arg, 0, 1);
@@ -638,7 +638,7 @@ void vuht_set_private_data(struct vuht_entry_t *hte, void *private_data) {
 
 void vuht_set_service_cleanupfun(struct vuht_entry_t *hte, confirmfun_t cleanup_fun) {
 	if (hte != NULL && hte->type == CHECKMODULE) {
-			hte->confirmfun = cleanup_fun;
+		hte->confirmfun = cleanup_fun;
 	}
 }
 
@@ -665,7 +665,7 @@ int vuht_get_count(struct vuht_entry_t *hte) {
 }
 
 int vuht_get_objlen(struct vuht_entry_t *hte) {
-  return hte->objlen;
+	return hte->objlen;
 }
 
 void vuht_terminate(void) {

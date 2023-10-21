@@ -61,7 +61,7 @@ int pseudofile_mode2type(mode_t mode) {
 ssize_t pseudofile_readlink_fill(char *path, char *buf, size_t bufsiz) {
 	if (path == NULL) {
 		errno = EINVAL;
-    return -1;
+		return -1;
 	} else {
 		size_t len = strlen(path);
 		if (len > bufsiz) len = bufsiz;
@@ -146,7 +146,7 @@ int pseudofile_read(int fd, void *buf, size_t count, void *private) {
 }
 
 int pseudofile_write(int fd, const void *buf, size_t count, void *private) {
-  struct pseudofile *pseudofile = private;
+	struct pseudofile *pseudofile = private;
 	if (pseudofile == NULL) {
 		errno = EINVAL;
 		return -1;
@@ -161,18 +161,18 @@ int pseudofile_write(int fd, const void *buf, size_t count, void *private) {
 }
 
 int pseudofile_lseek(int fd, off_t offset, int whence, void *private) {
-  struct pseudofile *pseudofile = private;
+	struct pseudofile *pseudofile = private;
 	if (pseudofile == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
-  if (pseudofile->f == NULL)
+	if (pseudofile->f == NULL)
 		pseudofile_load_contents(pseudofile);
-  return fseeko(pseudofile->f, offset, whence);
+	return fseeko(pseudofile->f, offset, whence);
 }
 
 int pseudofile_getdents64(int fd,  struct dirent64 *dirp,
-                    unsigned int count, void *private) {
+		unsigned int count, void *private) {
 	struct pseudofile *pseudofile = private;
 	size_t freadout;
 	if (pseudofile == NULL) {

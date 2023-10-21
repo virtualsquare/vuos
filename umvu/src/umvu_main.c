@@ -117,19 +117,19 @@ static void early_args(int argc, char *argv[]) {
 
 static void runrc(const char *path)
 {
-  if (faccessat(AT_FDCWD, path, X_OK, AT_EACCESS)==0) {
-    int pid;
-    int status;
+	if (faccessat(AT_FDCWD, path, X_OK, AT_EACCESS)==0) {
+		int pid;
+		int status;
 
-    switch (pid=fork()) {
-      case -1: exit(2);
-      case 0: execl(path,path,(char *)0);
-              exit(2);
+		switch (pid=fork()) {
+			case -1: exit(2);
+			case 0: execl(path,path,(char *)0);
+							exit(2);
 			default: r_wait4(pid, &status, 0, NULL);
-               if (!WIFEXITED(status))
-                 exit(2);
-    }
-  }
+							 if (!WIFEXITED(status))
+								 exit(2);
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -175,13 +175,13 @@ int main(int argc, char *argv[])
 			case 'S': seccomp = 0;
 								break;
 			case SECCOMP_ARG: seccomp = 1;
-								break;
+												break;
 		}
 	}
 
 	argc -= optind;
 	argv += optind;
-	
+
 	if (vu_name)
 		set_vu_name(vu_name);
 

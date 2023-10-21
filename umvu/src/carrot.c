@@ -91,7 +91,7 @@ void carrot_free(struct carrot_t *old) {
  *      otherwise: then new carrot has only one element (eventual existing carrot is deleted */
 
 struct carrot_t *carrot_insert(struct carrot_t *head, struct vuht_entry_t *elem, epoch_t time,
-		    int (*has_exception)(struct vuht_entry_t *)) {
+		int (*has_exception)(struct vuht_entry_t *)) {
 	if (head == NULL ||      /* empty carrot */
 			time > head->time) { /* this is newer */
 		if (head == NULL || has_exception(elem)) {

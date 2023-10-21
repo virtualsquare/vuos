@@ -37,16 +37,16 @@
 /* some system calls need the file to be real (execve, mmap).
 	 this function creates a copy of a virtual file in tmp_path (usually in /tmp/.vu_....) */
 static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
-  int fdin, fdout;
+	int fdin, fdout;
 	ssize_t n;
 	size_t filesize = 0;
-  char *buf[BUFSIZ];
-  void *private;
+	char *buf[BUFSIZ];
+	void *private;
 	struct vu_stat fdoutstat;
 	//printk("COPY %s to %s\n",path,tmp_path);
-  fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0700);
-  if (fdout < 0)
-    return -1;
+	fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0700);
+	if (fdout < 0)
+		return -1;
 	if (r_fstat(fdout, &fdoutstat) < 0) {
 		r_close(fdout);
 		return -1;

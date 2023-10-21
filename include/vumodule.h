@@ -34,10 +34,10 @@ struct vu_service_t;
 struct vuht_entry_t;
 
 struct vu_module_t {
-       char *name;
-       char *description;
-       uint64_t flags;
-       uint64_t filler;
+	char *name;
+	char *description;
+	uint64_t flags;
+	uint64_t filler;
 };
 
 /* flags:
@@ -152,7 +152,7 @@ int VU_SYSNAME(name, clock_settime) (clockid_t clk_id, const struct timespec *tp
 int VU_SYSNAME(name, clock_getres) (clockid_t clk_id, struct timespec *res); \
 \
 void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
-    struct vuht_entry_t *ht); \
+		struct vuht_entry_t *ht); \
 
 /* HASH TABLE management functions */
 
@@ -189,10 +189,10 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 #define BINFMT_CREDENTIALS    0x4
 
 struct binfmt_req_t {
-  char *path;
-  char filehead[BINFMTBUFLEN + 2];
-  int fileheadlen;
-  int flags;
+	char *path;
+	char filehead[BINFMTBUFLEN + 2];
+	int fileheadlen;
+	int flags;
 };
 
 /* mainly for modules' threads */
@@ -259,12 +259,12 @@ struct mod_inheritance_exec_arg {
 
 typedef void *(*mod_inheritance_upcall_t)
 	(mod_inheritance_state_t state, void *ioarg, void *arg);
-void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
-void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
+	void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
+	void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 
-/* stat must be implemented using 64bit data structures
-	 even if VUOS is running on a 32bit architecture.
-	 always use vu_stat/vu_lstat when writing module code */
+	/* stat must be implemented using 64bit data structures
+		 even if VUOS is running on a 32bit architecture.
+		 always use vu_stat/vu_lstat when writing module code */
 #if __WORDSIZE == 32
 #define __VU_vu_lstat __VU_lstat64
 #define vu_stat stat64
@@ -274,7 +274,7 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 #define vu_lstat lstat
 #endif
 
-/* log/debug facilities */
+	/* log/debug facilities */
 #define KERN_SOH  "\001"    /* ASCII Start Of Header */
 #define KERN_EMERG KERN_SOH "0"  /* system is unusable */
 #define KERN_ALERT KERN_SOH "1"  /* action must be taken immediately */
@@ -285,24 +285,24 @@ void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
 #define KERN_INFO KERN_SOH "6"  /* informational */
 #define KERN_DEBUG KERN_SOH "7" /*debug-level messages */
 
-void _debug_set_name(int index, const char *s);
-void debug_get_name(char tag, char *buf, size_t bufsize);
+	void _debug_set_name(int index, const char *s);
+	void debug_get_name(char tag, char *buf, size_t bufsize);
 
 #define debug_set_name(tag, s) \
-  _debug_set_name(DEBUG_TAG2INDEX_##tag, "" s)
+		_debug_set_name(DEBUG_TAG2INDEX_##tag, "" s)
 
-int vprintk(const char *fmt, va_list ap);
-int printk(const char *fmt, ...);
+	int vprintk(const char *fmt, va_list ap);
+	int printk(const char *fmt, ...);
 
-extern uint64_t debugmask;
-extern __thread uint64_t tdebugmask;
-extern __thread pid_t debugtid;
+	extern uint64_t debugmask;
+	extern __thread uint64_t tdebugmask;
+	extern __thread pid_t debugtid;
 
-int _printkdebug(int index, const char *fmt, ...);
+	int _printkdebug(int index, const char *fmt, ...);
 #define printkdebug(tag, fmt, ...) \
-	if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
-_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
-		debugtid, gettid(), basename(__FILE__), __LINE__, ##__VA_ARGS__)
+		if (__builtin_expect((debugmask | tdebugmask) & (1ULL << DEBUG_TAG2INDEX_##tag), 0)) \
+	_printkdebug(DEBUG_TAG2INDEX_##tag, "%d:%d\040%s:%d " fmt "\n", \
+			debugtid, gettid(), basename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 #define DEBUG_TAG2INDEX_A 1
 #define DEBUG_TAG2INDEX_B 2

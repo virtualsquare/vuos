@@ -45,7 +45,7 @@ static void dump(const char *title, const uint8_t *data, size_t bufsize, ssize_t
 	/* out format:
 		 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
 		 01234567890123456789012345678901234567890123456789012345678901234
-		 */
+	 */
 	char hexbuf[48];
 	char charbuf[17];
 	printk("%s size %zd len %zd:\n", title, bufsize, len);

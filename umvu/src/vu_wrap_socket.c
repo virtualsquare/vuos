@@ -232,7 +232,7 @@ void wi_accept4(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 		if (!nested) {
 			int fd = sd->syscall_args[0];
 			struct slowcall *sc = vu_slowcall_in(ht, fd, EPOLLIN, nested);
-      if (sc != NULL) {
+			if (sc != NULL) {
 				sd->inout = sc;
 				if (vu_slowcall_test(sc) <= 0) {
 					/* BLOCKIT implies UMVU_CB_AFTER, the "during" wrapper waits for a connection request */
@@ -500,9 +500,9 @@ void _wo_sendmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void _wo_sendmmsg(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 #ifdef EXP_SEMDMMSG
 	/* standard args */
-  int nested = sd->extra->nested;
-  /* args */
-  int fd = sd->syscall_args[0];
+	int nested = sd->extra->nested;
+	/* args */
+	int fd = sd->syscall_args[0];
 	uintptr_t msgvecaddr = sd->syscall_args[1];
 	int len = sd->syscall_args[2] & 1023;
 	int flags = sd->syscall_args[3];

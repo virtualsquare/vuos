@@ -47,7 +47,7 @@ static void wi_einval(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) 
 }
 
 void multiplex_read_wrappers(mode_t mode,
-    wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
+		wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
 	int modeindex = S_MODE2TYPE(mode);
 
 	if (wrapin == NULL)
@@ -67,7 +67,7 @@ void multiplex_read_wrappers(mode_t mode,
 }
 
 void multiplex_write_wrappers(mode_t mode,
-    wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
+		wrapf_t wrapin, wrapf_t wrapduring, wrapf_t wrapout) {
 	int modeindex = S_MODE2TYPE(mode);
 
 	if (wrapin == NULL)

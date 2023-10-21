@@ -47,8 +47,8 @@ int fuse_reentrant_tag = 0;
 
 #define GETPATH(source, path) \
 	char path ## _fullpath [PATH_MAX]; \
-	snprintf((path ## _fullpath), PATH_MAX, "%s%s", (strcmp(source,"/")) ? source : "", path); \
-	path = path ## _fullpath
+snprintf((path ## _fullpath), PATH_MAX, "%s%s", (strcmp(source,"/")) ? source : "", path); \
+path = path ## _fullpath
 
 #define RETURN(retvalue) return ((retvalue < 0) ? -errno : retvalue)
 
@@ -372,61 +372,61 @@ static const struct fuse_operations real_ops = {
 
 static void usage(void)
 {
-  fprintf(stderr,
-      "usage: " PROGNAME " sourcepath mountpoint [options]\n"
-      "\n"
-      "general options:\n"
-      "    -h   --help        print help\n"
-      "    -V   --version     print version\n"
-      "\n");
+	fprintf(stderr,
+			"usage: " PROGNAME " sourcepath mountpoint [options]\n"
+			"\n"
+			"general options:\n"
+			"    -h   --help        print help\n"
+			"    -V   --version     print version\n"
+			"\n");
 }
 
 struct options {
-  const char *source;
-  const char *mountpoint;
+	const char *source;
+	const char *mountpoint;
 };
 
-  static int
+	static int
 real_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
 {
-  struct options *options = data;
-  switch(key) {
-    case FUSE_OPT_KEY_OPT:
-      return 1;
-    case FUSE_OPT_KEY_NONOPT:
-      if (!options->source) {
-        options->source = arg;
-        return 0;
-      } else if(!options->mountpoint) {
-        options->mountpoint = arg;
-        return 1;
-      } else
-        return -1;
-      break;
-    case 'h':
-      usage();
-      fuse_opt_add_arg(outargs, "-ho");
-      fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
-      return -1;
+	struct options *options = data;
+	switch(key) {
+		case FUSE_OPT_KEY_OPT:
+			return 1;
+		case FUSE_OPT_KEY_NONOPT:
+			if (!options->source) {
+				options->source = arg;
+				return 0;
+			} else if(!options->mountpoint) {
+				options->mountpoint = arg;
+				return 1;
+			} else
+				return -1;
+			break;
+		case 'h':
+			usage();
+			fuse_opt_add_arg(outargs, "-ho");
+			fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
+			return -1;
 
-    case 'V':
-      fprintf(stderr, PROGNAME "\n");
-      fuse_opt_add_arg(outargs, "--version");
-      fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
-      return -1;
+		case 'V':
+			fprintf(stderr, PROGNAME "\n");
+			fuse_opt_add_arg(outargs, "--version");
+			fuse_main(outargs->argc, outargs->argv, &real_ops, NULL);
+			return -1;
 
-    default:
-      return -1;
-  }
+		default:
+			return -1;
+	}
 }
 
 static struct fuse_opt real_opts[] =
 {
-  FUSE_OPT_KEY("-V", 'V'),
-  FUSE_OPT_KEY("--version", 'V'),
-  FUSE_OPT_KEY("-h", 'h'),
-  FUSE_OPT_KEY("--help", 'h'),
-  FUSE_OPT_END
+	FUSE_OPT_KEY("-V", 'V'),
+	FUSE_OPT_KEY("--version", 'V'),
+	FUSE_OPT_KEY("-h", 'h'),
+	FUSE_OPT_KEY("--help", 'h'),
+	FUSE_OPT_END
 };
 
 int main(int argc, char *argv[])
@@ -443,14 +443,14 @@ int main(int argc, char *argv[])
 	if (options.source == NULL || options.mountpoint == NULL) {
 		usage();
 		goto returnerr;
-  }
+	}
 
 	err = fuse_main(args.argc, args.argv, &real_ops, (void *) options.source);
 	fuse_opt_free_args(&args);
 
 	return err;
 returnerr:
-  fuse_opt_free_args(&args);
-  return -1;
+	fuse_opt_free_args(&args);
+	return -1;
 
 }

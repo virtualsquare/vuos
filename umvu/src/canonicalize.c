@@ -34,21 +34,21 @@
 /* canonstruct: this struct contains the values that must be shared during the
 	 whole recursive scan:
 	 .ebuf: source for the relative to absolute path translation.
-	   it is allocated on the stack.
-	   if the path to translate begins by '/':
-	   it contains the root dir followed by the path to translate,
-	   otherwise
-	   it contains the current working dir followed by the path to translate
+	 it is allocated on the stack.
+	 if the path to translate begins by '/':
+	 it contains the root dir followed by the path to translate,
+	 otherwise
+	 it contains the current working dir followed by the path to translate
 	 .start, .end: pointers on ebuf, the boundaries of the current component
 	 .resolved: the user provided buffer where the result must be stored
 	 .rootlen: the len of the root component (it is not possible to generate
-	   shorter pathnames to force the root cage. rootlen includes the '/')
+	 shorter pathnames to force the root cage. rootlen includes the '/')
 	 .num_links: counter of symlink to avoid infinite loops (ELOOP)
 	 .mode: lstat's st_mode of the last component (of the file at the end)
-	   0 means non-existent -1 invalid (lstat must be called again).
+	 0 means non-existent -1 invalid (lstat must be called again).
 	 .flags: flags (see canonicalize.h), follow link (final component)
-	   this flag is for l-system calls like lstat, lchmod, lchown etc...
-	   permit nonexistent leaves, etc.
+	 this flag is for l-system calls like lstat, lchmod, lchown etc...
+	 permit nonexistent leaves, etc.
 	 .private: opaque arg for user provided access functions (lmode, readlink, getcwd, getroot).
  */
 
@@ -253,8 +253,8 @@ static int rec_realpath(struct canonstruct *cdata, char *dest)
 
 
 /* absolute path: copy prefix in cdata->ebuf
-return the length of the prefix
-(not including trailing '/' as the path has a leading '/' already) */
+	 return the length of the prefix
+	 (not including trailing '/' as the path has a leading '/' already) */
 static ssize_t abs_prefix(struct canonstruct *cdata) {
 	char *root = cdata->ebuf;
 	size_t prefixlen;
@@ -268,8 +268,8 @@ static ssize_t abs_prefix(struct canonstruct *cdata) {
 }
 
 /* relative path: copy cwd in cdata->ebuf as a prefix
-return the length of the prefix
-(including a trailing '/' to catenate the path as it is)*/
+	 return the length of the prefix
+	 (including a trailing '/' to catenate the path as it is)*/
 static ssize_t rel_prefix(struct canonstruct *cdata) {
 	char root[PATH_MAX];
 	size_t rootlen;
@@ -315,7 +315,7 @@ char *canon_realpath(const char *path, char *resolved_path, int flags, void *pri
 	}
 	if (__builtin_expect(*path == 0, 0)) {
 		if (flags & PERMIT_EMPTY_PATH &&
-			operations.getcwd(resolved_path, PATH_MAX, private) >= 0)
+				operations.getcwd(resolved_path, PATH_MAX, private) >= 0)
 			return resolved_path;
 		else {
 			errno = ENOENT;

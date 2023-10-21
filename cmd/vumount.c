@@ -122,7 +122,7 @@ char *parse_options(char *options, unsigned long *mountflags) {
 				tags[i] = STROPTX_DELETED_TAG;
 		}
 		return stropt2str(tags, args, ',', '=');
-  } else
+	} else
 		return options;
 }
 

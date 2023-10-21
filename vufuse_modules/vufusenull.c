@@ -49,14 +49,14 @@ int op_getattr(const char *path, struct stat *stbuf){
 	if (strcmp(path, "/") == 0) {
 		memset(stbuf, 0, sizeof(*stbuf));
 		stbuf->st_mode = 0755 | S_IFDIR;
-    stbuf->st_nlink = 2;
-    return 0;
+		stbuf->st_nlink = 2;
+		return 0;
 	} else
 		return -ENOENT;
 }
 int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
 	filler(buf, ".", NULL, 0);
-  filler(buf, "..", NULL, 0);
+	filler(buf, "..", NULL, 0);
 	return 0;
 }
 

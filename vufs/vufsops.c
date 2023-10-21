@@ -42,7 +42,7 @@
 #define log_if_err(S, X) \
 	do { \
 		if ((X) < 0)  \
-			printkdebug(V, "ERR: " #S "errno:%d", errno); \
+		printkdebug(V, "ERR: " #S "errno:%d", errno); \
 	} while (0)
 
 static void vufs_copyfile_stat(struct vufs_t *vufs, const char *path,

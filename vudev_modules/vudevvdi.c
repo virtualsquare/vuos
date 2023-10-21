@@ -64,14 +64,14 @@ static int (*vboxdd_get_LCHS_geometry) ();
 struct vuvdi_t {
 	int fd;
 	void *disk;
-  size_t size;
-  unsigned long flags;
+	size_t size;
+	unsigned long flags;
 };
 
 struct vuvdi_pdmmediageom_t {
 	uint32_t cHeads;
 	uint32_t cSectors;
-  uint32_t cCylinders;
+	uint32_t cCylinders;
 };
 
 /******************************************************************************/
@@ -117,8 +117,8 @@ static int dlload_vboxdd(void) {
 	vboxdd_get_LCHS_geometry = (int *) dlsym(vboxdd_hdl, "VDGetLCHSGeometry");
 #pragma GCC diagnostic pop
 	printkdebug(D, "%p %p %p %p %p %p %p %p",
-		vboxdd_create, vboxdd_open, vboxdd_close, vboxdd_read,
-		vboxdd_write, vboxdd_flush, vboxdd_get_size, vboxdd_get_LCHS_geometry);
+			vboxdd_create, vboxdd_open, vboxdd_close, vboxdd_read,
+			vboxdd_write, vboxdd_flush, vboxdd_get_size, vboxdd_get_LCHS_geometry);
 	return ++vboxdd_count;
 }
 
@@ -221,13 +221,13 @@ static inline size_t _wrap_count(size_t size, off_t *offset, size_t count) {
 
 int vuvdi_open(const char *pathname, mode_t mode, struct vudevfd_t *vudevfd) {
 	struct vuvdi_t *vdi = vudev_get_private_data(vudevfd->vudev);
-  return vdi->fd;
+	return vdi->fd;
 }
 
 int vuvdi_close(int fd, struct vudevfd_t *vudevfd) {
 	struct vuvdi_t *vdi = vudev_get_private_data(vudevfd->vudev);
 	vboxdd_flush(vdi->disk);
-  return 0;
+	return 0;
 }
 
 ssize_t vuvdi_pread(int fd, void *buf, size_t count, off_t offset, struct vudevfd_t *vudevfd) {
@@ -245,7 +245,7 @@ ssize_t vuvdi_pwrite(int fd, const void *buf, size_t count, off_t offset, struct
 }
 
 off_t vuvdi_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vudevfd) {
-  off_t ret_value;
+	off_t ret_value;
 	switch (whence) {
 		case SEEK_SET: ret_value = offset;
 									 break;
@@ -256,7 +256,7 @@ off_t vuvdi_lseek(int fd, off_t offset, int whence, struct vudevfd_t *vudevfd) {
 										 ret_value = vdi->size + offset;
 										 break;
 									 }
-    default:
+		default:
 									 errno = EINVAL;
 									 ret_value = (off_t) -1;
 									 break;
@@ -308,8 +308,8 @@ int vuvdi_ioctl(int fd, unsigned long request, void *addr, struct vudevfd_t *vud
 		}
 		return 0;
 	} else {
-    return -1;
-  }
+		return -1;
+	}
 }
 
 static void *vuvdi_init(const char *source, unsigned long flags, const char *args, struct vudev_t *vudev) {
@@ -344,7 +344,7 @@ exit_err:
 }
 
 int vuvdi_fini(void *private_data) {
-  struct vuvdi_t *vdi = private_data;
+	struct vuvdi_t *vdi = private_data;
 	if(vdi) {
 		vboxdd_close(vdi->disk, 0); /* If true, delete the image from the host disk. */
 		free(vdi);
@@ -355,12 +355,12 @@ int vuvdi_fini(void *private_data) {
 }
 
 struct vudev_operations_t vudev_ops = {
-  .open = vuvdi_open,
-  .close = vuvdi_close,
+	.open = vuvdi_open,
+	.close = vuvdi_close,
 	.pread = vuvdi_pread,
 	.pwrite = vuvdi_pwrite,
-  .lseek = vuvdi_lseek,
-  .ioctl = vuvdi_ioctl,
-  .init = vuvdi_init,
-  .fini = vuvdi_fini,
+	.lseek = vuvdi_lseek,
+	.ioctl = vuvdi_ioctl,
+	.init = vuvdi_init,
+	.fini = vuvdi_fini,
 };

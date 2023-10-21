@@ -4,9 +4,9 @@
 #include <vumodule.h>
 
 struct vumisc_info {
-  char *path;
-  struct vu_stat stat;
-  void *upcall_private;
+	char *path;
+	struct vu_stat stat;
+	void *upcall_private;
 };
 
 /* get the private data (return value of "init") */
