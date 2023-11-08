@@ -27,6 +27,7 @@
 #include<sys/stat.h>
 #include<vumodule.h>
 #include<libvumod.h>
+#include<volatilestream.h>
 
 typedef int (* pseudo_upcall)(int tag, FILE *f, int openflags, void *pseudoprivate);
 
@@ -180,7 +181,7 @@ int pseudofile_getdents64(int fd,  struct dirent64 *dirp,
 		return -1;
 	}
 	if (pseudofile->f == NULL) {
-		pseudofile->f = open_memstream(&pseudofile->ptr, &pseudofile->len);
+		pseudofile->f = volstream_open();
 		pseudofile->upcall(PSEUDOFILE_LOAD_DIRENTS, pseudofile->f, pseudofile->flags, pseudofile->pseudoprivate);
 		fflush(pseudofile->f);
 		fseeko(pseudofile->f, 0, SEEK_SET);

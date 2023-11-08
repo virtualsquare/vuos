@@ -7,6 +7,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 file(GLOB VUMODLIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 add_library(vumod SHARED ${VUMODLIB_SOURCES})
+target_link_libraries(vumod volatilestream)
 
 set_target_properties(vumod PROPERTIES VERSION ${VUMODLIB_VERSION_STRING}
         SOVERSION ${VUMODLIB_VERSION_MAJOR})
