@@ -39,7 +39,7 @@
 
 struct slowcall {
 	int epfd;
-	char stack[STACKSIZE];
+	//char stack[STACKSIZE];
 };
 static int (*libc_clone)();
 
@@ -80,9 +80,15 @@ static int slow_thread(void *arg) {
 
 pid_t vu_slowcall_during(struct slowcall *sc) {
 	//printk(">>>>>>>>>%lu\n", pthread_self());
+#if 0
 	return libc_clone(slow_thread, sc->stack + STACKSIZE,
 			CLONE_FILES | CLONE_VM | CLONE_CHILD_CLEARTID | CLONE_CHILD_SETTID | SIGCHLD,
 			sc);
+#endif
+	  pid_t pid;
+  if ((pid = r_fork()) == 0)
+		r_exit(slow_thread(sc));
+	return pid;
 }
 
 void vu_slowcall_out(struct slowcall *sc, struct vuht_entry_t *ht, int fd, uint32_t events, int nested) {

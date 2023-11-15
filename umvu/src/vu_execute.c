@@ -152,6 +152,12 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 	set_thread_sd(ssd);
 }
 
+/* clone3 is not currently supported */
+void wi_clone3(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->action = SKIPIT;
+	sd->ret_value = -ENOSYS;
+}
+
 __attribute__((constructor))
 	static void init(void) {
 		debug_set_name(s, "SYSCALL");
