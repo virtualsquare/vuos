@@ -208,14 +208,12 @@ int vu_vufs_access(char *path, int mode, int flags) {
 	while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
 		switch (status) {
 			case VUFSA_DOREAL:
-				retval = faccessat(vufs->rdirfd,
-						*path ? path : vufs->target,
-						mode, flags);
+				retval = faccessat(vufs->rdirfd, path,
+						mode, flags | AT_EMPTY_PATH);
 				break;
 			case VUFSA_DOVIRT:
-				retval = faccessat(vufs->vdirfd,
-						*path ? path : vufs->target,
-						mode, flags);
+				retval = faccessat(vufs->vdirfd, path,
+						mode, flags | AT_EMPTY_PATH);
 				break;
 			case VUFSA_ERR:
 				retval = -1;
@@ -549,11 +547,19 @@ int vu_vufs_rename (const char *oldpath, const char *newpath, int flags) {
 /* TRUNCATE always modifies never creates */
 
 /* for an unknown reason truncateat is missing */
-static int fake_truncateat(const char *dir, const char *path, off_t length) {
-	int pathlen = strlen(dir) + strlen(path) + 2;
-	char pathname[pathlen];
-	snprintf(pathname, pathlen, "%s/%s", dir, path);
-	return truncate(pathname, length);
+static int ftruncateat(int dirfd, const char *pathname, off_t length, int flags) {
+	if (flags & ~AT_EMPTY_PATH)
+		return errno = -EINVAL, -1;
+	if (flags & AT_EMPTY_PATH && *pathname == 0)
+		return ftruncate(dirfd, length);
+	else {
+		int fd = openat(dirfd, pathname, O_WRONLY);
+		if (fd < 0)
+			return fd;
+		int rv = ftruncate(fd, length);
+		close(fd);
+		return rv;
+	}
 }
 
 int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
@@ -568,10 +574,10 @@ int vu_vufs_truncate(const char *path, off_t length, int sfd, void *fdprivate) {
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
 			switch (status) {
 				case VUFSA_DOREAL:
-					retval = fake_truncateat(vufs->source, path, length);
+					retval = ftruncateat(vufs->rdirfd, path, length, AT_EMPTY_PATH);
 					break;
 				case VUFSA_DOVIRT:
-					retval = fake_truncateat(vufs->target, path, length);
+					retval = ftruncateat(vufs->vdirfd, path, length, AT_EMPTY_PATH);
 					break;
 				case VUFSA_DOCOPY:
 					retval = vufs_copyfile(vufs, path, length);
@@ -603,14 +609,12 @@ int vu_vufs_utimensat (int dirfd, const char *path,
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
 			switch (status) {
 				case VUFSA_DOREAL:
-					retval = utimensat(vufs->rdirfd,
-							*path ? path : vufs->source,
-							times, flags | AT_SYMLINK_NOFOLLOW);
+					retval = utimensat(vufs->rdirfd, path,
+							times, flags | AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH);
 					break;
 				case VUFSA_DOVIRT:
-					retval = utimensat(vufs->vdirfd,
-							*path ? path : vufs->target,
-							times, flags | AT_SYMLINK_NOFOLLOW);
+					retval = utimensat(vufs->vdirfd, path,
+							times, flags | AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH);
 					break;
 				case VUFSA_DOCOPY:
 					retval = vufs_copyfile(vufs, path, MAXSIZE);
