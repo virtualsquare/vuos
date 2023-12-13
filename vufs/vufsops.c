@@ -259,7 +259,11 @@ int vu_vufs_statfs (const char *path, struct statfs *buf, int sfd, void *fdpriva
 		while ((status = vufsa_next(status, vufs, path, retval)) != VUFSA_EXIT) {
 			switch (status) {
 				case VUFSA_DOREAL:
-					sfd = openat(vufs->rdirfd, path, O_PATH | AT_EMPTY_PATH);
+					/* openat O_EMPTY_PATH needed here */
+					if (*path == 0)
+						sfd = dup(vufs->rdirfd);
+					else
+						sfd = openat(vufs->rdirfd, path, O_PATH);
 					if (sfd < 0)
 						retval = -1;
 					else {
@@ -268,7 +272,11 @@ int vu_vufs_statfs (const char *path, struct statfs *buf, int sfd, void *fdpriva
 					}
 					break;
 				case VUFSA_DOVIRT:
-					sfd = openat(vufs->vdirfd, path, O_PATH | AT_EMPTY_PATH);
+					/* openat O_EMPTY_PATH needed here */
+					if (*path == 0)
+						sfd = dup(vufs->vdirfd);
+					else
+						sfd = openat(vufs->vdirfd, path, O_PATH);
 					if (sfd < 0)
 						retval = -1;
 					else {
@@ -716,10 +724,12 @@ int vu_vufs_open(const char *pathname, int flags, mode_t mode, void **private) {
 	while ((status = vufsa_next(status, vufs, pathname, retval)) != VUFSA_EXIT) {
 		switch (status) {
 			case VUFSA_DOREAL:
+				/* openat O_EMPTY_PATH needed here */
 				filepath = *pathname ? pathname : vufs->target;
 				retval = openat(vufs->rdirfd, filepath, flags, mode);
 				break;
 			case VUFSA_DOVIRT:
+				/* openat O_EMPTY_PATH needed here */
 				filepath = *pathname ? pathname : vufs->source;
 				if ((flags & O_CREAT) && oldmode == 0) {
 					vufs_create_path(vufs->vdirfd, filepath, vufs_copyfile_create_path_cb, vufs);
