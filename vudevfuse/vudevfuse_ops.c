@@ -56,6 +56,21 @@ VU_PROTOTYPES(fuse)
 #define LSTAT_THIS 0
 #define LSTAT_PARENT 1
 
+/*heuristics for file system which does not set st_ino */
+static inline unsigned long hash_inodeno (const char *s) {
+	unsigned long sum = 0;
+	while (*s) {
+		sum = sum ^ ((sum << 5) + (sum >> 2) + *s);
+		s++;
+	}
+	return sum;
+}
+
+/*heuristics for file system which does not set st_dev */
+static dev_t fake_dev(void *addr) {
+	return (dev_t)(((unsigned long) addr) >> 3);
+}
+
 static void fuse2stat(struct vu_stat *buf, struct fuse_attr *fa) {
 	memset(buf, 0, sizeof(*buf));
 	buf->st_ino = fa->ino;
@@ -170,8 +185,13 @@ static int fuse_lstat(struct fusemount_t *fusemount, const char *path,
 		return staterr;
 	if (nodeid)
 		*nodeid = rnodeid;
-	if (buf)
+	if (buf) {
 		fuse2stat(buf, &attr);
+		if (buf->st_ino == 0)
+			buf->st_ino = (ino_t)hash_inodeno(path);
+		if (buf->st_dev == 0)
+			buf->st_dev = fake_dev(fusemount);
+	}
 	return 0;
 }
 
@@ -263,6 +283,11 @@ int vu_fuse_open(const char *pathname, int flags, mode_t mode, void **fdprivate)
 			return free(fusefile), -1;
 
 		filemode = statbuf.st_mode;
+		if ((flags & O_DIRECTORY) && (!S_ISDIR(filemode)))
+			return free(fusefile), errno = ENOTDIR, -1;
+		if ((flags & O_ACCMODE) != O_RDONLY && (S_ISDIR(filemode)))
+			return free(fusefile), errno = EISDIR, -1;
+
 		int fuse_open_opendir =
 			(S_ISDIR(filemode)) ? FUSE_OPENDIR : FUSE_OPEN;
 		/* check flags for opendir? O_RDONLY */
