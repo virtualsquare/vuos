@@ -38,9 +38,9 @@
 #define DAEMONSIDE 1
 
 #define DEFAULT_IF_NAME "vde0"
+#define ETH_HEADER_SIZE 14
 
 #define CHILD_STACK_SIZE (256 * 1024)
-
 
 struct vdestack {
 	pid_t pid;
@@ -106,13 +106,13 @@ static int childFunc(void *arg)
 		}
 		if (pfd[1].revents & POLLIN) {
 			n = read(tapfd, buf, VDE_ETHBUFSIZE);
-			if (n == 0) break;
+			if (n <= 0) break;
 			vde_send(conn, buf, n, 0);
 		}
 		if (pfd[2].revents & POLLIN) {
 			n = vde_recv(conn, buf, VDE_ETHBUFSIZE, 0);
-			if (n == 0) break;
-			if (write(tapfd, buf, n) < 0)
+			if (n <= 0) break;
+			if (n >= ETH_HEADER_SIZE && write(tapfd, buf, n) < 0)
 				break;
 		}
 		//printk("poll out\n");
