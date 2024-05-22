@@ -36,7 +36,7 @@ Everything is (or can be seen) as a file. It is part of the philosophy
 of UNIX.  The file hierarchy is the global naming facility.
 
 VUOS follows this principle: VUOS modules use `mount`(2) not only to
-mount virtual filesystems but also to activate other virual services.
+mount virtual filesystems but also to activate other virtual services.
 The mountpoint, *destination* in the synopsis, is the name
 that will be used to identify the virtual entity/service.
 
