@@ -63,7 +63,7 @@ char *mountflag_strings[32] = {
 	"nouser", // 1 << 31 (MS_NOUSER)
 };
 
-static char *strlcpy(char *dst, char *src, char *limit) {
+static char *strlpcpy(char *dst, char *src, char *limit) {
 	while (*src && dst < limit - 1)
 		*dst++ = *src++;
 	*dst = 0;
@@ -77,13 +77,13 @@ size_t mountflags2opts(unsigned long mountflags, char *opts, size_t optslen) {
 		char *nextopt = opts;
 		*nextopt = 0;
 		if (mountflags & 1)
-			nextopt = strlcpy(nextopt, mountflag_strings[0], limit);
+			nextopt = strlpcpy(nextopt, mountflag_strings[0], limit);
 		else
-			nextopt = strlcpy(nextopt, "rw", limit);
+			nextopt = strlpcpy(nextopt, "rw", limit);
 		for (i = 1; i < 32; i++) {
 			if ((mountflags & (1UL << i)) && (mountflag_strings[i])) {
-				nextopt = strlcpy(nextopt, ",", limit);
-				nextopt = strlcpy(nextopt, mountflag_strings[i], limit);
+				nextopt = strlpcpy(nextopt, ",", limit);
+				nextopt = strlpcpy(nextopt, mountflag_strings[i], limit);
 			}
 		}
 		return (nextopt - opts) + 1;
