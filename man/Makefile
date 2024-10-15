@@ -6,8 +6,9 @@ PANDOCMINVER=3.1.7
 ifdef PANDOCOK
 PANDOCVER := $(shell ${PANDOC} -v | head -1 | cut -d ' ' -f 2)
 PANDOCVEROK := $(shell printf '%s\n' ${PANDOCMINVER} ${PANDOCVER} | sort -C -V; echo $$?)
-none:
 endif
+
+none:
 
 % : %.md
 ifdef PANDOCOK
