@@ -221,12 +221,13 @@ int vu_vumisc_clock_getres(clockid_t clk_id, struct timespec *res) {
 
 static int vumisc_confirm(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
 	int *sc = arg;
+	struct vumisc_t *vumisc = vuht_get_private_data(ht);
 	int index;
 	for (index = 0; index < NUM_VUMISC_SC; index++) {
 		if (vu_arch_table[vumisc_nr[index]] == *sc)
 			break;
 	}
-	if (index == NUM_VUMISC_SC)
+	if (index == NUM_VUMISC_SC || vumisc->ops[index] == NULL)
 		return 0;
 	else {
 		if (IS_CLOCK_OP(index)) {
