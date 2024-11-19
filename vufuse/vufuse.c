@@ -330,8 +330,10 @@ struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
 		void *user_data)
 {
 	struct fuse *fuse = (struct fuse *)ch;
-	if (op_size != sizeof(struct fuse_operations))
-		printk(KERN_ERR "Fuse module vs vufuse support version mismatch");
+	if (op_size != sizeof(struct fuse_operations)) {
+		printk(KERN_ERR "Fuse module vs vufuse support version mismatch\n");
+		return NULL;
+	}
 	if (fuse != vu_get_ht_private_data() || op_size != sizeof(struct fuse_operations)){
 		fuse->inuse=FUSE_ABORT;
 		return NULL;
@@ -356,21 +358,14 @@ void fuse_destroy(struct fuse *f)
 
 int fuse_loop(struct fuse *f)
 {
-	if (f != NULL) {
-
-		pthread_mutex_lock( &condition_mutex );
-		f->inuse = 0;
-		pthread_cond_signal( &f->startloop );
-		////pthread_mutex_unlock( &condition_mutex );
-		//pthread_mutex_lock( &f->endmutex );
-		////pthread_mutex_lock( &condition_mutex );
-		if (f->inuse != EXITING) {
-			//pthread_cond_wait( &f->endloop, &f->endmutex );
-			pthread_cond_wait( &f->endloop, &condition_mutex );
-		}
-		//pthread_mutex_unlock( &f->endmutex );
-		pthread_mutex_unlock( &condition_mutex );
-	}
+	if (f == NULL)
+		return -1;
+	pthread_mutex_lock( &condition_mutex );
+	f->inuse = 0;
+	pthread_cond_signal( &f->startloop );
+	if (f->inuse != EXITING)
+		pthread_cond_wait( &f->endloop, &condition_mutex );
+	pthread_mutex_unlock( &condition_mutex );
 	return 0;
 }
 
