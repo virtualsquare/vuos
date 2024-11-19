@@ -22,7 +22,7 @@
 #ifndef VUFUSE_DEFAULT_OPS_H
 #define VUFUSE_DEFAULT_OPS_H
 
-#include <fuse.h>
+#include <fuse3/fuse.h>
 
 extern struct fuse_operations vufuse_default_ops;
 

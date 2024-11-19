@@ -20,7 +20,7 @@
  *
  */
 
-#include <fuse.h>
+#include <fuse3/fuse.h>
 #include <errno.h>
 #include <stdio.h>
 #include <libgen.h>
@@ -28,7 +28,7 @@
 
 /* Check fuse.h for the documentation*/
 
-static int vustd_getattr (const char *path, struct stat *stat)
+static int vustd_getattr (const char *path, struct stat *stat, struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT getattr %s\n", path);
 	return -ENOTSUP;
@@ -38,12 +38,6 @@ static int vustd_readlink (const char *path, char *link, size_t size)
 {
 	printkdebug(F,"DEFAULT readlink %s\n", path);
 	return -EINVAL;
-}
-
-static int vustd_getdir (const char *path, fuse_dirh_t dir, fuse_dirfil_t dirf)
-{
-	printkdebug(F,"DEFAULT getdir %s\n", path);
-	return -ENOSYS;
 }
 
 static int vustd_mknod (const char *path, mode_t mode, dev_t dev)
@@ -76,7 +70,7 @@ static int vustd_symlink (const char *path, const char *newpath)
 	return -ENOSYS;
 }
 
-static int vustd_rename (const char *path, const char *newpath)
+static int vustd_rename (const char *path, const char *newpath, unsigned int flags)
 {
 	printkdebug(F,"DEFAULT rename %s\n", path);
 	return -ENOSYS;
@@ -88,31 +82,25 @@ static int vustd_link (const char *path, const char *newpath)
 	return -ENOSYS;
 }
 
-static int vustd_chmod (const char *path, mode_t mode)
+static int vustd_chmod (const char *path, mode_t mode, struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT chmod %s\n", path);
 	return -ENOSYS;
 }
 
-static int vustd_chown (const char *path, uid_t uid, gid_t gid)
+static int vustd_chown (const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT chown %s\n", path);
 	return -ENOSYS;
 }
 
-static int vustd_truncate (const char *path, off_t off)
+static int vustd_truncate (const char *path, off_t off, struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT truncat %s\n", path);
 	return -ENOSYS;
 }
 
-static int vustd_utime (const char *path, struct utimbuf *timbuf)
-{
-	printkdebug(F,"DEFAULT utime %s\n", path);
-	return -ENOSYS;
-}
-
-static int vustd_open (const char *path, struct fuse_file_info *fileinfo)
+static int vustd_open (const char *path, struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT open %s\n", path);
 	return -ENOSYS;
@@ -222,25 +210,13 @@ static int vustd_create (const char *path, mode_t mode, struct fuse_file_info *f
 	return -ENOSYS;
 }
 
-static int vustd_ftruncate (const char *path, off_t length, struct fuse_file_info *fileinfo)
-{
-	printkdebug(F,"DEFAULT ftruncate %s\n", path);
-	return -ENOSYS;
-}
-
-static int vustd_fgetattr (const char *path, struct stat *buf, struct fuse_file_info *fileinfo)
-{
-	printkdebug(F,"DEFAULT ftruncate %s\n", path);
-	return -ENOSYS;
-}
-
 static int vustd_lock (const char *path, struct fuse_file_info *fileinfo, int cmd, struct flock *fl)
 {
 	printkdebug(F,"DEFAULT lock %s\n", path);
 	return -ENOSYS;
 }
 
-static int vustd_utimens(const char *path, const struct timespec tv[2])
+static int vustd_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi)
 {
 	printkdebug(F,"DEFAULT utimens %s\n", path);
 	return -ENOSYS;
@@ -255,7 +231,6 @@ static int vustd_bmap (const char *path, size_t blocksize, uint64_t *idx)
 struct fuse_operations vufuse_default_ops = {
 	.getattr = vustd_getattr,
 	.readlink = vustd_readlink,
-	.getdir = vustd_getdir,
 	.mknod = vustd_mknod,
 	.mkdir = vustd_mkdir,
 	.unlink = vustd_unlink,
@@ -266,7 +241,6 @@ struct fuse_operations vufuse_default_ops = {
 	.chmod = vustd_chmod,
 	.chown = vustd_chown,
 	.truncate = vustd_truncate,
-	.utime = vustd_utime,
 	.open = vustd_open,
 	.read = vustd_read,
 	.write = vustd_write,
@@ -287,8 +261,6 @@ struct fuse_operations vufuse_default_ops = {
 
 	.access = vustd_access,
 	.create = vustd_create,
-	.ftruncate = vustd_ftruncate,
-	.fgetattr = vustd_fgetattr,
 	.lock = vustd_lock,
 	.utimens = vustd_utimens,
 	.bmap = vustd_bmap,
