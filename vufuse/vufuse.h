@@ -20,11 +20,8 @@
 
 #ifndef VUFUSE_H
 #define VUFUSE_H
-#include <fuse.h>
 
-#ifndef VUFUSE_FUSE_VERSION
-#define VUFUSE_FUSE_VERSION 29
-#endif
+#include <fuse3/fuse.h>
 
 /** Enable hard remove */
 #define FUSE_HARDREMOVE  (1 << 0)

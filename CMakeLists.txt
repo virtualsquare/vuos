@@ -9,9 +9,10 @@ include(GNUInstallDirs)
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 
-set(LIBS_REQUIRED stropt volatilestream execs vdeplug fuse)
-set(HEADERS_REQUIRED stropt.h strcase.h volatilestream.h execs.h libvdeplug.h fuse.h pthread.h)
-set(CMAKE_REQUIRED_DEFINITIONS -D_FILE_OFFSET_BITS=64)
+set(LIBS_REQUIRED stropt volatilestream execs vdeplug fuse3)
+set(HEADERS_REQUIRED stropt.h strcase.h volatilestream.h execs.h libvdeplug.h fuse3/fuse.h pthread.h)
+# DFUSE_USE_VERSION 300 is just to test fuse3-dev availability
+set(CMAKE_REQUIRED_DEFINITIONS -D_FILE_OFFSET_BITS=64 -DFUSE_USE_VERSION=300)
 
 foreach(THISLIB IN LISTS LIBS_REQUIRED)
   find_library(LIB${THISLIB}_OK ${THISLIB})

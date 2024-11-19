@@ -13,12 +13,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program (in the main directory of the fuse-ext2
+ * along with this program (in the main directory of the vuos
  * distribution in the file COPYING); if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#define FUSE_USE_VERSION 29
+#define FUSE_USE_VERSION FUSE_MAKE_VERSION(3, 14)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fuse.h>
+#include <fuse3/fuse.h>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -54,7 +54,7 @@ path = path ## _fullpath
 
 #define RETURNZER0(retvalue) return ((retvalue < 0) ? -errno : 0)
 
-void * op_init (struct fuse_conn_info *conn){
+void * op_init (struct fuse_conn_info *conn, struct fuse_config *cfg){
 	struct fuse_context *cntx=fuse_get_context();
 	return cntx->private_data;
 }
@@ -72,14 +72,7 @@ int op_access(const char *path, int mask){
 	RETURN(rv);
 }
 
-int op_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi){
-	int fd = (int) fi->fh;
-	int rv = fstat(fd,stbuf);
-
-	RETURN(rv);
-}
-
-int op_getattr(const char *path, struct stat *stbuf){
+int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi){
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
@@ -119,7 +112,8 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 	RETURN(rv);
 }
 
-int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
+int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, 
+		struct fuse_file_info *fi, enum fuse_readdir_flags flags){
 	struct fuse_context *cntx = fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
@@ -142,9 +136,9 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
 		//ignoring offset
 		if (lstat(filename, &stbuf) >=  0)
-			filler(buf, de->d_name, &stbuf, 0);
+			filler(buf, de->d_name, &stbuf, 0, 0);
 		else
-			filler(buf, de->d_name, NULL, 0);
+			filler(buf, de->d_name, NULL, 0, 0);
 		//test for return value 1 ?
 	}
 	closedir(dr);
@@ -182,7 +176,7 @@ int op_statfs(const char *path, struct statvfs *buf){
 	RETURN(rv);
 }
 
-int op_chmod(const char *path, mode_t mode){
+int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi){
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
@@ -191,7 +185,7 @@ int op_chmod(const char *path, mode_t mode){
 	RETURN(rv);
 }
 
-int op_chown(const char *path, uid_t uid, gid_t gid){
+int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi){
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
@@ -251,7 +245,7 @@ int op_unlink(const char *path){
 	RETURN(rv);
 }
 
-int op_utimens(const char *path, const struct timespec tv[2]){
+int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi){
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
@@ -290,19 +284,11 @@ int op_symlink(const char *sourcename, const char *destname){
 	RETURN(rv);
 }
 
-int op_truncate(const char *path, off_t length){
+int op_truncate(const char *path, off_t length, struct fuse_file_info *fi){
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
 	GETPATH(sourcepath, path);
 	int rv = truncate(path,length);
-
-	RETURN(rv);
-}
-
-int op_ftruncate(const char *path, off_t length, struct fuse_file_info *fi){
-	int fd = (int) fi->fh;
-
-	int rv = ftruncate(fd,length);
 
 	RETURN(rv);
 }
@@ -320,7 +306,7 @@ int op_link (const char *source, const char *dest){
 }
 
 //called only on internal rename
-int op_rename(const char *source, const char *dest){
+int op_rename(const char *source, const char *dest,  unsigned int flags){
 
 	struct fuse_context *cntx=fuse_get_context();
 	char *sourcepath = cntx->private_data;
@@ -363,8 +349,6 @@ static const struct fuse_operations real_ops = {
 	.destroy        = op_destroy,
 	.access         = op_access,
 	.create         = op_create,
-	.ftruncate      = op_ftruncate,
-	.fgetattr       = op_fgetattr,
 	.lock           = NULL,
 	.utimens        = op_utimens,
 	.bmap           = NULL,

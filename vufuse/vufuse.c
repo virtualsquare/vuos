@@ -169,7 +169,9 @@ int vu_vufuse_mount(const char *source, const char *target,
 			struct fuse_conn_info conn;
 			struct fuse_context fcx, *ofcx;
 			ofcx = fuse_push_context (&fcx);
-			new_fuse->private_data=new_fuse->fops.init(&conn);
+			struct fuse_config cfg; /* XXX */
+			memset(&cfg, 0, sizeof(cfg));
+			new_fuse->private_data=new_fuse->fops.init(&conn, &cfg);
 			fuse_pop_context(ofcx);
 		}
 
@@ -275,7 +277,7 @@ void fuse_pop_context(struct fuse_context *old) {
 /*******************************************************************************************/
 /* fuse related functions*/
 
-int fuse_version(void) { return VUFUSE_FUSE_VERSION;}
+int fuse_version(void) { return FUSE_USE_VERSION;}
 
 struct fuse_context *fuse_get_context(void)
 {
@@ -286,9 +288,9 @@ int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
 		size_t op_size, void *user_data)
 {
 	struct fuse *f;
-	struct fuse_chan *fusechan = fuse_mount(NULL, NULL); /*options have been already parsed*/
-	if (fusechan != NULL) {
-		f = fuse_new(fusechan, NULL, op, op_size, user_data);
+	int res = fuse_mount(NULL, NULL); /*options have been already parsed*/
+	if (res != -1) {
+		f = fuse_new(NULL, op, op_size, user_data);
 
 		return fuse_loop(f);
 	} else
@@ -297,13 +299,12 @@ int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
 
 /* fuse_mount and fuse_unmount are dummy functions,
  * the real mount operation has been done in vufuse_mount */
-struct fuse_chan *fuse_mount(const char *mountpoint, struct fuse_args *args)
+int fuse_mount(struct fuse *f, const char *mountpoint)
 {
-	return vu_get_ht_private_data();
+	return 0;
 }
 
-void fuse_unmount(const char *mountpoint, struct fuse_chan *ch)
-{
+void fuse_unmount(struct fuse* f) {
 	return;
 }
 
@@ -325,11 +326,11 @@ static void fopsmerge (const struct fuse_operations *fops, const struct fuse_ope
 	}
 }
 
-struct fuse *fuse_new(struct fuse_chan *ch, struct fuse_args *args,
+struct fuse *fuse_new(struct fuse_args *args,
 		const struct fuse_operations *op, size_t op_size,
 		void *user_data)
 {
-	struct fuse *fuse = (struct fuse *)ch;
+	struct fuse *fuse = vu_get_ht_private_data();
 	if (op_size != sizeof(struct fuse_operations)) {
 		printk(KERN_ERR "Fuse module vs vufuse support version mismatch\n");
 		return NULL;
@@ -379,12 +380,21 @@ void fuse_exit(struct fuse *f)
 
 }
 
-int fuse_loop_mt(struct fuse *f)
+#if FUSE_USE_VERSION < 32
+int fuse_loop_mt(struct fuse *f, int clone_fd)
 {
 	//in fuselib is FUSE event loop with multiple threads,
 	//but hereeverything has multiple threads ;-)
 	return fuse_loop(f);
 }
+#else
+int fuse_loop_mt(struct fuse *f, struct fuse_loop_config *config)
+{
+	//in fuselib is FUSE event loop with multiple threads,
+	//but hereeverything has multiple threads ;-)
+	return fuse_loop(f);
+}
+#endif
 
 /* other dummy functions. useless for vufuse */
 struct fuse_session *fuse_get_session(struct fuse *f) {
@@ -408,13 +418,6 @@ int fuse_parse_cmdline(struct fuse_args *args, char **mountpoint,
 	*multithreaded = 0;
 	*foreground = 1;
 	return 0;
-}
-
-int fuse_chan_fd(struct fuse_chan *ch) {
-	struct fuse *fuse = vu_get_ht_private_data();
-	if (fuse->fake_chan_fd == -1)
-		fuse->fake_chan_fd = open("/", O_PATH);
-	return fuse->fake_chan_fd;
 }
 
 /* constructor / destructor */

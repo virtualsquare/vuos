@@ -13,12 +13,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program (in the main directory of the fuse-ext2
+ * along with this program (in the main directory of the vuos
  * distribution in the file COPYING); if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#define FUSE_USE_VERSION 29
+#define FUSE_USE_VERSION FUSE_MAKE_VERSION(3, 14)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fuse.h>
+#include <fuse3/fuse.h>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -45,7 +45,7 @@
 
 int fuse_reentrant_tag = 0;
 
-int op_getattr(const char *path, struct stat *stbuf){
+int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi){
 	if (strcmp(path, "/") == 0) {
 		memset(stbuf, 0, sizeof(*stbuf));
 		stbuf->st_mode = 0755 | S_IFDIR;
@@ -54,9 +54,10 @@ int op_getattr(const char *path, struct stat *stbuf){
 	} else
 		return -ENOENT;
 }
-int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi){
-	filler(buf, ".", NULL, 0);
-	filler(buf, "..", NULL, 0);
+int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
+		struct fuse_file_info *fi, enum fuse_readdir_flags flags){
+	filler(buf, ".", NULL, 0, 0);
+	filler(buf, "..", NULL, 0, 0);
 	return 0;
 }
 
