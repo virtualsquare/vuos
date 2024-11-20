@@ -12,4 +12,4 @@ target_link_libraries(vumod volatilestream)
 set_target_properties(vumod PROPERTIES VERSION ${VUMODLIB_VERSION_STRING}
         SOVERSION ${VUMODLIB_VERSION_MAJOR})
 
-install(TARGETS vumod LIBRARY DESTINATION lib)
+install(TARGETS vumod LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
