@@ -107,7 +107,7 @@ static struct option long_options[] = {
 	{"viewname",0,0,'N'},
 	{"quiet",0,0,'q'},
 	{"nouname",0,0,'x'},
-	{"promt",0,0,'P'},
+	{"prompt",0,0,'P'},
 	{"help",0,0,0x100},
 	{"version",0,0,0x101},
 	{0,0,0,0}

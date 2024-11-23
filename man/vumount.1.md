@@ -42,7 +42,7 @@ that will be used to identify the virtual entity/service.
 
 For example, in `vudev` it is possible to mount devices, in `vunet` the
 mountpoint is the name of the networking stack, `vustack`(1) uses the path
-ofthe mountpoint to set the current stack for processes.
+of the mountpoint to set the current stack for processes.
 
 `vumount` is just a command interface to `mount`(2).
 The `mount`(8) command is a complex tool which includes several features like

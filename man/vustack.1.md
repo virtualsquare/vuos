@@ -33,7 +33,7 @@
 # DESCRIPTION
 
 `vunet` is the VUOS module for networking virtualization. Networking
-stacks can be loaded using `vumount`(1) and are indentified by a pathname:
+stacks can be loaded using `vumount`(1) and are identified by a pathname:
 the mount point. `vustack` selects the stack to use among those available;
 *command* runs using the stack selected `vustack`.
 

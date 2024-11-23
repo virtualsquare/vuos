@@ -32,7 +32,7 @@
 
 # DESCRIPTION
 
-`vusu` allows to run commands with a substitute user and group ID (in VUOS).
+`vusu` allows one to run commands with a substitute user and group ID (in VUOS).
 It requires a module loaded in VUOS able to redefine uid/gid, e.g. `unrealuidgid`.
 
 When called without arguments, `vusu` defaults to running an interactive shell as

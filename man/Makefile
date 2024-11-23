@@ -13,7 +13,7 @@ none:
 % : %.md
 ifdef PANDOCOK
 ifeq (${PANDOCVEROK}, 1)
-		echo "${PANDOC} ${PANDOCVER} < ${PANDOCMINVER}. $@ can create font warnings with man/groff" >/dev/stderr >&2
+		echo "${PANDOC} ${PANDOCVER} < ${PANDOCMINVER}. $@ can create font warnings with man/groff" >&2
 endif
 # copy copyright notice
 		grep "^\.\\\\\"" $< > $@ || true
@@ -25,7 +25,7 @@ endif
 		$(PANDOC) -standalone -M title=${TITLE} -M section=${SECTION} -M header=${HEADER} -M footer=${PANDOC_ORG} -M "date=`date +\"%B %Y\"`" --to man $< >> $@
 # workaround for boldface rendering
 		sed -i -e 's/\\f\[CR\]/\\f\[CB\]/g' $@ || true
-		echo "$@ manpage updated" >/dev/stderr >&2
+		echo "$@ manpage updated" >&2
 else
-		echo "${PANDOC} is not available. Manpage $@ cannot be updated" >/dev/stderr >&2
+		echo "${PANDOC} is not available. Manpage $@ cannot be updated" >&2
 endif
