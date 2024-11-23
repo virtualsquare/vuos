@@ -6,7 +6,7 @@ This program can be distributed under the terms of the GNU LGPLv2.
 See the file COPYING.LIB
  */
 
-#include <fuse/fuse_opt.h>
+#include <fuse3/fuse_opt.h>
 
 #include <stdio.h>
 #include <stdlib.h>
