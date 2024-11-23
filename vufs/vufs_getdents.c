@@ -67,9 +67,8 @@ static int vufs_seen_entry(char *s, char *list) {
 }
 
 static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdprivate *vufs_fdprivate) {
-	char *seenlist = NULL;
-	size_t seenlistlen = 0;
-	FILE *seenf = open_memstream(&seenlist, &seenlistlen);
+	FILE *seenf = volstream_open();
+	void *seenlist = NULL;
 	DIR *dir;
 	struct dirent *de;
 	int dirfd;
@@ -112,6 +111,7 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 		/* write the empty string as the end of the seen list */
 		fwrite("", 1, 1, seenf);
 		fflush(seenf);
+		volstream_getbuf(seenf, &seenlist, NULL);
 		/* ADD unseen entries in rdirfd (target) (if merge) */
 		if (vufs_fdprivate->path[0] == 0)
 			dirfd = openat(vufs->rdirfd, vufs->target, O_RDONLY | O_DIRECTORY);
@@ -127,8 +127,6 @@ static void vufs_filldir(unsigned int fd, struct vufs_t *vufs, struct vufs_fdpri
 		}
 	}
 	fclose(seenf);
-	if (seenlist != NULL)
-		free(seenlist);
 	fseeko(vufs_fdprivate->getdentsf, 0, SEEK_SET);
 }
 

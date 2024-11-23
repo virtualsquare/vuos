@@ -36,8 +36,6 @@ struct pseudofile {
 	void *pseudoprivate;
 	int flags;
 	FILE *f;
-	char *ptr;
-	size_t len;
 };
 
 int pseudofile_mode2type(mode_t mode) {
@@ -99,15 +97,13 @@ int pseudofile_open(pseudo_upcall upcall, void *pseudoprivate, int flags, void *
 	pseudofile->pseudoprivate = pseudoprivate;
 	pseudofile->flags = flags;
 	pseudofile->f = NULL;
-	pseudofile->ptr = NULL;
-	pseudofile->len = 0;
 
 	*private = pseudofile;
 	return 0;
 }
 
 static void pseudofile_load_contents(struct pseudofile *pseudofile) {
-	pseudofile->f = open_memstream(&pseudofile->ptr, &pseudofile->len);
+	pseudofile->f = volstream_open();
 	if ((pseudofile->flags & O_ACCMODE) != O_WRONLY && !(pseudofile->flags & O_TRUNC)) {
 		pseudofile->upcall(PSEUDOFILE_LOAD_CONTENTS, pseudofile->f, pseudofile->flags, pseudofile->pseudoprivate);
 		fflush(pseudofile->f);
@@ -124,8 +120,6 @@ int pseudofile_close(int fd, void *private) {
 		pseudofile->upcall(PSEUDOFILE_STORE_CLOSE, pseudofile->f, pseudofile->flags, pseudofile->pseudoprivate);
 		if (pseudofile->f)
 			fclose(pseudofile->f);
-		if (pseudofile->ptr)
-			free(pseudofile->ptr);
 		free(pseudofile);
 	}
 	return 0;
