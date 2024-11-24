@@ -133,7 +133,6 @@ int vu_vufuse_mount(const char *source, const char *target,
 		new_fuse->mountflags = mountflags;
 		new_fuse->fuseflags = 0;
 		new_fuse->inuse = WAITING_FOR_LOOP;
-		new_fuse->fake_chan_fd = -1;
 
 		new_fuse->private_data = NULL;
 
@@ -182,6 +181,7 @@ int vu_vufuse_mount(const char *source, const char *target,
 		return 0;
 err_startloop_fault:
 		pthread_mutex_unlock(&(new_fuse->mutex));
+		pthread_join(new_fuse->thread, NULL);
 		/* new and new_fuse as well as waiting for the thread to terminate
 			 done by cleanup */
 		vuht_del(ht,1);
@@ -205,8 +205,6 @@ static void vufuse_umount_internal(struct fuse *fuse) {
 
 	pthread_mutex_lock( &condition_mutex );
 	fuse->inuse= EXITING;
-	if (fuse->fake_chan_fd != -1)
-		close(fuse->fake_chan_fd);
 	pthread_cond_signal(&fuse->endloop);
 	pthread_mutex_unlock( &condition_mutex );
 	pthread_join(fuse->thread, NULL);
@@ -331,19 +329,16 @@ struct fuse *fuse_new(struct fuse_args *args,
 		void *user_data)
 {
 	struct fuse *fuse = vu_get_ht_private_data();
+	pthread_mutex_lock( &condition_mutex );
 	if (op_size != sizeof(struct fuse_operations)) {
 		printk(KERN_ERR "Fuse module vs vufuse support version mismatch\n");
-		return NULL;
-	}
-	if (fuse != vu_get_ht_private_data() || op_size != sizeof(struct fuse_operations)){
 		fuse->inuse=FUSE_ABORT;
-		return NULL;
-	}
-	else {
+	} else {
 		fuse->private_data = user_data;
 		fopsmerge(&fuse->fops, op, op_size);
-		return fuse;
 	}
+	pthread_mutex_unlock( &condition_mutex );
+	return fuse;
 }
 
 void fuse_destroy(struct fuse *f)
@@ -359,12 +354,11 @@ void fuse_destroy(struct fuse *f)
 
 int fuse_loop(struct fuse *f)
 {
-	if (f == NULL)
-		return -1;
 	pthread_mutex_lock( &condition_mutex );
-	f->inuse = 0;
+	if (f->inuse != FUSE_ABORT)
+		f->inuse = 0;
 	pthread_cond_signal( &f->startloop );
-	if (f->inuse != EXITING)
+	if (f->inuse != EXITING && f->inuse != FUSE_ABORT)
 		pthread_cond_wait( &f->endloop, &condition_mutex );
 	pthread_mutex_unlock( &condition_mutex );
 	return 0;
