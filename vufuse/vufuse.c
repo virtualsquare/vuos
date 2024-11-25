@@ -355,6 +355,10 @@ void fuse_destroy(struct fuse *f)
 int fuse_loop(struct fuse *f)
 {
 	pthread_mutex_lock( &condition_mutex );
+	if (f == NULL) {
+		f = vu_get_ht_private_data();
+		f->inuse = FUSE_ABORT;
+	}
 	if (f->inuse != FUSE_ABORT)
 		f->inuse = 0;
 	pthread_cond_signal( &f->startloop );
