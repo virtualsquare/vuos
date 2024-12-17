@@ -249,7 +249,6 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 		int objlen, void *checkobj,
 		int exact) {
 	struct vuht_entry_t *rv = NULL;
-	epoch_t tst = get_vepoch();
 	char *objc = obj;
 	long sum = type;
 	long hash;
@@ -261,18 +260,16 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 	pthread_rwlock_rdlock(&vuht_rwlock);
 	/* scan the object one byte at a time, and check the hash table for
 		 each meaningful heading subsequence. The most specific (and more recent)
-		 matches are preferred. Hash eleemnts may have exceptions: during
+		 matches are preferred. Hash elements may have exceptions: during
 		 this phase the scan generates a "carrot" of possible matches */
 	while (1) {
 		if (vuht_scan_stop(type, objc, len, exact)) {
 			hash = hashmod(sum);
-			ht = vuht_hash[hash];
-			ht=(len) ? vuht_hash[hash] : vuht_hash0[type];
+			ht = (len) ? vuht_hash[hash] : vuht_hash0[type];
 			while (ht != NULL) {
 				if (type == ht->type && sum == ht->hashsum &&
 						memcmp(obj, ht->obj, len) == 0 &&
 						(ht->trailingnumbers || !trailnum(objc)) &&
-						(tst > ht->timestamp) &&
 						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
 					if (ht->confirmfun == NEGATIVE_MOUNT)

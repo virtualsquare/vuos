@@ -73,7 +73,7 @@ char *get_path(int dirfd, syscall_arg_t addr, struct vu_stat *buf, int flags, ui
 		umvu_peek_str(addr, path, PATH_MAX);
 	}
 	ret_value = canon_realpath_dup(path, realpath_flags(flags), &realpath_arg);
-	printkdebug(p,"get_%spath %d %s->%s errno:%d epoch:%d rewr:%d",
+	printkdebug(p,"get_%spath %d %s->%s errno:%d epoch:0x%lx rewr:%d",
 			nested ? "nested_" : "",
 			dirfd, path, ret_value, errno, get_vepoch(), realpath_arg.need_rewrite);
 	if (need_rewrite)
