@@ -299,7 +299,7 @@ int vu_vumisc_mount(const char *source, const char *target,
 		pthread_mutex_lock(&(new->mutex));
 		new->path_ht = vuht_pathadd(CHECKPATH,
 				source, target, filesystemtype, mountflags, data, s, 0, NULL, new);
-		new->ops_ht = vuht_add(CHECKSC, NULL, 0, s, vumisc_confirm, new, 0);
+		new->ops_ht = vuht_add(CHECKSC, NULL, 0, s, 0, vumisc_confirm, new);
 		pthread_mutex_unlock(&(new->mutex));
 		return errno = 0, 0;
 err_init_null:

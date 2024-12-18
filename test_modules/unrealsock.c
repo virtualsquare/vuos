@@ -64,7 +64,7 @@ void *vu_unrealsock_init(void) {
 #pragma GCC diagnostic pop
 
 	for (i = 0; i < 3; i++)
-		ht[i] = vuht_add(CHECKSOCKET, &afs[i], sizeof(int), s, NULL, NULL, 0);
+		ht[i] = vuht_add(CHECKSOCKET, &afs[i], sizeof(int), s, 0, NULL, NULL);
 	return NULL;
 }
 

@@ -430,10 +430,10 @@ int vu_vubinfmt_mount(const char *source, const char *target,
 	switch(strcase(source)) {
 		case STRCASE(n,o,n,e):
 		case STRCASE(slash):
-			new->binfmt_ht = vuht_add(CHECKBINFMT, NULL, 0, s, vubinfmt_confirm, new, 0);
+			new->binfmt_ht = vuht_add(CHECKBINFMT, NULL, 0, s, 0, vubinfmt_confirm, new);
 			break;
 		default:
-			new->binfmt_ht = vuht_add(CHECKBINFMT, source, strlen(source), s, vubinfmt_confirm, new, 0);
+			new->binfmt_ht = vuht_add(CHECKBINFMT, source, strlen(source), s, 0, vubinfmt_confirm, new);
 			break;
 	}
 	new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, new);

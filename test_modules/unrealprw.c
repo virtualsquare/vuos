@@ -18,7 +18,7 @@
  *
  */
 
-/* this is a test module:
+/* this is a test module: it is a copy of unreal supporting only pread/pwrite.
 	 when loaded the entire file system "appears" as /unreal and /unreal/unreal.
 
 	 $ vu_insmod unreal

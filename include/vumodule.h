@@ -168,19 +168,21 @@ void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
+#define VUFLAG_PERMANENT       1
+#define VUFLAG_TRAILINGNUMBERS 2
+
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht);
 
 struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
-		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *ht_private_data, int permanent);
+		struct vu_service_t *service, int vuflags,
+		confirmfun_t confirmfun, void *private_data);
 
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
-		struct vu_service_t *service,
-		unsigned char trailingnumbers,
-		confirmfun_t confirmfun, void *ht_private_data);
+		struct vu_service_t *service, int vuflags,
+		confirmfun_t confirmfun, void *private_data);
 
 #define BINFMTBUFLEN 128
 #define BINFMTLINELEN 1920

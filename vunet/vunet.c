@@ -425,10 +425,10 @@ int vu_vunet_mount(const char *source, const char *target,
 				retvalue = -1;
 			} else {
 				if (vunet->netops->supported_ioctl)
-					vunet->ioctl_ht = vuht_add(CHECKIOCTL, NULL, 0, s, checkioctl, vunet, 0);
+					vunet->ioctl_ht = vuht_add(CHECKIOCTL, NULL, 0, s, 0, checkioctl, vunet);
 				else
 					vunet->ioctl_ht = NULL;
-				vunet->socket_ht = vuht_add(CHECKSOCKET, NULL, 0, s, checksocket, vunet, 0);
+				vunet->socket_ht = vuht_add(CHECKSOCKET, NULL, 0, s, 0, checksocket, vunet);
 				vunet->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags, data, s, 0, NULL, vunet);
 				printkdebug(N, "mount \'%s\' \'%s\' %s -> %p", source, target, filesystemtype, vunet);
 			}

@@ -33,6 +33,9 @@ struct vu_service_t;
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
+#define VUFLAG_PERMANENT       1
+#define VUFLAG_TRAILINGNUMBERS 2
+
 /* hashtable elements may have exception. when a confirm function
 	 is defined (as an argument adding the hashtable element) that
 	 confirm function is called prior to confirm each match */
@@ -42,16 +45,15 @@ typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 /* add an element to the hashtable */
 /* confirmfun is a cleanup function for CHECKMODULE */
 struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
-		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data, int permanent);
+		struct vu_service_t *service, int vuflags,
+		confirmfun_t confirmfun, void *private_data);
 
 /* add a path element to the hashtable: This function is similar to vuht_add
  * extra parameters are provided to generate teh mounttab line (see /proc/mounts) */
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
-		struct vu_service_t *service,
-		unsigned char trailingnumbers,
+		struct vu_service_t *service, int vuflags,
 		confirmfun_t confirmfun, void *private_data);
 
 /* del takes the element out from the data structure.... */

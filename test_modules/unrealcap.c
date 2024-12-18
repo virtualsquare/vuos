@@ -177,7 +177,7 @@ void *vu_unrealcap_init(void) {
 	unsigned int i;
 	for (i = 0; i < VUSCLEN; i++) {
 		int vu_syscall = vu_arch_table[vusc[i]];
-		ht[i] = vuht_add(CHECKSC, &vu_syscall, sizeof(int), s, NULL, NULL, 0);
+		ht[i] = vuht_add(CHECKSC, &vu_syscall, sizeof(int), s, 0, NULL, NULL);
 	}
 	mod_inheritance_upcall_register(vu_cap_tracer_upcall);
 	return NULL;

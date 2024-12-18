@@ -436,12 +436,12 @@ int vu_vudev_mount(const char *source, const char *target,
 				goto err_init_null;
 		}
 		new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags,
-				data, s, 1, vudev_confirm_path, new);
+				data, s, VUFLAG_TRAILINGNUMBERS, vudev_confirm_path, new);
 		if (new->flags & VUDEVFLAGS_DEVID) {
 			if(S_ISCHR(new->stat.st_mode))
-				new->dev_ht = vuht_add(CHECKCHRDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
+				new->dev_ht = vuht_add(CHECKCHRDEVICE, NULL, 0, s, 0, vudev_confirm_dev, new);
 			else if(S_ISBLK(new->stat.st_mode))
-				new->dev_ht = vuht_add(CHECKBLKDEVICE, NULL, 0, s, vudev_confirm_dev, new, 0);
+				new->dev_ht = vuht_add(CHECKBLKDEVICE, NULL, 0, s, 0, vudev_confirm_dev, new);
 		} else
 			new->dev_ht = NULL;
 		pthread_mutex_unlock(&(new->mutex));

@@ -60,7 +60,7 @@ struct vuht_entry_t {
 	unsigned long mountflags;
 	epoch_t timestamp;
 	uint8_t type;
-	uint8_t trailingnumbers;
+	int vuflags;
 	struct vu_service_t *service;
 	struct vuht_entry_t *service_hte;
 	void *private_data;
@@ -269,7 +269,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 			while (ht != NULL) {
 				if (type == ht->type && sum == ht->hashsum &&
 						memcmp(obj, ht->obj, len) == 0 &&
-						(ht->trailingnumbers || !trailnum(objc)) &&
+						((ht->vuflags & VUFLAG_TRAILINGNUMBERS) || !trailnum(objc)) &&
 						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
 					if (ht->confirmfun == NEGATIVE_MOUNT)
@@ -329,13 +329,12 @@ static inline int stringobj(uint8_t type) {
 		type == CHECKFSALIAS;
 }
 
+
 	static struct vuht_entry_t *
 internal_vuht_add(uint8_t type, const void *obj, int objlen,
 		unsigned long mountflags, char *mtabline,
-		struct vu_service_t *service, uint8_t trailingnumbers,
-		confirmfun_t confirmfun, void *private_data,
-		int permanent)
-{
+		struct vu_service_t *service, int vuflags,
+		confirmfun_t confirmfun, void *private_data) {
 	struct vuht_entry_t **hashhead;
 	struct vuht_entry_t *new = vuht_alloc();
 	/* create the entry and fill in the fields */
@@ -350,12 +349,12 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->type = type;
 	new->mountflags = mountflags;
 	new->mtabline = mtabline;
-	new->trailingnumbers = trailingnumbers;
+	new->vuflags = vuflags;
 	new->private_data = private_data;
 	new->service = service;
 	new->service_hte = service->service_ht;
 	new->confirmfun = confirmfun;
-	new->count = (permanent != 0);
+	new->count = !! (vuflags & VUFLAG_PERMANENT);
 	if (service->service_ht)
 		vuht_pick_again(service->service_ht);
 
@@ -390,10 +389,10 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 }
 
 struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
-		struct vu_service_t *service, confirmfun_t confirmfun,
-		void *private_data, int permanent) {
-	return internal_vuht_add(type, obj, objlen, 0, NULL, service, 1,
-			confirmfun, private_data, permanent);
+		struct vu_service_t *service, int vuflags,
+		confirmfun_t confirmfun, void *private_data) {
+	return internal_vuht_add(type, obj, objlen, 0, NULL, service, vuflags,
+			confirmfun, private_data);
 }
 
 static int permanent_mount(const char *opts)
@@ -409,8 +408,7 @@ static int permanent_mount(const char *opts)
 struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		const char *path, const char *fstype,
 		unsigned long mountflags, const char *mountopts,
-		struct vu_service_t *service,
-		unsigned char trailingnumbers,
+		struct vu_service_t *service, int vuflags,
 		confirmfun_t confirmfun, void *private_data) {
 	char *mtabline;
 	const char *addpath;
@@ -433,9 +431,11 @@ struct vuht_entry_t *vuht_pathadd(uint8_t type, const char *source,
 		addpath = "";
 	else
 		addpath = path;
+	if (permanent_mount(mountopts))
+		vuflags |= VUFLAG_PERMANENT;
 	rv = internal_vuht_add(type, addpath, strlen(addpath), mountflags,
-			mtabline, service, trailingnumbers, confirmfun,
-			private_data, permanent_mount(mountopts));
+			mtabline, service, vuflags,
+			confirmfun, private_data);
 	if (rv == NULL && mtabline != NULL)
 		free(mtabline);
 	return rv;

@@ -102,7 +102,7 @@ void *vu_netlinkdump_init(void) {
 	vu_syscall_handler(s, close) = close;
 #pragma GCC diagnostic pop
 
-	ht = vuht_add(CHECKSOCKET, &family, sizeof(int), s, NULL, NULL, 0);
+	ht = vuht_add(CHECKSOCKET, &family, sizeof(int), s, 0, NULL, NULL);
 	return NULL;
 }
 

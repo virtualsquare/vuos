@@ -81,7 +81,8 @@ void vw_insmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	cleanup = module_getsym(service, "cleanup");
 #pragma GCC diagnostic pop
 	sht = vuht_add(CHECKMODULE, modname, strlen(modname), service,
-			cleanup, NULL, permanent);
+			permanent ? VUFLAG_PERMANENT : 0,
+			cleanup, NULL);
 
 	service->service_ht = sht;
 
