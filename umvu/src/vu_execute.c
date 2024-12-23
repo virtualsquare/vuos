@@ -60,7 +60,7 @@ void wo_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 void vw_NULL(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 }
 
-/* set the syscall_extra_t sturcture fields */
+/* set the syscall_extra_t structure fields */
 static inline void set_extra (
 		struct syscall_extra_t *extra,
 		struct syscall_descriptor_t *sd,

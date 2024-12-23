@@ -90,7 +90,7 @@ static struct vuht_entry_t *vuht_hash[VU_HASHTABLE_SIZE];
 /* null tags have separate a separate list */
 static struct vuht_entry_t *vuht_hash0[NCHECKS];
 
-/* heads of the list of hash entries */
+/* head of the list of hash entries */
 static struct vuht_entry_t *vuht_head;
 /* lock for the list of hash entries */
 static pthread_mutex_t vuht_head_lock = PTHREAD_MUTEX_INITIALIZER;
