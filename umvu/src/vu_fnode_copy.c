@@ -41,7 +41,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	ssize_t n;
 	size_t filesize = 0;
 	char *buf[BUFSIZ];
-	void *private;
+	void *private = NULL;
 	struct vu_stat fdoutstat;
 	//printk("COPY %s to %s\n",path,tmp_path);
 	fdout = r_open(tmp_path, O_WRONLY | O_CREAT | O_CLOEXEC, 0700);
@@ -84,7 +84,7 @@ static int copyfile_in(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 static int copyfile_out(struct vuht_entry_t *ht, char *path, char *tmp_path) {
 	int fdin, fdout, n;
 	char *buf[BUFSIZ];
-	void *private;
+	void *private = NULL;
 	fdin = r_open(path, O_RDONLY);
 	if (fdin < 0)
 		return -1;
