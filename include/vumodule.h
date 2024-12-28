@@ -69,10 +69,16 @@ extern char *mountflag_strings[32];
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);
 #define vu_syscall_handler(s, n) (*(vu_syscall_handler_pointer(s, #n)))
 
+/* stat must be implemented using 64bit data structures
+	 even if VUOS is running on a 32bit architecture.
+	 always use vu_stat/vu_lstat when writing module code */
 #if __WORDSIZE == 32
+#define __VU_vu_lstat __VU_lstat64
 #define vu_stat stat64
+#define vu_lstat lstat64
 #else
 #define vu_stat stat
+#define vu_lstat lstat
 #endif
 
 /* the macro VU_PROTOTYPES gets the name of the module as its argument. VU_PROTOTYPES
@@ -263,18 +269,6 @@ typedef void *(*mod_inheritance_upcall_t)
 	(mod_inheritance_state_t state, void *ioarg, void *arg);
 	void mod_inheritance_upcall_register(mod_inheritance_upcall_t upcall);
 	void mod_inheritance_upcall_deregister(mod_inheritance_upcall_t upcall);
-
-	/* stat must be implemented using 64bit data structures
-		 even if VUOS is running on a 32bit architecture.
-		 always use vu_stat/vu_lstat when writing module code */
-#if __WORDSIZE == 32
-#define __VU_vu_lstat __VU_lstat64
-#define vu_stat stat64
-#define vu_lstat lstat64
-#else
-#define vu_stat stat
-#define vu_lstat lstat
-#endif
 
 	/* log/debug facilities */
 #define KERN_SOH  "\001"    /* ASCII Start Of Header */
