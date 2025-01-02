@@ -70,6 +70,7 @@ static inline void set_extra (
 	extra->mpath = extra->path;
 	extra->path_errno = errno;
 	extra->nested = VU_NOT_NESTED;
+	extra->isexec = 0;
 	extra->ht = NULL;
 	extra->epoch = get_vepoch();
 }
@@ -88,6 +89,14 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 	struct vuht_entry_t *ht;
 	struct syscall_descriptor_t *ssd;
 
+	/* execve is an exception. A successful execve does not return,
+		 the next syscall must cleanup the path and ht usage counter */
+	if (state == IN_SYSCALL && extra.isexec) {
+		if (extra.ht)
+			 vuht_drop(extra.ht);
+		xfree(extra.path);
+	}
+
 	update_vepoch();
 	sd->extra = &extra;
 	ssd = set_thread_sd(sd);
@@ -105,11 +114,13 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					execute_cleanup(ht,sd);
 				else {
 					if (vu_fs_is_chroot() || sd->extra->path_rewrite)
-						if (sd->syscall_number != __NR_execve)
+						if (sd->syscall_number != __NR_execve && sd->syscall_number != __NR_execveat)
 							rewrite_syspath(sd, sd->extra->path);
 					tab_entry->wrapinf(ht, sd);
 					if ((sd->action & UMVU_CB_AFTER) == 0)
 						execute_cleanup(ht,sd);
+					else if (sd->syscall_number == __NR_execve || sd->syscall_number == __NR_execveat)
+						extra.isexec = 1;
 				}
 				printkdebug(a,"IN %s", action_strings[sd->action % 0xf]);
 				break;

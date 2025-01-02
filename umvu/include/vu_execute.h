@@ -28,6 +28,8 @@ struct syscall_extra_t {
 	uint8_t nested;
 	/* if path_rewrite == 1, the pathname will be rewritten */
 	uint8_t path_rewrite;
+	/* latest syscall was a successful exec: no "out phase", cleanup needed */
+	uint8_t isexec;
 	/* hash table element of the module managing this system call.
 		 NULL means not virtualized syscall */
 	struct vuht_entry_t *ht;

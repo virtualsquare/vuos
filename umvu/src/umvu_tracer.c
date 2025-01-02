@@ -303,7 +303,7 @@ static int umvu_trace_legacy(pid_t tracee_tid)
 						(SIGTRAP | (PTRACE_EVENT_EXEC << 8))) {
 					/* the tracee is doing execve() */
 					/* if a thread which is not the thread group leader performs
-					 * an execve() his tid become equal to the thread group leader,
+					 * an execve() its tid become equal to the thread group leader,
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
 					tracee_tid = sig_tid;
@@ -472,7 +472,7 @@ static int umvu_trace_seccomp(pid_t tracee_tid)
 						(SIGTRAP | (PTRACE_EVENT_EXEC << 8))) {
 					/* the tracee is doing execve() */
 					/* if a thread which is not the thread group leader performs
-					 * an execve() his tid become equal to the thread group leader,
+					 * an execve() its tid become equal to the thread group leader,
 					 * we must update tracee_tid otherwise a execve could be mistaken for
 					 * a clone() */
 					tracee_tid = sig_tid;

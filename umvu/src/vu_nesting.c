@@ -70,6 +70,7 @@ static long int capture_nested_syscall(long int syscall_number, ...) {
 	extra.mpath = extra.path;
 	extra.path_errno = errno;
 	extra.nested = VU_NESTED;
+	extra.isexec = 0;
 	extra.ht = NULL;
 	extra.epoch = get_vepoch();
 	printkdebug(n, "IN  >>>>>>  %s %s %d epoch %lx",
