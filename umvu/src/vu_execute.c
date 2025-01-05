@@ -157,6 +157,7 @@ void vu_syscall_execute(syscall_state_t state, struct syscall_descriptor_t *sd) 
 					vsysno, sd->extra->path, get_vepoch());
 			ht = sd->extra->ht = tab_entry->choicef(sd);
 			tab_entry->wrapf(ht, sd);
+			execute_cleanup(ht,sd);
 		}
 		sd->action = SKIPIT;
 	}
