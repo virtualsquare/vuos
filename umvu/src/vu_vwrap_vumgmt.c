@@ -245,7 +245,7 @@ void vuctl_setdebugcolors(struct syscall_descriptor_t *sd) {
 		return;
 	}
 	debug_set_color_string(colors);
-	sd->ret_value = -EINVAL;
+	sd->ret_value = 0;
 }
 
 void vw_vuctl(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
