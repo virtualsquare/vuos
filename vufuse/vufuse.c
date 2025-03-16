@@ -282,13 +282,16 @@ struct fuse_context *fuse_get_context(void)
 	return __fuse_context;
 }
 
-int fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
+struct fuse *__fuse_new(struct fuse_args *args,
+		const struct fuse_operations *op, size_t op_size,
+		void *user_data);
+int __fuse_main_real(int argc, char *argv[], const struct fuse_operations *op,
 		size_t op_size, void *user_data)
 {
 	struct fuse *f;
 	int res = fuse_mount(NULL, NULL); /*options have been already parsed*/
 	if (res != -1) {
-		f = fuse_new(NULL, op, op_size, user_data);
+		f = __fuse_new(NULL, op, op_size, user_data);
 
 		return fuse_loop(f);
 	} else
@@ -324,7 +327,7 @@ static void fopsmerge (const struct fuse_operations *fops, const struct fuse_ope
 	}
 }
 
-struct fuse *fuse_new(struct fuse_args *args,
+struct fuse *__fuse_new(struct fuse_args *args,
 		const struct fuse_operations *op, size_t op_size,
 		void *user_data)
 {
