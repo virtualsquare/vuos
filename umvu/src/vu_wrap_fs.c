@@ -471,6 +471,9 @@ void wi_chmod(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 				sfd = vu_fd_get_sfd(sfd, &private, nested);
 				break;
 			case __NR_fchmodat:
+#ifdef __NR_fchmodat2
+			case __NR_fchmodat2:
+#endif
 				mode = sd->syscall_args[2];
 				/* flags = sd->syscall_args[3]; */
 				break;
