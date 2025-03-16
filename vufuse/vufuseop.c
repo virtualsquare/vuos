@@ -395,14 +395,15 @@ int vu_vufuse_open(const char *pathname, int flags, mode_t mode, void **private)
 		return -1;
 	}
 
-	if ((flags & O_ACCMODE) != O_RDONLY && (S_ISDIR(buf.st_mode))) {
-		fuse_pop_context(ofc);
-		errno = EISDIR;
-		pthread_mutex_unlock(&(fc.fuse->mutex));
-		return -1;
-	}
-
 	if (exists_err == 0) { /* the file exists*/
+		if ((flags & O_ACCMODE) != O_RDONLY && (S_ISDIR(buf.st_mode))) {
+			fuse_pop_context(ofc);
+			printkdebug(F,"OPEN S_ISDIR %x", buf.st_mode);
+			errno = EISDIR;
+			pthread_mutex_unlock(&(fc.fuse->mutex));
+			return -1;
+		}
+
 		if ((flags & O_CREAT) && (flags & O_EXCL)) {
 			errno = EEXIST;
 			pthread_mutex_unlock(&(fc.fuse->mutex));
