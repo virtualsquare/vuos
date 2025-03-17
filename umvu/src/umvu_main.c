@@ -64,7 +64,7 @@ static struct option long_options[] = {
 static void usage_n_exit(void) {
 	fprintf(stderr,
 			"UMVU: user mode implementation of VU-OS\n"
-			"Copyright 2017-2018 VirtualSquare Team\n\n"
+			"Version %s - Copyright 2017-2025 VirtualSquare Team\n\n"
 			"Usage:\n"
 			"  %s OPTIONS cmd args\n\n"
 			"    -h --help            print this short usage message\n"
@@ -86,7 +86,7 @@ static void usage_n_exit(void) {
 			"\n"
 			"(*) 0:emerg 1:alert 2:crit 3:err 4-warning 5:notice 6:info 7:debug\n"
 			"\n"
-			, progname);
+			, VUOS_VERSION, progname);
 	r_exit(1);
 }
 

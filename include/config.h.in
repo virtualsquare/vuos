@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define VUOS_VERSION "@CMAKE_PROJECT_VERSION@"
+
 #define MODULES_INSTALL_PATH "@MODULES_INSTALL_PATH@"
 
 #define VURC "vurc"
