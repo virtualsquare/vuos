@@ -204,7 +204,7 @@ struct vuht_entry_t *choice_mmap(struct syscall_descriptor_t *sd) {
 }
 
 /* some system calls need to use the file descriptor passed
-	 as second argument (e.g. epoll_ctl) */
+	 as third argument (e.g. epoll_ctl) */
 struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
 	struct syscall_extra_t *extra = sd->extra;
 	int fd = sd->syscall_args[2];
@@ -223,6 +223,45 @@ struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
 	}
 	return ht;
 }
+
+/* splice can use a virtual fd either as its first or its third arg.
+	 (the other must be a pipe) */
+struct vuht_entry_t *choice_splice(struct syscall_descriptor_t *sd) {
+	struct syscall_extra_t *extra = sd->extra;
+	int nested = extra->nested;
+	if (nested)
+		return NULL;
+	int fd = -1;
+	int fdin = sd->syscall_args[0];
+	int fdout = sd->syscall_args[2];
+	mode_t modein = vu_fd_get_mode(fdin, nested);
+	mode_t modeout = vu_fd_get_mode(fdout, nested);
+
+	if (modein != 0 && !S_ISFIFO(modein))
+		fd = fdin;
+	else if (modeout != 0 && !S_ISFIFO(modeout))
+		fd = fdout;
+	else
+		return NULL;
+
+	struct vuht_entry_t *ht = vu_fd_get_ht(fd, nested);
+	char path[PATH_MAX];
+	// printk("%x %x\n", modein, modeout, ht);
+	vu_fd_get_path(fd, nested, path, PATH_MAX);
+	extra->path = strdup(path);
+	extra->statbuf.st_mode = vu_fd_get_mode(fd, nested);
+	printkdebug(c, "splice fd%s %d %s: %c ht %p",
+			(fd == fdin) ? "in" : "out",
+			fd, extra->path,
+			nested ? 'N' : '-', ht);
+	if (ht) {
+		extra->mpath = vuht_path2mpath(ht, extra->path);
+		set_vepoch(vuht_get_vepoch(ht));
+		vuht_pick_again(ht);
+	}
+	return ht;
+}
+
 
 /* socket uses the protocol family */
 struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {

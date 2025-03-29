@@ -787,6 +787,99 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+#ifndef PIDFD_THREAD
+#define PIDFD_THREAD O_EXCL
+#endif
+
+/* partial implementation of splice(2).
+	 off_in, off_out and flags args are currently ignored */
+
+void wi_splice(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	int nested = sd->extra->nested;
+	if (ht) {
+		int fd_in = sd->syscall_args[0];
+		uintptr_t off_in = sd->syscall_args[1];
+		int fd_out = sd->syscall_args[2];
+		uintptr_t off_out = sd->syscall_args[3];
+		size_t len = sd->syscall_args[4];
+		unsigned int flags = sd->syscall_args[5];
+
+		(void) flags;
+		(void) off_in;
+		(void) off_out;
+
+		mode_t modein = vu_fd_get_mode(fd_in, nested);
+		mode_t modeout = vu_fd_get_mode(fd_out, nested);
+
+		sd->action = SKIPIT;
+		char *buf = malloc(len);
+		if (buf == NULL) {
+			sd->ret_value = -ENOMEM;
+			return;
+		}
+
+		if (modein != 0 && !S_ISFIFO(modein)) {
+			pid_t pid = umvu_gettid();
+			pid_t pidfd = native_syscall(SYS_pidfd_open, pid, PIDFD_THREAD);
+			if (pidfd < 0) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			int lfd_out = native_syscall(SYS_pidfd_getfd, pidfd, fd_out, 0);
+			if (lfd_out < 0) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			struct stat lfdst;
+			if (r_fstat(lfd_out, &lfdst) < 0 || !S_ISFIFO(lfdst.st_mode)) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			void *private = NULL;
+			/* sfd is the "service file descriptor": the int value returned by the service
+			 * implementation of open */
+			int sfd = vu_fd_get_sfd(fd_in, &private, nested);
+			ssize_t n = service_syscall(ht, __VU_read)(sfd, buf, len, private);
+			if (n >= 0)
+				n = r_write(lfd_out, buf, n);
+			sd->ret_value = (n >= 0) ? n : -errno;
+			// printk("SPLICE pipe2virt %d %d %d %o\n",pid,pidfd,lfd_out,lfdst.st_mode);
+			close(lfd_out);
+			close(pidfd);
+		} else if (modeout != 0 && !S_ISFIFO(modeout)) {
+			pid_t pid = umvu_gettid();
+			pid_t pidfd = native_syscall(SYS_pidfd_open, pid, 0);
+			if (pidfd < 0) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			int lfd_in = native_syscall(SYS_pidfd_getfd, pidfd, fd_in, 0);
+			if (lfd_in < 0) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			struct stat lfdst;
+			if (r_fstat(lfd_in, &lfdst) < 0 || !S_ISFIFO(lfdst.st_mode)) {
+				sd->ret_value = -EFAULT;
+				goto splice_err;
+			}
+			void *private = NULL;
+			/* sfd is the "service file descriptor": the int value returned by the service
+			 * implementation of open */
+			int sfd = vu_fd_get_sfd(fd_out, &private, nested);
+			ssize_t n = r_read(lfd_in, buf, len);
+			if (n >= 0)
+				n = service_syscall(ht, __VU_write)(sfd, buf, n, private);
+			sd->ret_value = (n >= 0) ? n : -errno;
+			// printk("SPLICE virt2pipe %d %d %d %o\n",pid,pidfd,lfd_in,lfdst.st_mode);
+			close(lfd_in);
+			close(pidfd);
+		}
+splice_err:
+		xfree(buf);
+	}
+}
+
 void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->action = SKIPIT;
 	sd->ret_value = -ENOSYS;
