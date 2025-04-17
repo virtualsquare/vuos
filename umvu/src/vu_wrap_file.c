@@ -839,11 +839,13 @@ void wi_splice(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			/* sfd is the "service file descriptor": the int value returned by the service
 			 * implementation of open */
 			int sfd = vu_fd_get_sfd(fd_in, &private, nested);
-			ssize_t n = service_syscall(ht, __VU_read)(sfd, buf, len, private);
+			ssize_t n = _file_read(ht, fd_in, sfd, buf, len, private, nested, 0);
+			if (n < 0 && errno == ENOSYS)
+				n = service_syscall(ht, __VU_read)(sfd, buf, len, private);
 			if (n >= 0)
 				n = r_write(lfd_out, buf, n);
 			sd->ret_value = (n >= 0) ? n : -errno;
-			// printk("SPLICE pipe2virt %d %d %d %o\n",pid,pidfd,lfd_out,lfdst.st_mode);
+			// printk("SPLICE pipe2virt %d %d %d %o %zd -> %d\n",pid,pidfd,lfd_out,lfdst.st_mode,len,sd->ret_value);
 			close(lfd_out);
 			close(pidfd);
 		} else if (modeout != 0 && !S_ISFIFO(modeout)) {
@@ -867,11 +869,15 @@ void wi_splice(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 			/* sfd is the "service file descriptor": the int value returned by the service
 			 * implementation of open */
 			int sfd = vu_fd_get_sfd(fd_out, &private, nested);
-			ssize_t n = r_read(lfd_in, buf, len);
-			if (n >= 0)
-				n = service_syscall(ht, __VU_write)(sfd, buf, n, private);
-			sd->ret_value = (n >= 0) ? n : -errno;
-			// printk("SPLICE virt2pipe %d %d %d %o\n",pid,pidfd,lfd_in,lfdst.st_mode);
+			ssize_t nin = r_read(lfd_in, buf, len);
+			if (nin >= 0) {
+				ssize_t n = _file_write(ht, fd_out, sfd, buf, nin, private, nested, 0);
+				if (n < 0 && errno == ENOSYS)
+					n = service_syscall(ht, __VU_write)(sfd, buf, nin, private);
+				sd->ret_value = (n >= 0) ? n : -errno;
+			} else
+				sd->ret_value = -errno;
+			// printk("SPLICE virt2pipe %d %d %d %o %zd -> %d\n",pid,pidfd,lfd_in,lfdst.st_mode,len,sd->ret_value);
 			close(lfd_in);
 			close(pidfd);
 		}
