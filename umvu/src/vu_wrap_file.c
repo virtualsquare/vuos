@@ -787,6 +787,8 @@ void wi_lseek(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	}
 }
 
+#ifdef SPLICE_SUPPORT
+
 #ifndef PIDFD_THREAD
 #define PIDFD_THREAD O_EXCL
 #endif
@@ -885,6 +887,12 @@ splice_err:
 		xfree(buf);
 	}
 }
+#else
+void wi_splice(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
+	sd->action = SKIPIT;
+	sd->ret_value = -ENOSYS;
+}
+#endif
 
 void wi_sendfile(struct vuht_entry_t *ht, struct syscall_descriptor_t *sd) {
 	sd->action = SKIPIT;

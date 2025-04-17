@@ -224,6 +224,7 @@ struct vuht_entry_t *choice_fd2(struct syscall_descriptor_t *sd) {
 	return ht;
 }
 
+#ifdef SPLICE_SUPPORT
 /* splice can use a virtual fd either as its first or its third arg.
 	 (the other must be a pipe) */
 struct vuht_entry_t *choice_splice(struct syscall_descriptor_t *sd) {
@@ -261,7 +262,7 @@ struct vuht_entry_t *choice_splice(struct syscall_descriptor_t *sd) {
 	}
 	return ht;
 }
-
+#endif
 
 /* socket uses the protocol family */
 struct vuht_entry_t *choice_socket(struct syscall_descriptor_t *sd) {
