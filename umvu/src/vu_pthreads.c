@@ -24,7 +24,11 @@
 #include <vu_log.h>
 #include <vu_inheritance.h>
 
+#if __STDC_VERSION__ >= 202000L
+static int (*libc_pthread_create)(...);
+#else
 static int (*libc_pthread_create)();
+#endif
 
 struct _pthread_arg {
 	void *(*start_routine) (void *);

@@ -9,7 +9,11 @@ typedef void (* voidfun)(void);
 
 struct vu_service_t;
 
+#if __STDC_VERSION__ >= 202000L
+typedef long (*syscall_t)(...);
+#else
 typedef long (*syscall_t)();
+#endif
 
 struct vu_service_t *module_load(const char *modname);
 syscall_t *vu_syscall_handler_pointer(struct vu_service_t *service, char *name);

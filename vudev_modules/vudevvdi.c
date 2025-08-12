@@ -51,6 +51,17 @@
 static void *vboxdd_hdl;
 static int vboxdd_count;
 
+#if __STDC_VERSION__ >= 202000L
+static int (*vboxdd_create) (...);
+static int (*vboxdd_open) (...);
+static int (*vboxdd_close) (...);
+static int (*vboxdd_read) (...);
+static int (*vboxdd_write) (...);
+static int (*vboxdd_flush) (...);
+static uint64_t (*vboxdd_get_size) (...);
+static int (*vboxdd_set_open_flags) (...);
+static int (*vboxdd_get_LCHS_geometry) (...);
+#else
 static int (*vboxdd_create) ();
 static int (*vboxdd_open) ();
 static int (*vboxdd_close) ();
@@ -60,6 +71,7 @@ static int (*vboxdd_flush) ();
 static uint64_t (*vboxdd_get_size) ();
 static int (*vboxdd_set_open_flags) ();
 static int (*vboxdd_get_LCHS_geometry) ();
+#endif
 
 struct vuvdi_t {
 	int fd;

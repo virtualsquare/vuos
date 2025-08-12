@@ -19,11 +19,15 @@ print(
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#if __STDC_VERSION__ >= 202000L
+extern long (*native_syscall)(...);
+#else
 extern long (*native_syscall)();
+#endif
 ''')
 
 for f in sorted(syscall_names):
-	print(f'#define r_{f}(...) native_syscall(__NR_{f}, ## __VA_ARGS__)')
+	print(f'#define r_{f}(...) native_syscall(__NR_{f} __VA_OPT__(,) ## __VA_ARGS__)')
 
 print(
 '''

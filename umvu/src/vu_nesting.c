@@ -127,10 +127,18 @@ static long int capture_forward_syscall(long int syscall_number, ...) {
 			syscall_args[5]);
 }
 
+#if __STDC_VERSION__ >= 202000L
+typedef long (*sfun)(...);
+#else
 typedef long (*sfun)();
+#endif
 
 void vu_nesting_disable(void) {
+#if __STDC_VERSION__ >= 202000L
+	sfun (*_pure_start_p)(...);
+#else
 	sfun (*_pure_start_p)();
+#endif
 	char *ld_preload = getenv("LD_PRELOAD");
 	//printk("NESTINGDISABLE %d\n", gettid());
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {
@@ -145,7 +153,11 @@ void vu_nesting_disable(void) {
 }
 
 void vu_nesting_enable(void) {
+#if __STDC_VERSION__ >= 202000L
+	sfun (*_pure_start_p)(...);
+#else
 	sfun (*_pure_start_p)();
+#endif
 	char *ld_preload = getenv("LD_PRELOAD");
 	//printk("NESTINGENABLE %d\n", gettid());
 	if (ld_preload != NULL && strcmp(ld_preload, PURELIBC_LIB) == 0) {

@@ -34,7 +34,12 @@
 typedef void (* voidfun)(void);
 
 
-long sys_enosys(void) {
+#if __STDC_VERSION__ >= 202000L
+long sys_enosys(...)
+#else
+long sys_enosys(void)
+#endif
+{
 	errno = ENOSYS;
 	return -1;
 }

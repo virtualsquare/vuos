@@ -53,7 +53,11 @@ static enum __ptrace_request ptrace_next_syscall = PTRACE_SYSCALL;
 	 libc_pthread_create is the real pthread_create provided by the libc.
 	 The tracer threads created by the tracer for each user-level thread/process
 	 should not be processed by vu_nesting */
+#if __STDC_VERSION__ >= 202000L
+static int (*libc_pthread_create)(...);
+#else
 static int (*libc_pthread_create)();
+#endif
 
 static int nproc;
 static pthread_mutex_t nproc_mutex = PTHREAD_MUTEX_INITIALIZER;

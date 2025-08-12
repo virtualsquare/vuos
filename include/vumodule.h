@@ -62,7 +62,11 @@ struct vu_module_t {
 #define VU_USE_PRW	      (1L << 0)
 
 typedef unsigned long int syscall_arg_t;
+#if __STDC_VERSION__ >= 202000L
+typedef long (*syscall_t)(...);
+#else
 typedef long (*syscall_t)();
+#endif
 extern const uint16_t vu_arch_table[];
 extern char *mountflag_strings[32];
 

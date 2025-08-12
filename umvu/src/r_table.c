@@ -30,5 +30,9 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+#if __STDC_VERSION__ >= 202000L
+long (*native_syscall)(...) = syscall;
+#else
 long (*native_syscall)() = syscall;
+#endif
 #pragma GCC diagnostic pop

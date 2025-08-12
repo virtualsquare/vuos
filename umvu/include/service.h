@@ -8,7 +8,11 @@
 	 services are registered in the hashtable (he key is the module name */
 
 struct vuht_entry_t;
+#if __STDC_VERSION__ >= 202000L
+typedef long (*syscall_t)(...);
+#else
 typedef long (*syscall_t)();
+#endif
 
 struct vu_service_t {
 	// pointer to a static structure named "vu_module" defined in the module
