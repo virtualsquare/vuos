@@ -17,12 +17,33 @@ typedef struct user_regs_struct arch_regs_struct;
 
 #elif defined(__riscv_xlen) && __riscv_xlen == 64
 
-#include<asm/ptrace.h>
+#include <asm/ptrace.h>
 
 #define SYSCALL_ARG_NR 6
 typedef unsigned long int syscall_arg_t;
 #define SYSCALL_INSTRUCTION_LEN 4
 typedef struct user_regs_struct arch_regs_struct;
+
+#elif defined(__aarch64__)
+
+#include <asm/ptrace.h>
+#define SYSCALL_ARG_NR 6
+typedef unsigned long int syscall_arg_t;
+#define SYSCALL_INSTRUCTION_LEN 4
+struct arch_regs_struct_full {
+	union {
+		struct user_regs_struct user_regs;
+		struct {
+			unsigned long regs[31];
+			unsigned long sp;
+			unsigned long pc;
+			unsigned long pstate;
+		};
+	};
+	int syscallno;
+};
+typedef struct arch_regs_struct_full arch_regs_struct;
+//typedef struct user_regs_struct arch_regs_struct;
 
 #else
 
