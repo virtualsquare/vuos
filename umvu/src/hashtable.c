@@ -43,8 +43,10 @@
 /* vuht_entry_t:
 	 @obj: hash key
 	 @mtabline: mount tab line
+	 @mountflags:`
 	 @type: type
-	 @trailingnumbers: boolean, match pathnames with trailing numbers
+	 @timestamp: timestamp of the entry
+	 @vuflags: flags (e.g. pemanent, prefix)
 	 @service: service associated to this item
 	 @service_hte: hte of the service associated to this item
 	 @private_data: opaque container for module data
@@ -135,26 +137,6 @@ static inline long hashsum(uint8_t type, const char *c, int len)
 	return hash;
 }
 
-/* true if there are only trailing numbers (and there is at least one) */
-/* View-OS permits "mount" of things like /dev/hda[0-9]* */
-static inline int trailnum(char *s)
-{
-	/* "at least one" the first element needs a special case.
-performance:  >'9' is the most frequent case, <'0' are quite rare
-in pathnames, the end of string is more common */
-	int nonzero = 0;
-
-	if (*s > '9' || *s == 0 || *s < '0')
-		return 0;
-	nonzero |= *s - '0';
-	for (s++; *s; s++) {
-		if (*s > '9' || *s < '0')
-			return 0;
-		nonzero |= *s - '0';
-	}
-	return nonzero;
-}
-
 /* vuht_internal_search computes the hash value adding one byte at a time.
 	 At each iteration it calls vuht_scan_stop to check if the current sequence
 	 is a valid node to be searched or not.
@@ -170,8 +152,8 @@ static int vuht_scan_stop(uint8_t type, char *objc, int len, int exact)
 					||
 					(!exact           /* or when subtring match are allowed */
 					 && (*objc == '/' /* test the match if the current char is '/' */
-						 /* or if there are trailing numbers e.g. /dev/hda1, hda2 etc */
-						 || trailnum(objc))));
+						 /* filename can have prefix matches */
+						 || strchr(objc, '/') == 0 )));
 		case CHECKBINFMT:
 			return (*objc == 0 /* this is the end of a string */
 					||
@@ -268,8 +250,9 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 			ht = (len) ? vuht_hash[hash] : vuht_hash0[type];
 			while (ht != NULL) {
 				if (type == ht->type && sum == ht->hashsum &&
+						len == ht->objlen &&
 						memcmp(obj, ht->obj, len) == 0 &&
-						((ht->vuflags & VUFLAG_TRAILINGNUMBERS) || !trailnum(objc)) &&
+						(!(ht->vuflags & VUFLAG_PREFIX) || (strchr(objc, '/') == NULL)) &&
 						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
 					if (ht->confirmfun == NEGATIVE_MOUNT)
@@ -349,6 +332,9 @@ internal_vuht_add(uint8_t type, const void *obj, int objlen,
 	new->type = type;
 	new->mountflags = mountflags;
 	new->mtabline = mtabline;
+	/* VUFLAG_PREFIX is only for CHECKPATH */
+	if (type != CHECKPATH)
+		vuflags &= ~VUFLAG_PREFIX;
 	new->vuflags = vuflags;
 	new->private_data = private_data;
 	new->service = service;

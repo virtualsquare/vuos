@@ -306,8 +306,9 @@ int vu_vudev_chmod(const char *pathname, mode_t mode, int fd, void *fdprivate) {
 static int vudev_confirm_path(uint8_t type, void *arg, int arglen, struct vuht_entry_t *ht) {
 	struct vudev_t *vudev = vuht_get_private_data(ht);
 	char *path = arg;
-	int subdev = strtoul(path, NULL, 10);
-	if (subdev < 0)
+	char *end;
+	int subdev = strtol(path, &end, 10);
+	if (*end  != 0)
 		return 0;
 	else if (vudev->devops->confirm_subdev)
 		return vudev->devops->confirm_subdev(subdev, vudev);
@@ -436,7 +437,7 @@ int vu_vudev_mount(const char *source, const char *target,
 				goto err_init_null;
 		}
 		new->path_ht = vuht_pathadd(CHECKPATH, source, target, filesystemtype, mountflags,
-				data, s, VUFLAG_TRAILINGNUMBERS, vudev_confirm_path, new);
+				data, s, VUFLAG_PREFIX, vudev_confirm_path, new);
 		if (new->flags & VUDEVFLAGS_DEVID) {
 			if(S_ISCHR(new->stat.st_mode))
 				new->dev_ht = vuht_add(CHECKCHRDEVICE, NULL, 0, s, 0, vudev_confirm_dev, new);

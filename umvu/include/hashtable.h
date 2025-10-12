@@ -33,8 +33,8 @@ struct vu_service_t;
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
-#define VUFLAG_PERMANENT       1
-#define VUFLAG_TRAILINGNUMBERS 2
+#define VUFLAG_PERMANENT 1
+#define VUFLAG_PREFIX    2
 
 /* hashtable elements may have exception. when a confirm function
 	 is defined (as an argument adding the hashtable element) that

@@ -178,8 +178,8 @@ void VU_SYSNAME(name, cleanup) (uint8_t type, void *arg, int arglen, \
 #define SET_EPOCH 1
 #define NEGATIVE_MOUNT ((confirmfun_t)1)
 
-#define VUFLAG_PERMANENT       1
-#define VUFLAG_TRAILINGNUMBERS 2
+#define VUFLAG_PERMANENT 1
+#define VUFLAG_PREFIX    2
 
 typedef int (*confirmfun_t)(uint8_t type, void *arg, int arglen,
 		struct vuht_entry_t *ht);
