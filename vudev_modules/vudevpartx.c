@@ -63,7 +63,7 @@ struct vupartition_t {
 struct vumbr_t {
 	int fd;
 	off_t size;
-	int part_table_last_elem;
+	unsigned int part_table_last_elem;
 	struct vupartition_t *part_table;
 };
 
@@ -241,9 +241,9 @@ static size_t _ck_size(struct vupartition_t *partition, size_t count, off_t offs
 /******************************************************************************/
 /***********************************SYSCALL************************************/
 
-int vumbr_confirm_subdev(int subdev, struct vudev_t *vudev) {
+int vumbr_confirm_subdev(unsigned int subdev, struct vudev_t *vudev) {
 	struct vumbr_t *vumbr = vudev_get_private_data(vudev);
-	return subdev >= 0 && subdev <= vumbr->part_table_last_elem && vumbr->part_table[subdev].type != 0;
+	return subdev <= vumbr->part_table_last_elem && vumbr->part_table[subdev].type != 0;
 }
 
 int vumbr_open(const char *pathname, mode_t mode, struct vudevfd_t *vdevfd) {

@@ -43,10 +43,10 @@
 /* vuht_entry_t:
 	 @obj: hash key
 	 @mtabline: mount tab line
-	 @mountflags:`
+	 @mountflags: see mount(2)
 	 @type: type
 	 @timestamp: timestamp of the entry
-	 @vuflags: flags (e.g. pemanent, prefix)
+	 @vuflags: flags (e.g. permanent, prefix)
 	 @service: service associated to this item
 	 @service_hte: hte of the service associated to this item
 	 @private_data: opaque container for module data

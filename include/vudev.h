@@ -31,7 +31,7 @@ void vudev_set_devtype(struct vudev_t *vudev, mode_t devtype);
 struct vudev_operations_t {
 	/* confirm_function for devices with trailing numbers (e.g. hda1, hda2 etc)
 		 return 1 if this submodule manages that subdevice */
-	int (*confirm_subdev) (int subdev, struct vudev_t *vudev);
+	int (*confirm_subdev) (unsigned int subdev, struct vudev_t *vudev);
 	int (*open) (const char *pathname, mode_t mode, struct vudevfd_t *vudevfd);
 	int (*close) (int fd, struct vudevfd_t *vudevfd);
 	/* when pread/pwrite are defined, read/write can be omitted. umdev translates
