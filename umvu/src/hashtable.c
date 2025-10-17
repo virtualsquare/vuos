@@ -223,6 +223,13 @@ static int call_confirmfun(struct vuht_entry_t *ht, void *opaque) {
 		return 1;
 }
 
+static inline int prefixok(int vuflags, char *tail) {
+	if (vuflags & VUFLAG_PREFIX)
+		return strchr(tail, '/') == NULL;
+	else
+		return *tail == '/' || *tail == 0;
+}
+
 static int has_exception(struct vuht_entry_t *ht) {
 	return ht->confirmfun != NULL && ht->type != CHECKMODULE;
 }
@@ -252,7 +259,7 @@ static struct vuht_entry_t *vuht_internal_search(uint8_t type, void *obj,
 				if (type == ht->type && sum == ht->hashsum &&
 						len == ht->objlen &&
 						memcmp(obj, ht->obj, len) == 0 &&
-						(!(ht->vuflags & VUFLAG_PREFIX) || (strchr(objc, '/') == NULL)) &&
+						(!(type == CHECKPATH) || prefixok(ht->vuflags, objc)) &&
 						(e = matching_epoch(ht->timestamp)) > 0) {
 					/*carrot add*/
 					if (ht->confirmfun == NEGATIVE_MOUNT)
