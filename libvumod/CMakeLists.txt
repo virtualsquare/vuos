@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.25)
 set(VUMODLIB_VERSION_STRING 0.0.1)
 set(VUMODLIB_VERSION_MAJOR 0)
 

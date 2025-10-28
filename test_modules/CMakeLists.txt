@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.25)
 
 include_directories(${VU_HEADERS})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.25)
 
 set(UMVU_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(UMVU_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.25)
 project("vuos"
-		VERSION 0.9.3
+		VERSION 0.9.4
 		DESCRIPTION ""
 		HOMEPAGE_URL "https://github.com/virtualsquare/vuos"
 		LANGUAGES C)

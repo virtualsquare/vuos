@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.25)
 
 file(GLOB VU_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 install(FILES ${VU_HEADERS} DESTINATION ${HEADERS_INSTALL_PATH})
