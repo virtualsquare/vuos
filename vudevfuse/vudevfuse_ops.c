@@ -407,14 +407,13 @@ static void fuse_filldir(FILE *f, const char *name, unsigned short int namelen,
 	};
 	static char filler[7];
 	unsigned short int reclen  = offsetof(struct dirent64, d_name) + namelen + 1;
-	int ret_value;
 	snprintf(entry.d_name, 256, "%.*s", namelen, name);
 	/* entries are always 8 bytes aligned */
 	entry.d_reclen = (reclen + 7) & (~7);
-	ret_value = fwrite(&entry, reclen, 1, f);
+	fwrite(&entry, reclen, 1, f);
 	/* add a filler to align the next entry */
 	if (entry.d_reclen > reclen)
-		ret_value += fwrite(filler, entry.d_reclen - reclen, 1, f);
+		fwrite(filler, entry.d_reclen - reclen, 1, f);
 }
 
 #define FUSE_INBUF_LEN 4080

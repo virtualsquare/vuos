@@ -692,14 +692,13 @@ static int vufuse_common_filldir(FILE *f, const char *name, unsigned char type, 
 	static char filler[7];
 	unsigned short int namelen = strlen(name) + 1;
 	unsigned short int reclen  = offsetof(struct dirent64, d_name) + namelen;
-	int ret_value;
 	snprintf(entry.d_name, 256, "%s", name);
 	/* entries are always 8 bytes aligned */
 	entry.d_reclen = (reclen + 7) & (~7);
-	ret_value = fwrite(&entry, reclen, 1, f);
+	fwrite(&entry, reclen, 1, f);
 	/* add a filler to align the next entry */
 	if (entry.d_reclen > reclen)
-		ret_value += fwrite(filler, entry.d_reclen - reclen, 1, f);
+		fwrite(filler, entry.d_reclen - reclen, 1, f);
 	return 0;
 }
 
