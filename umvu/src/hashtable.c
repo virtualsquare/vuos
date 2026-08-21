@@ -390,7 +390,7 @@ struct vuht_entry_t *vuht_add(uint8_t type, const void *obj, int objlen,
 
 static int permanent_mount(const char *opts)
 {
-	char *match;
+	const char *match;
 	if (opts == NULL)
 		return 0;
 	return (match = strstr(opts, "permanent")) != NULL &&

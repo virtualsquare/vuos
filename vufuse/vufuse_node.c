@@ -58,7 +58,7 @@ static char *vufuse_node_hiddenpath_rename(struct fuse *fuse, char *oldpath)
 
 static inline int vufuse_node_hiddenpath_check(struct fuse *fuse, const char *path)
 {
-	char *last_slash = strrchr(path, '/');
+	const char *last_slash = strrchr(path, '/');
 	if (last_slash) {
 		char check[HIDDEN_PREFIX_LEN + 1];
 		snprintf(check,HIDDEN_PREFIX_LEN + 1,"/.fuse%0*lx", ADDRESS_LEN, (uintptr_t) fuse);

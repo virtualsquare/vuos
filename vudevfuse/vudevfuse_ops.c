@@ -163,7 +163,7 @@ static int fuse_recstat(struct fusemount_t *fusemount, char *path,
 
 static int path_len(const char *path, int parent) {
 	if (parent) {
-		char *slash = strrchr(path, '/');
+		const char *slash = strrchr(path, '/');
 		if (slash)
 			return slash - path;
 		else

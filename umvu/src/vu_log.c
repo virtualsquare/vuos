@@ -131,7 +131,7 @@ void set_log_file(char *logfile_path) {
 static const char *debug_alltags = DEBUG_ALLTAGS;
 /* always succeeds, returns 0 if the tag does not exist */
 static int debug_tag2index(int tag) {
-	char *tagp = strchr(debug_alltags, tag);
+	const char *tagp = strchr(debug_alltags, tag);
 	if (tagp == NULL)
 		return 0;
 	else
