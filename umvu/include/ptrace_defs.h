@@ -26,12 +26,43 @@
 		snprintf(errmsg, 80, "%s line %d, ptrace", __FILE__, __LINE__);        \
 		perror(errmsg);                                                        \
 	}
-
+#if defined(__aarch64__)
+#define P_GETREGS(tracee_tid, regs) \
+	do { \
+		struct iovec iov = { .iov_base = regs, .iov_len = sizeof(arch_regs_struct), }; \
+		long err; \
+		if (!(err = r_ptrace(PTRACE_GETREGSET, tracee_tid, NT_PRSTATUS, &iov))) { \
+			iov.iov_base += sizeof (struct user_regs_struct); \
+			iov.iov_len = sizeof(int); \
+			err = r_ptrace(PTRACE_GETREGSET, tracee_tid, NT_ARM_SYSTEM_CALL, &iov); } \
+		if (err == -1) { \
+			char errmsg[80]; \
+			snprintf(errmsg, 80, "%s line %d, ptrace", __FILE__, __LINE__); \
+			perror(errmsg); \
+			pthread_exit(NULL); \
+		} \
+	} while(0)
+#define P_SETREGS(tracee_tid, regs) \
+	do { \
+		struct iovec iov = { .iov_base = regs, .iov_len = sizeof(arch_regs_struct), }; \
+		long err; \
+		if (!(err = r_ptrace(PTRACE_SETREGSET, tracee_tid, NT_PRSTATUS, &iov))) { \
+			iov.iov_base += sizeof (struct user_regs_struct); \
+			iov.iov_len = sizeof(int); \
+			err = r_ptrace(PTRACE_SETREGSET, tracee_tid, NT_ARM_SYSTEM_CALL, &iov); } \
+		if (err == -1) { \
+			char errmsg[80]; \
+			snprintf(errmsg, 80, "%s line %d, ptrace", __FILE__, __LINE__); \
+			perror(errmsg); \
+			pthread_exit(NULL); \
+		} \
+	} while(0)
+#else
 #define P_GETREGS(tracee_tid, regs) \
 	PTRACE(PTRACE_GETREGSET, tracee_tid, NT_PRSTATUS, &((struct iovec) {regs, sizeof(arch_regs_struct)}))
 #define P_SETREGS(tracee_tid, regs) \
 	PTRACE(PTRACE_SETREGSET, tracee_tid, NT_PRSTATUS, &((struct iovec) {regs, sizeof(arch_regs_struct)}))
-
+#endif
 #define P_SYSCALL(tracee_tid, signal) PTRACE(PTRACE_SYSCALL, tracee_tid, 0L, signal)
 #define P_CONT(tracee_tid, signal) PTRACE(PTRACE_CONT, tracee_tid, 0L, signal)
 #define P_LISTEN(tracee_tid, signal) PTRACE(PTRACE_LISTEN, tracee_tid, 0L, signal)
@@ -43,13 +74,44 @@
 #define P_SETOPT(tracee_tid, opt) PTRACE(PTRACE_SETOPTIONS, tracee_tid, 0L, opt)
 #define P_GETEVENTMSG(tracee_tid, event)                                       \
 	PTRACE(PTRACE_GETEVENTMSG, tracee_tid, 0L, event)
-
+#if defined(__aarch64__)
+#define P_GETREGS_NODIE(tracee_tid, regs) \
+        do { \
+                struct iovec iov = { .iov_base = regs, .iov_len = sizeof(arch_regs_struct), }; \
+                long err; \
+                if (!(err = r_ptrace(PTRACE_GETREGSET, tracee_tid, NT_PRSTATUS, &iov))) { \
+                        iov.iov_base += sizeof (struct user_regs_struct); \
+                        iov.iov_len = sizeof(int); \
+                        err = r_ptrace(PTRACE_GETREGSET, tracee_tid, NT_ARM_SYSTEM_CALL, &iov); } \
+                if (err == -1) { \
+                        char errmsg[80]; \
+                        snprintf(errmsg, 80, "%s line %d, ptrace", __FILE__, __LINE__); \
+                        perror(errmsg); \
+                } \
+        } while(0)
+#define P_SETREGS_NODIE(tracee_tid, regs) \
+        do { \
+                struct iovec iov = { .iov_base = regs, .iov_len = sizeof(arch_regs_struct), }; \
+                long err; \
+                if (!(err = r_ptrace(PTRACE_SETREGSET, tracee_tid, NT_PRSTATUS, &iov))) { \
+                        iov.iov_base += sizeof (struct user_regs_struct); \
+                        iov.iov_len = sizeof(int); \
+                        err = r_ptrace(PTRACE_SETREGSET, tracee_tid, NT_ARM_SYSTEM_CALL, &iov); } \
+                if (err == -1) { \
+                        char errmsg[80]; \
+                        snprintf(errmsg, 80, "%s line %d, ptrace", __FILE__, __LINE__); \
+                        perror(errmsg); \
+                        pthread_exit(NULL); \
+                } \
+        } while(0)
+#else
 #define P_GETREGS_NODIE(tracee_tid, regs)                                      \
 	PTRACE_NODIE(PTRACE_GETREGSET, tracee_tid, NT_PRSTATUS,                      \
 			&((struct iovec) {regs, sizeof(arch_regs_struct)}))
 #define P_SETREGS_NODIE(tracee_tid, regs)                                      \
 	PTRACE_NODIE(PTRACE_SETREGSET, tracee_tid, NT_PRSTATUS,                      \
 			&((struct iovec) {regs, sizeof(arch_regs_struct)}))
+#endif
 #define P_SYSCALL_NODIE(tracee_tid, signal)                                    \
 	PTRACE_NODIE(PTRACE_SYSCALL, tracee_tid, 0L, signal)
 #define P_CONT_NODIE(tracee_tid, signal)                                       \

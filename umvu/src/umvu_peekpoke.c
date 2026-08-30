@@ -166,6 +166,73 @@ int umvu_poke_syscall(arch_regs_struct *regs,
 		return 0;
 }
 
+#elif defined(__aarch64__)
+
+void umvu_peek_syscall(arch_regs_struct *regs,
+                       struct syscall_descriptor_t *syscall_desc,
+                       peekpokeop_t op)
+{
+    if (regs && syscall_desc) {
+        if (op == PEEK_ARGS) {
+            syscall_desc->orig_syscall_number =
+            syscall_desc->syscall_number = regs->syscallno;
+            syscall_desc->syscall_args[0] = regs->regs[0];
+            syscall_desc->syscall_args[1] = regs->regs[1];
+            syscall_desc->syscall_args[2] = regs->regs[2];
+            syscall_desc->syscall_args[3] = regs->regs[3];
+            syscall_desc->syscall_args[4] = regs->regs[4];
+            syscall_desc->syscall_args[5] = regs->regs[5];
+            syscall_desc->prog_counter = regs->pc;
+            syscall_desc->stack_pointer = regs->sp;
+        } else {
+            syscall_desc->orig_ret_value = regs->regs[0];
+        }
+    }
+}
+
+int umvu_poke_syscall(arch_regs_struct *regs,
+                      struct syscall_descriptor_t *syscall_desc,
+                      peekpokeop_t op)
+{
+    if (regs && syscall_desc) {
+        switch (op) {
+        case POKE_ARGS:
+            /* regs->sp is missing as stack pointer should not be modified */
+            if (regs->syscallno == (unsigned) syscall_desc->syscall_number &&
+                regs->regs[0] == syscall_desc->syscall_args[0] &&
+                regs->regs[1] == syscall_desc->syscall_args[1] &&
+                regs->regs[2] == syscall_desc->syscall_args[2] &&
+                regs->regs[3] == syscall_desc->syscall_args[3] &&
+                regs->regs[4] == syscall_desc->syscall_args[4] &&
+                regs->regs[5] == syscall_desc->syscall_args[5] &&
+                regs->pc == syscall_desc->prog_counter)
+                return 0;
+
+            regs->syscallno = regs->regs[8] = syscall_desc->syscall_number;
+            regs->regs[0] = syscall_desc->syscall_args[0];
+            regs->regs[1] = syscall_desc->syscall_args[1];
+            regs->regs[2] = syscall_desc->syscall_args[2];
+            regs->regs[3] = syscall_desc->syscall_args[3];
+            regs->regs[4] = syscall_desc->syscall_args[4];
+            regs->regs[5] = syscall_desc->syscall_args[5];
+            regs->pc = syscall_desc->prog_counter;
+            break;
+        case POKE_RETVALUE:
+            if (regs->regs[0] == syscall_desc->ret_value)
+                return 0;
+            regs->regs[0] = syscall_desc->ret_value;
+            break;
+        case SKIP_SETRETVALUE:
+            regs->regs[8] = -1;
+            regs->regs[0] = syscall_desc->ret_value;
+            break;
+        }
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 #else
 
 #error Unsupported architecture
